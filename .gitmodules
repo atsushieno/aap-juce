@@ -1,0 +1,6 @@
+[submodule "android-audio-plugin-framework"]
+	path = external/android-audio-plugin-framework
+	url = https://github.com/atsushieno/android-audio-plugin-framework.git
+[submodule "external/juce_emscripten.git"]
+	path = external/juce_emscripten
+	url = https://github.com/atsushieno/juce_emscripten/

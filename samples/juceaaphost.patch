@@ -1,0 +1,108 @@
+diff -ur external/juce_emscripten/extras/AudioPluginHost/Source/HostStartup.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/HostStartup.cpp
+--- external/juce_emscripten/extras/AudioPluginHost/Source/HostStartup.cpp	2020-03-16 02:33:14.673067586 +0900
++++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/HostStartup.cpp	2020-03-16 02:13:57.738597385 +0900
+@@ -29,7 +29,7 @@
+ #include "Plugins/InternalPlugins.h"
+ 
+ #if ! (JUCE_PLUGINHOST_VST || JUCE_PLUGINHOST_VST3 || JUCE_PLUGINHOST_AU)
+- #error "If you're building the audio plugin host, you probably want to enable VST and/or AU support"
++// #error "If you're building the audio plugin host, you probably want to enable VST and/or AU support"
+ #endif
+ 
+ 
+diff -ur external/juce_emscripten/extras/AudioPluginHost/Source/Plugins/PluginGraph.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/Plugins/PluginGraph.cpp
+--- external/juce_emscripten/extras/AudioPluginHost/Source/Plugins/PluginGraph.cpp	2020-03-16 02:33:14.673067586 +0900
++++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/Plugins/PluginGraph.cpp	2020-03-16 02:13:57.742597662 +0900
+@@ -425,7 +425,7 @@
+                     {
+                         jassert (node->getProcessor() != nullptr);
+ 
+-                        if (auto w = getOrCreateWindowFor (node, type))
++                        if (auto w = getOrCreateWindowFor (node.get(), type))
+                             w->toFront (true);
+                     }
+                 }
+Only in external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source: test.cpp
+diff -ur external/juce_emscripten/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/GraphEditorPanel.cpp
+--- external/juce_emscripten/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp	2020-03-16 02:33:14.673067586 +0900
++++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/GraphEditorPanel.cpp	2020-03-16 02:13:57.742597662 +0900
+@@ -28,9 +28,10 @@
+ #include "GraphEditorPanel.h"
+ #include "../Plugins/InternalPlugins.h"
+ #include "MainHostWindow.h"
++#include "../../../../modules/juceaap_audio_plugin_processors/juce_android_audio_plugin_format.h"
+ 
+ //==============================================================================
+-#if JUCE_IOS
++#if JUCE_IOS || JUCE_ANDROID
+  class AUScanner
+  {
+  public:
+@@ -45,7 +46,13 @@
+ 
+  private:
+      KnownPluginList& knownPluginList;
++#if JUCE_IOS
+      AudioUnitPluginFormat formatToScan;
++#else
++#if JUCE_ANDROID
++     juceaap::AndroidAudioPluginFormat formatToScan;
++#endif
++#endif
+ 
+      std::unique_ptr<PluginDirectoryScanner> scanner;
+      FileSearchPath paths;
+@@ -1097,7 +1104,7 @@
+         knownPlugins.addChangeListener (this);
+         owner.addMouseListener (this, true);
+ 
+-       #if JUCE_IOS
++       #if JUCE_IOS || JUCE_ANDROID
+         scanner.reset (new AUScanner (knownPlugins));
+        #endif
+     }
+@@ -1146,7 +1153,7 @@
+ 
+     bool isOverSelectedRow = false;
+ 
+-   #if JUCE_IOS
++   #if JUCE_IOS || JUCE_ANDROID
+     std::unique_ptr<AUScanner> scanner;
+    #endif
+ 
+diff -ur external/juce_emscripten/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/MainHostWindow.cpp
+--- external/juce_emscripten/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp	2020-03-16 02:33:14.673067586 +0900
++++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/MainHostWindow.cpp	2020-03-16 02:13:57.742597662 +0900
+@@ -27,6 +27,7 @@
+ #include "../JuceLibraryCode/JuceHeader.h"
+ #include "MainHostWindow.h"
+ #include "../Plugins/InternalPlugins.h"
++#include "../../../../modules/juceaap_audio_plugin_processors/juce_android_audio_plugin_format.h"
+ 
+ 
+ //==============================================================================
+@@ -80,6 +81,8 @@
+ {
+     formatManager.addDefaultFormats();
+     formatManager.addFormat (new InternalPluginFormat());
++    aap::getPluginHostPAL()->setPluginListCache(aap::getPluginHostPAL()->getInstalledPlugins());
++    formatManager.addFormat (new juceaap::AndroidAudioPluginFormat());
+ 
+     auto safeThis = SafePointer<MainHostWindow> (this);
+     RuntimePermissions::request (RuntimePermissions::recordAudio,
+@@ -215,6 +218,7 @@
+     {
+         menuItemsChanged();
+ 
++#if !ANDROID // FIXME: this premises that plugin query results can be manually updated, which does not apply to Android app.
+         // save the plugin list every time it gets changed, so that if we're scanning
+         // and it crashes, we've still saved the previous ones
+         if (auto savedPluginList = std::unique_ptr<XmlElement> (knownPluginList.createXml()))
+@@ -222,6 +226,7 @@
+             getAppProperties().getUserSettings()->setValue ("pluginList", savedPluginList.get());
+             getAppProperties().saveIfNeeded();
+         }
++#endif
+     }
+     else if (graphHolder != nullptr && changed == graphHolder->graph.get())
+     {
