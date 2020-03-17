@@ -12,4 +12,3 @@ license: GPLv3
 END_JUCE_MODULE_DECLARATION
 */
 
-#include "../../../plugin-api/include/aap/android-audio-plugin.h"

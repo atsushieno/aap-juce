@@ -1,0 +1,39 @@
+diff -ur ./Source/PluginProcessor.cpp ../../external/android-audio-plugin-framework/native/juce/samples/andes/Source/PluginProcessor.cpp
+--- Source/PluginProcessor.cpp	2020-03-17 01:34:46.899130713 +0900
++++ Source/PluginProcessor.cpp	2020-03-16 02:13:57.746597938 +0900
+@@ -222,13 +222,13 @@
+ void AndesAudioProcessor::getStateInformation(MemoryBlock& destData)
+ {
+     internalParameters.setProperty("seed", (int64) noise.getSeed(), nullptr);
+-    ScopedPointer<XmlElement> xml(parameters.state.createXml());
++    std::unique_ptr<XmlElement> xml(parameters.state.createXml());
+     copyXmlToBinary(*xml, destData);
+ }
+ 
+ void AndesAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
+ {
+-    ScopedPointer<XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
++    std::unique_ptr<XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+     
+     if (xmlState != nullptr)
+     {
+diff -ur samples/andes/Source/EnvelopeGenerator.h external/android-audio-plugin-framework/native/juce/samples/andes/Source/EnvelopeGenerator.h
+--- Source/EnvelopeGenerator.h	2020-03-17 05:00:15.068393722 +0900
++++ Source/EnvelopeGenerator.h	2020-03-16 02:13:57.746597938 +0900
+@@ -43,10 +43,10 @@
+ private:
+     AndesAudioProcessor& processor;
+ 
+-    float* attackParam;
+-    float* decayParam;
+-    float* sustainParam;
+-    float* releaseParam;
++    std::atomic<float>* attackParam;
++    std::atomic<float>* decayParam;
++    std::atomic<float>* sustainParam;
++    std::atomic<float>* releaseParam;
+ 
+     double sampleRate;
+     float level;
+Only in samples/andes: .stamp
+Only in samples/andes: .travis.yml
