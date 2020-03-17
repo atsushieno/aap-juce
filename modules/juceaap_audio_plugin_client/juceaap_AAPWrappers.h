@@ -1,6 +1,6 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "../../plugin-api/include/aap/android-audio-plugin.h"
+#include "../../external/android-audio-plugin-framework/native/plugin-api/include/aap/android-audio-plugin.h"
 
 extern juce::AudioProcessor* createPluginFilter(); // it is defined in each Audio plugin project (by Projucer).
 

@@ -10,13 +10,13 @@ echo "usage: APPNAME=xyz PROJUCER=/path/to/JUCE/Projucer build-sample.sh [.jucer
 echo "Entering $CURDIR ..."
 cd $SRCDIR
 
-$PROJUCER --resave $APPNAME.jucer
-sed -e "s/#define JUCE_PROJUCER_VERSION/\\/\\/\$1/" JuceLibraryCode/AppConfig.h> JuceLibraryCode/tmpcfg.txt
-mv JuceLibraryCode/tmpcfg.txt JuceLibraryCode/AppConfig.h
+$PROJUCER --resave $APPNAME.jucer || exit 1
+# sed -e "s/#define JUCE_PROJUCER_VERSION/\\/\\/\$1/" JuceLibraryCode/AppConfig.h> JuceLibraryCode/tmpcfg.txt || eixt 2
+# mv JuceLibraryCode/tmpcfg.txt JuceLibraryCode/AppConfig.h || exit 3
 
-make -C Builds/LinuxMakefile
+make -C Builds/LinuxMakefile || exit 4
 
-APPNAME=$APPNAME $CURDIR/fixup-project.sh
+APPNAME=$APPNAME $CURDIR/fixup-project.sh || exit 5
 
 # There is no way to generate those files in Projucer.
 cp $CURDIR/samples/sample-project.gradle.properties Builds/Android/gradle.properties
