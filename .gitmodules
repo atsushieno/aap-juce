@@ -11,3 +11,6 @@
 [submodule "external/SARAH"]
 	path = external/SARAH
 	url = https://github.com/getdunne/SARAH/
+[submodule "external/Magical8bitPlug2"]
+	path = external/Magical8bitPlug2
+	url = https://github.com/yokemura/Magical8bitPlug2.git
