@@ -14,3 +14,6 @@
 [submodule "external/Magical8bitPlug2"]
 	path = external/Magical8bitPlug2
 	url = https://github.com/yokemura/Magical8bitPlug2.git
+[submodule "external/dexed"]
+	path = external/dexed
+	url = https://github.com/atsushieno/dexed.git

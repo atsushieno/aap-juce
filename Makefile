@@ -91,3 +91,17 @@ samples/Magical8bitPlug2/.stamp: \
 	./create-patched-juce-app.sh  Magical8bitPlug2  external/Magical8bitPlug2 \
 		samples/Magical8bitPlug2  ../magical8bitplug2-aap.patch  1  samples/override.Magical8bitPlug2.jucer
 
+.PHONY:
+build-dexed: create-patched-dexed do-build-dexed
+.PHONY:
+do-build-dexed:
+	echo "PROJUCER is at $(PROJUCER_BIN)"
+	APPNAME=Dexed PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/dexed/Dexed.jucer
+.PHONY:
+create-patched-dexed: samples/dexed/.stamp 
+samples/dexed/.stamp: \
+		external/dexed/** \
+		samples/override.Dexed.jucer \
+		samples/sample-project.*
+	./create-patched-juce-app.sh  Dexed  external/dexed \
+		samples/dexed  -  -  samples/override.Dexed.jucer
