@@ -8,3 +8,6 @@
 	path = external/juce_emscripten
 	url = https://github.com/atsushieno/JUCE.git
 	branch = juce_emscripten
+[submodule "external/SARAH"]
+	path = external/SARAH
+	url = https://github.com/getdunne/SARAH/

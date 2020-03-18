@@ -61,3 +61,21 @@ samples/andes/.stamp: \
 	./create-patched-juce-app.sh  Andes_1  external/andes \
 		samples/andes  ../andes-aap.patch  0  samples/override.Andes-1.jucer
 
+.PHONY:
+build-sarah: create-patched-sarah do-build-sarah
+.PHONY:
+do-build-sarah:
+	echo "PROJUCER is at $(PROJUCER_BIN)"
+	APPNAME=SARAH PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/SARAH/SARAH.jucer
+
+.PHONY:
+create-patched-sarah: samples/SARAH/.stamp 
+
+samples/SARAH/.stamp: \
+		external/SARAH/** \
+		samples/andes-aap.patch \
+		samples/override.SARAH.jucer \
+		samples/sample-project.*
+	./create-patched-juce-app.sh  SARAH  external/SARAH \
+		samples/SARAH  ../sarah-aap.patch  0  samples/override.SARAH.jucer
+
