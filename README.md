@@ -14,6 +14,8 @@ This repo is the place where we have JUCE integration support modules for [andro
 The entire AAP framework is on early development phase and not ready for any consumption yet.
 Everything is subject to change. Contributions are welcome but documentation is poor, and source code is ugly yet.
 
+It builds on Android and desktop (confirmed only on Linux so far). It can launch, enumerate the installed audio plugins on the system, and instantiate each plugin (only one can be instantiated), but audio inputs are not verified to work.
+
 
 ## Why JUCE?
 
@@ -206,6 +208,14 @@ Note that those relative paths are valid only if those source directories exist 
 If you don't want to be messed a lot, just specify absolute paths that won't be viable outside your machine (we don't accept such PRs), but it would work for you.
 
 Lastly, copy `sample-project-build.gradle` as the project top-level `build.gradle` in `Builds/Android`. Projucer lacks options to specify required content so we have to come up with manually generated ones. Fortunately there is nothing specific to the project, usually.
+
+
+## HACKING
+
+The easiest way to hack AAP JUCE integration itself would be still via sample app projects on Android Studio.
+
+Although on the other hand, JUCE integration on desktop is significantly easy as JUCE is primarily developed for desktop, if code to hack is not Android specific.
+JUCE exporter for CLion may be useful for debugging (especially that Android Studio native builds are also for CMake either way). On CLion (verified with 2019.3) setting the project root with `Tools` -> `CMake` -> `Change Project Root` command would make it possible to diagnose issues with breakpoints on the sources from AAP itself (also LV2 dependencies and prebuilt LV2 plugins e.g. mda-lv2, but it is out of scope of this repo).
 
 
 ## Code origin and license
