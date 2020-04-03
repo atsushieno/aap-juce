@@ -1,4 +1,5 @@
 
+NDK_VERSION=21.0.6113669
 JUCE_DIR=$(shell pwd)/external/juce_emscripten
 PROJUCER_BIN=$(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/Projucer
 
@@ -29,7 +30,7 @@ build-audiopluginhost: create-patched-pluginhost do-build-audiopluginhost
 .PHONY:
 do-build-audiopluginhost:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	APPNAME=AudioPluginHost PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) SKIP_METADATA_GENERATOR=1 ./build-sample.sh samples/AudioPluginHost/AudioPluginHost.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=AudioPluginHost PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) SKIP_METADATA_GENERATOR=1 ./build-sample.sh samples/AudioPluginHost/AudioPluginHost.jucer
 
 .PHONY:
 create-patched-pluginhost: samples/AudioPluginHost/.stamp 
@@ -48,7 +49,7 @@ build-andes: create-patched-andes do-build-andes
 .PHONY:
 do-build-andes:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	APPNAME=Andes_1 PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/andes/Andes_1.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=Andes_1 PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/andes/Andes_1.jucer
 .PHONY:
 create-patched-andes: samples/andes/.stamp 
 samples/andes/.stamp: \
@@ -64,7 +65,7 @@ build-sarah: create-patched-sarah do-build-sarah
 .PHONY:
 do-build-sarah:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	APPNAME=SARAH PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/SARAH/SARAH.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=SARAH PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/SARAH/SARAH.jucer
 .PHONY:
 create-patched-sarah: samples/SARAH/.stamp 
 samples/SARAH/.stamp: \
@@ -80,7 +81,7 @@ build-magical8bitplug2: create-patched-magical8bitplug2 do-build-magical8bitplug
 .PHONY:
 do-build-magical8bitplug2:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	APPNAME=Magical8bitPlug2 PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/Magical8bitPlug2/Magical8bitPlug2.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=Magical8bitPlug2 PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/Magical8bitPlug2/Magical8bitPlug2.jucer
 .PHONY:
 create-patched-magical8bitplug2: samples/Magical8bitPlug2/.stamp 
 samples/Magical8bitPlug2/.stamp: \
@@ -96,7 +97,7 @@ build-dexed: create-patched-dexed do-build-dexed
 .PHONY:
 do-build-dexed:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	APPNAME=Dexed PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/dexed/Dexed.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=Dexed PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/dexed/Dexed.jucer
 .PHONY:
 create-patched-dexed: samples/dexed/.stamp 
 samples/dexed/.stamp: \
