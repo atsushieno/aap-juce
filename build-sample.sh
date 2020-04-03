@@ -32,7 +32,7 @@ mv Builds/CLion/CMakeLists.txt.patched Builds/CLion/CMakeLists.txt
 # cd Builds/LinuxMakefile && make && cd ../..
 
 # Some CI servers have only "ndk-bundle" ...
-if [ -d ~/Android/Sdk/ndk-bundle ] ; then
+if [ -d $ANDROID_SDK_OVERRIDE/ndk-bundle ] ; then
     echo "ndk.dir=$ANDROID_SDK_OVERRIDE/ndk-bundle\nsdk.dir=$ANDROID_SDK_OVERRIDE" > Builds/Android/local.properties
 else
     echo "ndk.dir=$ANDROID_SDK_OVERRIDE/ndk/$NDK_VERSION\nsdk.dir=$ANDROID_SDK_OVERRIDE" > Builds/Android/local.properties
