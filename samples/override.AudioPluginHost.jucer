@@ -254,7 +254,6 @@
     <MODULE id="juce_gui_basics" showAllCode="1"/>
     <MODULE id="juce_gui_extra" showAllCode="1"/>
     <MODULE id="juce_opengl" showAllCode="1"/>
-    <MODULE id="juce_video" showAllCode="1"/>
   </MODULES>
   <LIVE_SETTINGS>
     <OSX/>

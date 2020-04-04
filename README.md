@@ -37,6 +37,9 @@ At this state, we can use the official JUCE distribution, without forking and ma
 
 Our repository makes use of [our own fork that supports JUCE 5.4.7 and Web MIDI API](https://github.com/atsushieno/JUCE/tree/juce_emscripten/) (which may not be required once Dreamtonics is back on that effort).
 
+UPDATE: after some investigation, it turned out that current Chrome (and inherently Android WebView)  does not support [Actomics](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics) which is essential to juce_emscripten internals, therefore it will not work on Android so far.
+We keep using juce_emscripten so far though; it may become usable at some stage.
+
 
 ## How to try it out?
 
