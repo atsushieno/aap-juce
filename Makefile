@@ -18,8 +18,8 @@ build-projucer: $(PROJUCER_BIN)
 
 $(PROJUCER_BIN):
 	make -C $(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile
-	if [ $(MINIMIZE_INTERMEDIATES) ] ; then
-		rm -rf $(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/intermediate/
+	if [ $(MINIMIZE_INTERMEDIATES) ] ; then \
+		rm -rf $(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/intermediate/ \
 	fi
 
 .PHONY:
