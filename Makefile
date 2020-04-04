@@ -1,4 +1,5 @@
 
+MINIMIZE_INTERMEDIATES=0
 NDK_VERSION=21.0.6113669
 JUCE_DIR=$(shell pwd)/external/juce_emscripten
 PROJUCER_BIN=$(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/Projucer
@@ -17,6 +18,9 @@ build-projucer: $(PROJUCER_BIN)
 
 $(PROJUCER_BIN):
 	make -C $(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile
+	if [ $(MINIMIZE_INTERMEDIATES) ] ; then
+		rm -rf $(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/intermediate/
+	fi
 
 .PHONY:
 build-aap:
@@ -97,7 +101,7 @@ build-dexed: create-patched-dexed do-build-dexed
 .PHONY:
 do-build-dexed:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	NDK_VERSION=$(NDK_VERSION) APPNAME=Dexed PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/dexed/Dexed.jucer
+	MINIMIZE_INTERMEDIATES=$(MINIMIZE_INTERMEDIATES) NDK_VERSION=$(NDK_VERSION) APPNAME=Dexed PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/dexed/Dexed.jucer
 .PHONY:
 create-patched-dexed: samples/dexed/.stamp 
 samples/dexed/.stamp: \

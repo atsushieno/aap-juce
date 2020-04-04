@@ -3,6 +3,7 @@
 CURDIR="$( cd `dirname $0` >/dev/null 2>&1 && pwd )"
 ANDROID_SDK_OVERRIDE=$HOME/Android/Sdk
 NDK_VERSION=21.0.6113669
+MINIMIZE_INTERMEDIATES=0
 
 if [ -d $ANDROID_SDK_OVERRIDE ] ; then
     echo "ANDROID_SDK_OVERRIDE: $ANDROID_SDK_OVERRIDE"
@@ -59,6 +60,12 @@ echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
 ls $ANDROID_SDK_ROOT
 
 cd Builds/Android && ./gradlew build && cd ../.. || exit 1
+
+if [ $MINIMIZE_INTERMEDIATES ] ; then
+    rm -rf Builds/Android/app/build/intermediates/
+    rm -rf Builds/Android/app/.cxx
+    rm -rf Builds/LinuxMakefile/build/intermediates/
+fi
 
 echo "exiting $CURDIR..."
 cd ..
