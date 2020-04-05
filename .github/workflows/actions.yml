@@ -34,7 +34,7 @@ jobs:
       run: xvfb-run -a --server-args="-screen 0 1280x800x24 -ac -nolisten tcp -dpi 96 +extension RANDR" make MINIMIZE_INTERMEDIATES=1
     - name: dist
       run: make dist
-    - upload-artifact
+    - name: upload-artifact
       uses: actions/upload-artifact@v1
       with:
         name: release-builds
