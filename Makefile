@@ -30,6 +30,16 @@ build-aap:
 build-samples: build-audiopluginhost build-andes build-sarah build-magical8bitplug2 build-dexed
 
 .PHONY:
+dist:
+	mkdir -p release-builds
+	cp  samples/AudioPluginHost/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  release-builds/AudioPluginHost-release.apk
+	cp  samples/andes/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk   release-builds/andes-release.apk
+	cp  samples/SARAH/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk   release-builds/SARAH-release.apk
+	cp  samples/dexed/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  release-builds/dexed-release.apk
+	cp  samples/Magical8bitPlug2/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  release-builds/Magical8bitPlug2-release.apk
+
+
+.PHONY:
 build-audiopluginhost: create-patched-pluginhost do-build-audiopluginhost
 .PHONY:
 do-build-audiopluginhost:
