@@ -27,7 +27,7 @@ build-aap:
 	cd external/android-audio-plugin-framework && make
 
 .PHONY:
-build-samples: build-audiopluginhost build-andes
+build-samples: build-audiopluginhost build-andes build-sarah build-magical8bitplug2 build-dexed
 
 .PHONY:
 build-audiopluginhost: create-patched-pluginhost do-build-audiopluginhost
