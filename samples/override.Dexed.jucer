@@ -140,6 +140,7 @@
         <MODULEPATH id="juce_audio_formats" path="../../external/juce_emscripten/modules" />
         <MODULEPATH id="juce_audio_devices" path="../../external/juce_emscripten/modules" />
         <MODULEPATH id="juce_audio_basics" path="../../external/juce_emscripten/modules" />
+        <MODULEPATH id="juce_dsp" path="../../external/juce_emscripten/modules" />
         <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules" />
       </MODULEPATHS>
     </LINUX_MAKE>
@@ -168,6 +169,7 @@
         <MODULEPATH id="juce_audio_formats" path="../../external/juce_emscripten/modules" />
         <MODULEPATH id="juce_audio_devices" path="../../external/juce_emscripten/modules" />
         <MODULEPATH id="juce_audio_basics" path="../../external/juce_emscripten/modules" />
+        <MODULEPATH id="juce_dsp" path="../../external/juce_emscripten/modules" />
         <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules" />
       </MODULEPATHS>
     </LINUX_MAKE>
@@ -201,6 +203,7 @@
         <MODULEPATH id="juce_audio_formats" path="../../external/juce_emscripten/modules" />
         <MODULEPATH id="juce_audio_devices" path="../../external/juce_emscripten/modules" />
         <MODULEPATH id="juce_audio_basics" path="../../external/juce_emscripten/modules" />
+        <MODULEPATH id="juce_dsp" path="../../external/juce_emscripten/modules" />
         <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules"/>
       </MODULEPATHS>
     </ANDROIDSTUDIO>
