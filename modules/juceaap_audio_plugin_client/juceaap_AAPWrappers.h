@@ -19,6 +19,12 @@ extern "C" int juce_aap_wrapper_last_error_code{0};
 //  IF exists JUCE MIDI input buffer -> AAP MIDI input port p+nIn+nOut
 //  IF exists JUCE MIDI output buffer -> AAP MIDI output port last
 
+class ConsoleLogger : public juce::Logger {
+	void logMessage (const String& message) override {
+		std::cerr << message.toRawUTF8() << std::endl;
+	}
+};
+
 class JuceAAPWrapper {
 	AndroidAudioPlugin *aap;
 	const char* plugin_unique_id;
@@ -29,11 +35,14 @@ class JuceAAPWrapper {
 	juce::AudioProcessor *juce_processor;
 	juce::AudioBuffer<float> juce_buffer;
 	juce::MidiBuffer juce_midi_messages;
+	ConsoleLogger consoleLogger{};
 
 public:
 	JuceAAPWrapper(AndroidAudioPlugin *plugin, const char* pluginUniqueId, int sampleRate, const AndroidAudioPluginExtension * const *extensions)
 		: aap(plugin), plugin_unique_id(pluginUniqueId == nullptr ? nullptr : strdup(pluginUniqueId)), sample_rate(sampleRate), extensions(extensions)
 	{
+        juce::MessageManager::getInstance(); // ensure that we have a message loop.
+        Logger::setCurrentLogger(&consoleLogger); // FIXME: remove this once we get working file-based logger.
         juce_processor = createPluginFilter();
 	}
 
