@@ -19,17 +19,13 @@ if ! [ $OVERRIDE_JUCER ]; then
 	exit 1 ;
 fi
 
-if 0 then
-# The backup stuff below are disabled
-
-if [ -d $DST_PATH-AutoBackup ]; then
-	echo "make sure that you don't retain backup as '$DST_PATH-AutoBackup'. It is a backup to ensure that you have a clean '$DST_PATH' directory. If you really need a backup then give a different name." && exit 2 ;
-fi
-if [ -d $DST_PATH ]; then
-	mv $DST_PATH $DST_PATH-AutoBackup ;
-fi
-
-fi
+# The backup stuff below is disabled
+#if [ -d $DST_PATH-AutoBackup ]; then
+#	echo "make sure that you don't retain backup as '$DST_PATH-AutoBackup'. It is a backup to ensure that you have a clean '$DST_PATH' directory. If you really need a backup then give a different name." && exit 2 ;
+#fi
+#if [ -d $DST_PATH ]; then
+#	mv $DST_PATH $DST_PATH-AutoBackup ;
+#fi
 
 cp -R $SRC_PATH $DST_PATH
 
