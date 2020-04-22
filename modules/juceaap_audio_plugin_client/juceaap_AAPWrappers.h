@@ -70,8 +70,10 @@ public:
         }
         // allocates juce_buffer. No need to interpret content.
         this->buffer = buffer;
-        juce_processor->getBus(true, 0)->enable();
-        juce_processor->getBus(false, 0)->enable();
+        if (juce_processor->getBusCount(true) > 0)
+            juce_processor->getBus(true, 0)->enable();
+        if (juce_processor->getBusCount(false) > 0)
+            juce_processor->getBus(false, 0)->enable();
         juce_buffer.setSize(juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels(), buffer->num_frames);
         juce_midi_messages.clear();
         cached_parameter_values.resize(juce_processor->getParameters().size());
