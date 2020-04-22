@@ -124,7 +124,7 @@ public:
         int nIn = juce_processor->getMainBusNumInputChannels();
 		int nBuf = juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels();
         for (int i = 0; i < nIn; i++)
-        	memcpy((void *) juce_buffer.getReadPointer(i), audioBuffer->buffers[i + nPara], sizeof(float) * audioBuffer->num_frames);
+        	memcpy((void *) juce_buffer.getWritePointer(i), audioBuffer->buffers[i + nPara], sizeof(float) * audioBuffer->num_frames);
         int outputTimeDivision = default_time_division;
 
         if (juce_processor->acceptsMidi()) {
