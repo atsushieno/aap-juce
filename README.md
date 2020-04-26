@@ -104,9 +104,9 @@ Projucer can generate Android apps, and we basically make use of it.
 Although its feature is quite insufficient, we don't expect it to generate the entire set of the required files. We (at least on our samples) copy our own support files into the apps instead, namely the top-level `build.gradle`, `gradle-properties` and `settings.gradle`.
 It is mostly about AAP dependencies.
 
-We also don't expect that the original `.jucer` files can be simply patched by simple diff tool, so we have an enture `.jucer` file to override for each sample project.
+We also don't expect that the original `.jucer` files can be simply patched by simple diff tool, so we have an entire `.jucer` file to override for each sample project.
 They resolve various relative paths to AAP includes and libs.
-Both Projucer and Android Gradle Plugin lacks sufficient support to decenrly resolve them.
+Both Projucer and Android Gradle Plugin lack sufficient support to decently resolve them.
 
 
 ## Generating aap_metadata.xml
