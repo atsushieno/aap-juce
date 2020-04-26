@@ -132,7 +132,7 @@ void AndroidAudioPluginInstance::allocateSharedMemory(int bufferIndex, int32_t s
 {
 #if ANDROID
         int fd = ASharedMemory_create(nullptr, size);
-        auto &fds = native->getSharedMemory()->getSharedMemoryFDs();
+        auto &fds = native->getSharedMemoryExtension()->getPortBufferFDs();
         fds[bufferIndex] = fd;
         buffer->buffers[bufferIndex] = mmap(nullptr, buffer->num_frames * sizeof(float),
                 PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -165,7 +165,7 @@ AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpected
 
     // minimum setup, as the pointers are not passed by JUCE framework side.
     int n = native->getPluginInformation()->getNumPorts();
-    auto &fds = native->getSharedMemory()->getSharedMemoryFDs();
+    auto &fds = native->getSharedMemoryExtension()->getPortBufferFDs();
     fds.resize(n);
     buffer->num_buffers = n;
     buffer->buffers = (void**) calloc(n, sizeof(void*));
@@ -195,7 +195,7 @@ void AndroidAudioPluginInstance::destroyResources() {
         for (int i = 0; i < buffer->num_buffers; i++) {
 #if ANDROID
             munmap(buffer->buffers[i], buffer->num_frames * sizeof(float));
-            auto& fds = native->getSharedMemory()->getSharedMemoryFDs();
+            auto& fds = native->getSharedMemoryExtension()->getPortBufferFDs();
             if (fds[i] != 0)
 	            close(fds[i]);
 #else
