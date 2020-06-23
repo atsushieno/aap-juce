@@ -17,3 +17,6 @@
 [submodule "external/dexed"]
 	path = external/dexed
 	url = https://github.com/atsushieno/dexed.git
+[submodule "external/OB-Xd"]
+	path = external/OB-Xd
+	url = https://github.com/reales/OB-Xd.git

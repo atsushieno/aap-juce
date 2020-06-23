@@ -27,7 +27,7 @@ build-aap:
 	cd external/android-audio-plugin-framework && make MINIMIZE_INTERMEDIATES=$(MINIMIZE_INTERMEDIATES)
 
 .PHONY:
-build-samples: build-audiopluginhost build-andes build-sarah build-magical8bitplug2 build-dexed
+build-samples: build-audiopluginhost build-andes build-sarah build-magical8bitplug2 build-dexed build-obxd
 
 .PHONY:
 dist:
@@ -84,7 +84,7 @@ do-build-sarah:
 create-patched-sarah: samples/SARAH/.stamp 
 samples/SARAH/.stamp: \
 		external/SARAH/** \
-		samples/andes-aap.patch \
+		samples/sarah-aap.patch \
 		samples/override.SARAH.jucer \
 		samples/sample-project.*
 	./create-patched-juce-app.sh  SARAH  external/SARAH \
@@ -100,7 +100,7 @@ do-build-magical8bitplug2:
 create-patched-magical8bitplug2: samples/Magical8bitPlug2/.stamp 
 samples/Magical8bitPlug2/.stamp: \
 		external/Magical8bitPlug2/** \
-		samples/andes-aap.patch \
+		samples/magical8bitplug2-aap.patch \
 		samples/override.Magical8bitPlug2.jucer \
 		samples/sample-project.*
 	./create-patched-juce-app.sh  Magical8bitPlug2  external/Magical8bitPlug2 \
@@ -120,3 +120,20 @@ samples/dexed/.stamp: \
 		samples/sample-project.*
 	./create-patched-juce-app.sh  Dexed  external/dexed \
 		samples/dexed  -  -  samples/override.Dexed.jucer
+
+.PHONY:
+build-obxd: create-patched-obxd do-build-obxd
+.PHONY:
+do-build-obxd:
+	echo "PROJUCER is at $(PROJUCER_BIN)"
+	NDK_VERSION=$(NDK_VERSION) APPNAME=OB_Xd PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) ./build-sample.sh samples/OB-Xd/OB-Xd.jucer
+.PHONY:
+create-patched-obxd: samples/OB-Xd/.stamp 
+samples/OB-Xd/.stamp: \
+		external/OB-Xd/** \
+		samples/andes-aap.patch \
+		samples/override.OB-Xd.jucer \
+		samples/sample-project.*
+	./create-patched-juce-app.sh  OB_Xd  external/OB-Xd \
+		samples/OB-Xd  ../obxd-aap.patch  0  samples/override.OB-Xd.jucer
+

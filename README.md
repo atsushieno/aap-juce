@@ -10,6 +10,7 @@ This repo is the place where we have JUCE integration support modules for [andro
   - [SARAH](https://github.com/getdunne/SARAH/)
   - [dexed](https://github.com/asb2m10/dexed/) (we use private fork)
   - [Magical8bitPlug2](https://github.com/yokemura/Magical8bitPlug2/)
+  - [OB-Xd](https://github.com/reales/OB-Xd)
 
 The entire AAP framework is on early development phase and not ready for any consumption yet.
 Everything is subject to change. Contributions are welcome but documentation is poor, and source code is ugly yet.
@@ -146,8 +147,8 @@ Here are the porting steps that we had. Note that this applies only to samples b
   - minSdkVersion 29
   - targetSdkVersion 29
   - Custom Manifest XML content: listed below
-  - Gradle Version 6.2
-  - Android Plug-in Version 4.0.0-alpha09
+  - Gradle Version 6.5
+  - Android Plug-in Version 4.0.0
 
 For module dependenciesm add below:
 
@@ -197,13 +198,13 @@ For `<ANDROIDSTUDIO>` (`targetName` attribute can be specified here too, but tot
 
 ```
         <CONFIGURATION name="Debug" isDebug="1" 
-                       headerPath="../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
-                       libraryPath="../../../../external/android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/debug/obj/${ANDROID_ABI}"
+                       headerPath="${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/native/plugin-api/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
+                       libraryPath="${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/debug/obj/${ANDROID_ABI}"
                        optimisation="1" linkTimeOptimisation="0"
                        recommendedWarnings="LLVM"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" linkTimeOptimisation="1"
-                       headerPath="../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
-                       libraryPath="../../../../external/android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/release/obj/${ANDROID_ABI}"
+                       headerPath="${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/native/plugin-api/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
+                       libraryPath="${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/release/obj/${ANDROID_ABI}"
                        recommendedWarnings="LLVM"/>
 ```
 
