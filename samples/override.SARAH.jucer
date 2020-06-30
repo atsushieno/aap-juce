@@ -85,10 +85,16 @@
         <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules"/>
       </MODULEPATHS>
     </VS2017>
-    <XCODE_MAC targetFolder="Builds/MacOSX">
+    <XCODE_MAC targetFolder="Builds/MacOSX" extraLinkerFlags="-landroidaudioplugin">
       <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="SARAH"/>
-        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="SARAH"/>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="SARAH"
+            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
+        />
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="SARAH"
+            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
+        />
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_opengl" path="../../external/juce_emscripten/modules" />

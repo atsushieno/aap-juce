@@ -101,11 +101,17 @@
     <FILE id="a4A23f" name="icon-512.png" compile="0" resource="1" file="Resources/icon-512.png"/>
   </MAINGROUP>
   <EXPORTFORMATS>
-    <XCODE_MAC targetFolder="Builds/MacOSX" hardenedRuntime="1" smallIcon="EM0Wl7"
+    <XCODE_MAC targetFolder="Builds/MacOSX" hardenedRuntime="1" smallIcon="EM0Wl7" extraLinkerFlags="-landroidaudioplugin"
                bigIcon="a4A23f" vstLegacyFolder="../../magical8bitPlug-misc/VST_SDK/VST2_SDK">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" codeSigningIdentity="Developer ID Application"/>
-        <CONFIGURATION isDebug="0" name="Release" codeSigningIdentity="Developer ID Application"/>
+        <CONFIGURATION isDebug="1" name="Debug" codeSigningIdentity="Developer ID Application"
+            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
+        />
+        <CONFIGURATION isDebug="0" name="Release" codeSigningIdentity="Developer ID Application"
+            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
+        />
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../../Applications/JUCE/modules"/>

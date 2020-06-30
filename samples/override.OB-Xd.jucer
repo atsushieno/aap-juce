@@ -66,6 +66,35 @@
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX" bigIcon="nnY63W" smallIcon="nnY63W" extraLinkerFlags="-landroidaudioplugin">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="Obxd" stripLocalSymbols="0"
+            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
+                       osxCompatibility="10.6 SDK" linkTimeOptimisation="0"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="Obxd"
+            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
+                       stripLocalSymbols="1" osxCompatibility="10.6 SDK" linkTimeOptimisation="0"
+                       osxArchitecture="64BitIntel"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_opengl" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../external/juce_emscripten/modules"/>
+        <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraLinkerFlags="-no-pie">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" targetName="OB_Xd"

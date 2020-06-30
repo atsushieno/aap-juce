@@ -4,10 +4,15 @@
               juceFolder="../../external/juce_emscripten"  bundleIdentifier="org.androidaudioplugin.samples.pluginhost" jucerVersion="5.4.5" companyName="AndroidAudioPlugin" displaySplashScreen="0" reportAppUsage="0" companyCopyright="AndroidAudioPlugin developers" cppLanguageStandard="17">
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" rtasFolder="~/SDKs/PT_80_SDK" objCExtraSuffix="M73TRi"
-               smallIcon="c97aUr" bigIcon="c97aUr" microphonePermissionNeeded="1">
+               smallIcon="c97aUr" bigIcon="c97aUr" microphonePermissionNeeded="1" extraLinkerFlags="-landroidaudioplugin">
       <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" isDebug="1" targetName="AudioPluginHost" recommendedWarnings="LLVM"/>
+        <CONFIGURATION name="Debug" isDebug="1" targetName="AudioPluginHost" recommendedWarnings="LLVM"
+            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
+        />
         <CONFIGURATION name="Release" isDebug="0" optimisation="2" targetName="AudioPluginHost"
+            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
                        recommendedWarnings="LLVM"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
