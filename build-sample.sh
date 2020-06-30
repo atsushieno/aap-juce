@@ -5,6 +5,11 @@ ANDROID_SDK_OVERRIDE=$HOME/Android/Sdk
 NDK_VERSION=21.0.6113669
 MINIMIZE_INTERMEDIATES=0
 GRADLE_BUILD_TYPE=Release
+if [ `uname`=='Darwin' ] ; then
+READLINK=greadlink # brew install coreutils
+else
+READLINK=readlink
+fi
 
 if [ -d $ANDROID_SDK_OVERRIDE ] ; then
     echo "ANDROID_SDK_OVERRIDE: $ANDROID_SDK_OVERRIDE"
@@ -24,7 +29,7 @@ if ! [ -f $1 ] ; then
     exit 2
 fi
 
-SRCFILE=`readlink -f $1` >/dev/null
+SRCFILE=`$READLINK -f $1` >/dev/null
 SRCDIR=`dirname $SRCFILE` >/dev/null
 
 echo "Entering $SRCDIR ..."
@@ -34,7 +39,11 @@ $PROJUCER --resave $APPNAME.jucer || exit 1
 # sed -e "s/#define JUCE_PROJUCER_VERSION/\\/\\/\$1/" JuceLibraryCode/AppConfig.h> JuceLibraryCode/tmpcfg.txt || eixt 2
 # mv JuceLibraryCode/tmpcfg.txt JuceLibraryCode/AppConfig.h || exit 3
 
-make -C Builds/LinuxMakefile || exit 4
+if [ `uname`=='Darwin' ] ; then
+	pushd . && cd Builds/MacOSX && xcodebuild && popd || exit 4
+else
+	make -C Builds/LinuxMakefile || exit 4
+fi
 
 APPNAME=$APPNAME $CURDIR/fixup-project.sh || exit 5
 

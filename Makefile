@@ -2,7 +2,19 @@
 MINIMIZE_INTERMEDIATES=0
 NDK_VERSION=21.0.6113669
 JUCE_DIR=$(shell pwd)/external/juce_emscripten
-PROJUCER_BIN=$(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/Projucer
+PROJUCER_BIN_LINUX=$(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/Projucer
+PROJUCER_BIN_DARWIN=$(JUCE_DIR)/extras/Projucer/Builds/MacOSX/build/Debug/Projucer.app/Contents/MacOS/Projucer
+
+ifeq ($(shell uname), Linux)
+	PROJUCER_BIN=$(PROJUCER_BIN_LINUX)
+else
+ifeq ($(shell uname), Darwin)
+	PROJUCER_BIN=$(PROJUCER_BIN_DARWIN)
+else
+	PROJUCER_BIN=___error___
+endif
+endif
+
 
 .PHONY:
 all: build
@@ -16,10 +28,16 @@ prepare: build-projucer
 .PHONY:
 build-projucer: $(PROJUCER_BIN)
 
-$(PROJUCER_BIN):
+$(PROJUCER_BIN_LINUX):
 	make -C $(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile
 	if [ $(MINIMIZE_INTERMEDIATES) ] ; then \
 		rm -rf $(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/intermediate/ ; \
+	fi
+
+$(PROJUCER_BIN_DARWIN):
+	xcodebuild -project $(JUCE_DIR)/extras/Projucer/Builds/MacOSX/Projucer.xcodeproj
+	if [ $(MINIMIZE_INTERMEDIATES) ] ; then \
+		rm -rf $(JUCE_DIR)/extras/Projucer/Builds/MacOSX/build/intermediate/ ; \
 	fi
 
 .PHONY:
