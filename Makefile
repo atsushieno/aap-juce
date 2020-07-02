@@ -1,6 +1,6 @@
 
 MINIMIZE_INTERMEDIATES=0
-NDK_VERSION=21.0.6113669
+NDK_VERSION=21.2.6472646
 JUCE_DIR=$(shell pwd)/external/juce_emscripten
 PROJUCER_BIN_LINUX=$(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/Projucer
 PROJUCER_BIN_DARWIN=$(JUCE_DIR)/extras/Projucer/Builds/MacOSX/build/Debug/Projucer.app/Contents/MacOS/Projucer

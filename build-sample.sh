@@ -2,7 +2,7 @@
 
 CURDIR="$( cd `dirname $0` >/dev/null 2>&1 && pwd )"
 ANDROID_SDK_OVERRIDE=$HOME/Android/Sdk
-NDK_VERSION=21.0.6113669
+NDK_VERSION=21.2.6472646
 MINIMIZE_INTERMEDIATES=0
 GRADLE_BUILD_TYPE=Release
 if [ `uname`=='Darwin' ] ; then
@@ -40,7 +40,7 @@ $PROJUCER --resave $APPNAME.jucer || exit 1
 # mv JuceLibraryCode/tmpcfg.txt JuceLibraryCode/AppConfig.h || exit 3
 
 if [ `uname`=='Darwin' ] ; then
-	pushd . && cd Builds/MacOSX && xcodebuild && popd || exit 4
+	pushd . && cd Builds/MacOSX && xcodebuild -project `basename $1 .jucer`.xcodeproj && popd || exit 4
 else
 	make -C Builds/LinuxMakefile || exit 4
 fi
