@@ -13,8 +13,8 @@ using namespace juce;
 
 namespace juceaap {
 
-AndroidAudioPluginEditor::AndroidAudioPluginEditor(AudioProcessor *processor, aap::EditorInstance *native)
-    : juce::AudioProcessorEditor(processor), native(native)
+AndroidAudioPluginEditor::AndroidAudioPluginEditor(AudioProcessor *audioProcessor, aap::EditorInstance *editorInstance)
+    : juce::AudioProcessorEditor(audioProcessor), native(editorInstance)
 {
 }
 
@@ -63,7 +63,7 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
     	if (port->getPortDirection() != AAP_PORT_DIRECTION_INPUT)
     		continue;
     	if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO && juceInputsAssigned < audioBuffer.getNumChannels())
-	        memcpy(buffer->buffers[i], (void *) audioBuffer.getReadPointer(juceInputsAssigned++), audioBuffer.getNumSamples() * sizeof(float));
+	        memcpy(buffer->buffers[i], (void *) audioBuffer.getReadPointer(juceInputsAssigned++), (size_t) audioBuffer.getNumSamples() * sizeof(float));
 		else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI) {
 			int di = 8; // fill length later
 			MidiMessage msg{};
@@ -128,13 +128,13 @@ AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nati
 	}
 }
 
-void AndroidAudioPluginInstance::allocateSharedMemory(int bufferIndex, int32_t size)
+void AndroidAudioPluginInstance::allocateSharedMemory(int bufferIndex, size_t size)
 {
 #if ANDROID
-        int fd = ASharedMemory_create(nullptr, size);
+        int32_t fd = ASharedMemory_create(nullptr, size);
         auto &fds = native->getSharedMemoryExtension()->getPortBufferFDs();
-        fds[bufferIndex] = fd;
-        buffer->buffers[bufferIndex] = mmap(nullptr, buffer->num_frames * sizeof(float),
+        fds[(size_t) bufferIndex] = fd;
+        buffer->buffers[(size_t) bufferIndex] = mmap(nullptr, buffer->num_frames * sizeof(float),
                 PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 #else
     buffer->buffers[bufferIndex] = mmap(nullptr, size,
@@ -161,15 +161,15 @@ void AndroidAudioPluginInstance::updateParameterValue(AndroidAudioPluginParamete
 
 void
 AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpectedSamplesPerBlock) {
-    sample_rate = sampleRate;
+    sample_rate = (int) sampleRate;
 
     // minimum setup, as the pointers are not passed by JUCE framework side.
     int n = native->getPluginInformation()->getNumPorts();
     auto &fds = native->getSharedMemoryExtension()->getPortBufferFDs();
-    fds.resize(n);
-    buffer->num_buffers = n;
-    buffer->buffers = (void**) calloc(n, sizeof(void*));
-    buffer->num_frames = maximumExpectedSamplesPerBlock;
+    fds.resize((size_t) n);
+    buffer->num_buffers = (size_t) n;
+    buffer->buffers = (void**) calloc((size_t) n, sizeof(void*));
+    buffer->num_frames = (size_t) maximumExpectedSamplesPerBlock;
     for (int i = 0; i < n; i++)
         allocateSharedMemory(i, buffer->num_frames * sizeof(float));
     buffer->buffers[n] = nullptr;
@@ -192,12 +192,12 @@ void AndroidAudioPluginInstance::destroyResources() {
     native->dispose();
 
     if (buffer->buffers) {
-        for (int i = 0; i < buffer->num_buffers; i++) {
+        for (size_t i = 0; i < buffer->num_buffers; i++) {
 #if ANDROID
             munmap(buffer->buffers[i], buffer->num_frames * sizeof(float));
             auto& fds = native->getSharedMemoryExtension()->getPortBufferFDs();
-            if (fds[i] != 0)
-	            close(fds[i]);
+            if (fds[(size_t) i] != 0)
+	            close(fds[(size_t) i]);
 #else
 			munmap(buffer->buffers[i], buffer->num_frames * sizeof(float));
             //free(buffer->buffers[i]);
@@ -298,7 +298,7 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         error << "Android Audio Plugin " << description.name << "was not found.";
         callback(nullptr, error);
     } else {
-        int32_t instanceID = android_host.createInstance(pluginInfo->getPluginID().c_str(), initialSampleRate);
+        int32_t instanceID = android_host.createInstance(pluginInfo->getPluginID().c_str(), (int) initialSampleRate);
         auto androidInstance = android_host.getInstance(instanceID);
         std::unique_ptr <AndroidAudioPluginInstance> instance{
                 new AndroidAudioPluginInstance(androidInstance)};

@@ -1,4 +1,3 @@
-
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include/aap/android-audio-plugin-host.hpp"
 
@@ -36,14 +35,14 @@ class AndroidAudioPluginInstance : public juce::AudioPluginInstance {
 	void fillNativeInputBuffers(AudioBuffer<float> &audioBuffer, MidiBuffer &midiBuffer);
 	void fillNativeOutputBuffers(AudioBuffer<float> &buffer);
 
-    void allocateSharedMemory(int bufferIndex, int32_t size);
+    void allocateSharedMemory(int bufferIndex, size_t size);
 
     void updateParameterValue(AndroidAudioPluginParameter* paramter);
 
 public:
 
 	AndroidAudioPluginInstance(aap::PluginInstance *nativePlugin);
-	~AndroidAudioPluginInstance() {
+	~AndroidAudioPluginInstance() override {
 		delete buffer->buffers;
 	}
 	void destroyResources();
@@ -103,7 +102,7 @@ public:
 	}
 
 	inline void setStateInformation(const void *data, int sizeInBytes) override {
-		native->setState(data, sizeInBytes);
+		native->setState(data, (size_t) sizeInBytes);
 	}
 
 	void fillInPluginDescription(PluginDescription &description) const override;
@@ -116,8 +115,8 @@ class AndroidAudioPluginParameter : public juce::AudioProcessorParameter {
     AndroidAudioPluginInstance *instance;
     const aap::PortInformation *impl;
 
-    AndroidAudioPluginParameter(int aapParameterIndex, AndroidAudioPluginInstance* instance, const aap::PortInformation* portInfo)
-            : aap_parameter_index(aapParameterIndex), instance(instance), impl(portInfo)
+    AndroidAudioPluginParameter(int aapParameterIndex, AndroidAudioPluginInstance* audioPluginInstance, const aap::PortInformation* portInfo)
+            : aap_parameter_index(aapParameterIndex), instance(audioPluginInstance), impl(portInfo)
     {
         if (portInfo->hasValueRange())
             setValue(portInfo->getDefaultValue());
@@ -146,7 +145,7 @@ public:
 
     String getLabel() const override { return impl->getName(); }
 
-    float getValueForText(const String &text) const override { return atof(text.toRawUTF8()); }
+    float getValueForText(const String &text) const override { return (float) atof(text.toRawUTF8()); }
 };
 
 class AndroidAudioPluginFormat : public juce::AudioPluginFormat {
@@ -160,7 +159,7 @@ class AndroidAudioPluginFormat : public juce::AudioPluginFormat {
 public:
 	AndroidAudioPluginFormat();
 
-	~AndroidAudioPluginFormat();
+	~AndroidAudioPluginFormat() override;
 
 	inline String getName() const override {
 		return "AAP";
@@ -176,7 +175,7 @@ public:
 
 	inline String getNameOfPluginFromIdentifier(const String &fileOrIdentifier) override {
 		auto pluginInfo = android_host_manager.getPluginInformation(fileOrIdentifier.toRawUTF8());
-		return pluginInfo != NULL ? String(pluginInfo->getDisplayName()) : String();
+		return pluginInfo != nullptr ? String(pluginInfo->getDisplayName()) : String();
 	}
 
 	inline bool pluginNeedsRescanning(const PluginDescription &description) override {
