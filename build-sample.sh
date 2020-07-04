@@ -61,9 +61,11 @@ mv Builds/CLion/CMakeLists.txt.patched Builds/CLion/CMakeLists.txt
 
 # Some CI servers have only "ndk-bundle" ...
 if [ -d $ANDROID_SDK_ROOT/ndk-bundle ] ; then
-    echo "ndk.dir=$ANDROID_SDK_ROOT/ndk-bundle\nsdk.dir=$ANDROID_SDK_ROOT" > $SRCDIR/Builds/Android/local.properties
+    echo "ndk.dir=$ANDROID_SDK_ROOT/ndk-bundle
+sdk.dir=$ANDROID_SDK_ROOT" > $SRCDIR/Builds/Android/local.properties
 else
-    echo "ndk.dir=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION\nsdk.dir=$ANDROID_SDK_ROOT" > $SRCDIR/Builds/Android/local.properties
+    echo "ndk.dir=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION
+sdk.dir=$ANDROID_SDK_ROOT" > $SRCDIR/Builds/Android/local.properties
 fi
 
 echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
