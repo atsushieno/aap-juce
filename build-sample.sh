@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 CURDIR="$( cd `dirname $0` >/dev/null 2>&1 && pwd )"
 ANDROID_SDK_OVERRIDE=$HOME/Android/Sdk
