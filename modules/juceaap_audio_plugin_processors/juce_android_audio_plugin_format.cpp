@@ -30,7 +30,9 @@ static void fillPluginDescriptionFromNative(PluginDescription &description,
     description.category.clear();
     description.category += juce::String(src.getPrimaryCategory());
 
-    description.manufacturerName = src.getManufacturerName();
+    // The closer one would be `src.getManufacturerName()`, but that results in messy grouping on mobile UI.
+    description.manufacturerName = src.getPluginPackageName();
+
     description.version = src.getVersion();
     // JUCE plugin identifier is "PluginID" in AAP (not "identifier_string").
     description.fileOrIdentifier = src.getPluginID();
