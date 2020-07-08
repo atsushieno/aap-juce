@@ -7,7 +7,7 @@
               pluginCode="Dexd" pluginChannelConfigs="{0, 2}" pluginIsSynth="1"
               pluginWantsMidiIn="1" pluginProducesMidiOut="1" pluginSilenceInIsSilenceOut="0"
               pluginEditorRequiresKeys="0" pluginAUExportPrefix="DexedAU" pluginRTASCategory=""
-              aaxIdentifier="com.yourcompany.Dexed" pluginAAXCategory="2" jucerVersion="5.4.5"
+              aaxIdentifier="com.yourcompany.Dexed" pluginAAXCategory="2" jucerVersion="6.0.1"
               companyName="Digital Suburban" buildVST3="1" buildRTAS="0" buildAAX="0"
               pluginManufacturerEmail="support@yourcompany.com" buildAUv3="0"
               pluginIsMidiEffectPlugin="0" displaySplashScreen="0" reportAppUsage="0"
@@ -16,6 +16,10 @@
               pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn,pluginProducesMidiOut">
   <MAINGROUP id="kHXTgw" name="Dexed">
     <GROUP id="{F12593AE-639A-6F59-5819-ACE25AF86F95}" name="Resources">
+      <FILE id="h1sDac" name="HelpButton.png" compile="0" resource="1" file="Resources/ui/HelpButton.png"/>
+      <FILE id="oVmTCw" name="HelpButton.svg" compile="0" resource="1" file="Resources/ui/HelpButton.svg"/>
+      <FILE id="pKwZj2" name="SwitchLighted_48x26.png" compile="0" resource="1"
+            file="Resources/ui/SwitchLighted_48x26.png"/>
       <FILE id="SpSpb4" name="dexedIcon.png" compile="0" resource="1" file="Resources/ui/dexedIcon.png"/>
       <FILE id="CD5ehh" name="Switch_32x32.png" compile="0" resource="1"
             file="Resources/ui/Switch_32x32.png"/>
@@ -77,8 +81,12 @@
         <FILE id="thAIGQ" name="GlobalEditor.cpp" compile="1" resource="0"
               file="Source/GlobalEditor.cpp"/>
         <FILE id="CxMFcr" name="GlobalEditor.h" compile="0" resource="0" file="Source/GlobalEditor.h"/>
+        <FILE id="aLakSq" name="TuningShow.cpp" compile="1" resource="0" file="Source/TuningShow.cpp"/>
+        <FILE id="OH8qjM" name="TuningShow.h" compile="0" resource="0" file="Source/TuningShow.h"/>
       </GROUP>
       <GROUP id="{CEBA9AF6-1C73-85F6-A187-56A246098441}" name="msfa">
+        <FILE id="xa8v2Z" name="tuning.cc" compile="1" resource="0" file="Source/msfa/tuning.cc"/>
+        <FILE id="hP1Glc" name="tuning.h" compile="0" resource="0" file="Source/msfa/tuning.h"/>
         <FILE id="wvG22S" name="freqlut.cc" compile="1" resource="0" file="Source/msfa/freqlut.cc"/>
         <FILE id="dulZMd" name="freqlut.h" compile="0" resource="0" file="Source/msfa/freqlut.h"/>
         <FILE id="BfOVi6" name="lfo.cc" compile="1" resource="0" file="Source/msfa/lfo.cc"/>
@@ -116,7 +124,8 @@
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>
-    <LINUX_MAKE targetFolder="Builds/LinuxMakefile">
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" smallIcon="SpSpb4"
+                bigIcon="SpSpb4" extraLinkerFlags="-fPIC" extraCompilerFlags="-I../../libs/tuning-library/include">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1"
             headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/native/plugin-api/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
@@ -126,55 +135,84 @@
             libraryPath="/usr/X11R6/lib/;../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_events" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_core" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules" />
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="surgesynthteam_tuningui" path="./libs"/>
+        <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
-    <LINUX_MAKE targetFolder="Builds/Emscripten" isEmscripten="1" smallIcon="SpSpb4"
-                bigIcon="SpSpb4">
+    <XCODE_MAC targetFolder="Builds/MacOSX" smallIcon="SpSpb4" bigIcon="SpSpb4"
+               vst3Folder="libs/vst3sdk" extraCompilerFlags="-I../../libs/tuning-library/include -Wno-macro-redefined -Wno-deprecated-declarations -Wno-shorten-64-to-32">
       <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" isDebug="1"
-            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/native/plugin-api/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
-            libraryPath="/usr/X11R6/lib/;../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"/>
-        <CONFIGURATION name="Release" isDebug="0" optimisation="2"
-            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/native/plugin-api/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
-            libraryPath="/usr/X11R6/lib/;../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"/>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="Dexed"
+            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
+                       osxCompatibility="10.10 SDK" osxArchitecture="64BitIntel" enablePluginBinaryCopyStep="1"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="Dexed"
+            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
+                       osxSDK="10.10 SDK" osxCompatibility="10.7 SDK" osxArchitecture="64BitUniversal"
+                       enablePluginBinaryCopyStep="1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_events" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_core" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules" />
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="surgesynthteam_tuningui" path="./libs"/>
+        <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules"/>
       </MODULEPATHS>
-    </LINUX_MAKE>
-    <ANDROIDSTUDIO targetFolder="Builds/Android" androidMinimumSDK="29" androidTargetSDK="29"
-                   androidManifestCustomXmlElements="&lt;manifest xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot; package=&quot;com.digitalsuburban.dexed&quot; android:versionCode=&quot;1&quot; android:versionName=&quot;0.1&quot;&gt;&#10;  &lt;uses-permission android:name=&quot;android.permission.FOREGROUND_SERVICE&quot;/&gt;&#10;  &lt;application android:allowBackup=&quot;true&quot; android:label=&quot;@string/app_name&quot;&#10;               android:supportsRtl=&quot;true&quot; android:name=&quot;com.roli.juce.JuceApp&quot; android:hardwareAccelerated=&quot;false&quot;&gt;&#10;    &lt;activity android:name=&quot;com.roli.juce.JuceActivity&quot; android:label=&quot;@string/app_name&quot; android:configChanges=&quot;keyboardHidden|orientation|screenSize&quot;&#10;              android:screenOrientation=&quot;userLandscape&quot; android:launchMode=&quot;singleTask&quot; android:hardwareAccelerated=&quot;true&quot;&gt;&#10;    &lt;service android:name=&quot;org.androidaudioplugin.AudioPluginService&quot; android:label=&quot;Dexed&quot;&gt;&#10;      &lt;intent-filter&gt;&#10;        &lt;action android:name=&quot;org.androidaudioplugin.AudioPluginService&quot;/&gt;&#10;      &lt;/intent-filter&gt;&#10;      &lt;meta-data android:name=&quot;org.androidaudioplugin.AudioPluginService#Plugins&quot; android:resource=&quot;@xml/aap_metadata&quot;/&gt;&#10;    &lt;/service&gt;&#10;  &lt;/application&gt;&#10;&lt;/manifest&gt;&#10;"
+    </XCODE_MAC>
+    <VS2017 targetFolder="Builds/VisualStudio2017" windowsTargetPlatformVersion="10.0.16299.0"
+            IPPLibrary="Parallel_Static" bigIcon="SpSpb4" smallIcon="SpSpb4"
+            vst3Folder="libs/vst3sdk" extraCompilerFlags="/I../../libs/tuning-library/include">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" winWarningLevel="3" generateManifest="1" winArchitecture="x64"
+                       debugInformationFormat="ProgramDatabase" enablePluginBinaryCopyStep="0"
+                       linkTimeOptimisation="0" isDebug="1" optimisation="1" targetName="Dexed"
+                       useRuntimeLibDLL=""/>
+        <CONFIGURATION name="Release" winWarningLevel="3" generateManifest="1" winArchitecture="x64"
+                       debugInformationFormat="ProgramDatabase" enablePluginBinaryCopyStep="0"
+                       linkTimeOptimisation="1" isDebug="0" optimisation="3" targetName="Dexed"
+                       useRuntimeLibDLL="0"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="surgesynthteam_tuningui" path="./libs"/>
+      </MODULEPATHS>
+    </VS2017>
+    <ANDROIDSTUDIO targetFolder="Builds/Android" extraCompilerFlags="-I${CMAKE_CURRENT_LIST_DIR}/../../../libs/tuning-library/include"
+                   androidMinimumSDK="29" androidTargetSDK="29"
+                   androidManifestCustomXmlElements="&lt;manifest xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot; package=&quot;com.digitalsuburban.dexed&quot; android:versionCode=&quot;1&quot; android:versionName=&quot;0.1&quot;&gt;&#10;  &lt;uses-permission android:name=&quot;android.permission.FOREGROUND_SERVICE&quot;/&gt;&#10;  &lt;application android:allowBackup=&quot;true&quot; android:label=&quot;@string/app_name&quot;&#10;               android:supportsRtl=&quot;true&quot; android:name=&quot;com.rmsl.juce.JuceApp&quot; android:hardwareAccelerated=&quot;false&quot;&gt;&#10;    &lt;activity android:name=&quot;com.rmsl.juce.JuceActivity&quot; android:label=&quot;@string/app_name&quot; android:configChanges=&quot;keyboardHidden|orientation|screenSize&quot;&#10;              android:screenOrientation=&quot;userLandscape&quot; android:launchMode=&quot;singleTask&quot; android:hardwareAccelerated=&quot;true&quot;&gt;&#10;    &lt;service android:name=&quot;org.androidaudioplugin.AudioPluginService&quot; android:label=&quot;Dexed&quot;&gt;&#10;      &lt;intent-filter&gt;&#10;        &lt;action android:name=&quot;org.androidaudioplugin.AudioPluginService&quot;/&gt;&#10;      &lt;/intent-filter&gt;&#10;      &lt;meta-data android:name=&quot;org.androidaudioplugin.AudioPluginService#Plugins&quot; android:resource=&quot;@xml/aap_metadata&quot;/&gt;&#10;    &lt;/service&gt;&#10;  &lt;/application&gt;&#10;&lt;/manifest&gt;&#10;"
                    androidDependencies="implementation project(':androidaudioplugin')&#10;implementation &quot;org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.3.61&quot;&#10;"
                    gradleVersion="6.5-rc-1" gradleWrapperVersion="4.2.0-alpha03">
       <CONFIGURATIONS>
@@ -189,102 +227,47 @@
                        recommendedWarnings="LLVM"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_events" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_core" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules" />
-        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="surgesynthteam_tuningui" path="./libs"/>
         <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules"/>
       </MODULEPATHS>
     </ANDROIDSTUDIO>
-    <XCODE_MAC targetFolder="Builds/MacOSX" smallIcon="SpSpb4" bigIcon="SpSpb4" extraLinkerFlags="-landroidaudioplugin">
-      <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="Dexed"
-            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
-            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
-                       osxCompatibility="10.10 SDK" osxArchitecture="64BitIntel" enablePluginBinaryCopyStep="1"/>
-        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="Dexed"
-            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
-            libraryPath="../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"
-                       osxSDK="10.10 SDK" osxCompatibility="10.7 SDK" osxArchitecture="64BitUniversal"
-                       enablePluginBinaryCopyStep="1"/>
-      </CONFIGURATIONS>
-      <MODULEPATHS>
-        <MODULEPATH id="juce_gui_extra" path="../JUCE-5.2.1/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../JUCE-5.2.1/modules"/>
-        <MODULEPATH id="juce_graphics" path="../JUCE-5.2.1/modules"/>
-        <MODULEPATH id="juce_events" path="../JUCE-5.2.1/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../JUCE-5.2.1/modules"/>
-        <MODULEPATH id="juce_core" path="../JUCE-5.2.1/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../JUCE-5.2.1/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../JUCE-5.2.1/modules"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../JUCE-5.2.1/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../JUCE-5.2.1/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../JUCE-5.2.1/modules"/>
-        <MODULEPATH id="juce_audio_basics" path="../JUCE-5.2.1/modules"/>
-      </MODULEPATHS>
-    </XCODE_MAC>
-    <VS2017 targetFolder="Builds/VisualStudio2017" windowsTargetPlatformVersion="10.0.16299.0"
-            IPPLibrary="Parallel_Static" bigIcon="SpSpb4" smallIcon="SpSpb4">
-      <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" winWarningLevel="3" generateManifest="1" winArchitecture="x64"
-                       debugInformationFormat="ProgramDatabase" enablePluginBinaryCopyStep="0"
-                       linkTimeOptimisation="0" isDebug="1" optimisation="1" targetName="Dexed"
-                       useRuntimeLibDLL=""/>
-        <CONFIGURATION name="Release" winWarningLevel="3" generateManifest="1" winArchitecture="x64"
-                       debugInformationFormat="ProgramDatabase" enablePluginBinaryCopyStep="0"
-                       linkTimeOptimisation="1" isDebug="0" optimisation="3" targetName="Dexed"
-                       useRuntimeLibDLL="0"/>
-      </CONFIGURATIONS>
-      <MODULEPATHS>
-        <MODULEPATH id="juce_gui_extra" path="../JUCE-5.2.0/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../JUCE-5.2.0/modules"/>
-        <MODULEPATH id="juce_graphics" path="../JUCE-5.2.0/modules"/>
-        <MODULEPATH id="juce_events" path="../JUCE-5.2.0/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../JUCE-5.2.0/modules"/>
-        <MODULEPATH id="juce_core" path="../JUCE-5.2.0/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../JUCE-5.2.0/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../JUCE-5.2.0/modules"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../JUCE-5.2.0/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../JUCE-5.2.0/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../JUCE-5.2.0/modules"/>
-        <MODULEPATH id="juce_audio_basics" path="../JUCE-5.2.0/modules"/>
-      </MODULEPATHS>
-    </VS2017>
   </EXPORTFORMATS>
   <MODULES>
     <MODULE id="juceaap_audio_plugin_client" showAllCode="1" />
-    <MODULE id="juce_audio_basics" showAllCode="1"/>
-    <MODULE id="juce_audio_devices" showAllCode="1"/>
-    <MODULE id="juce_audio_formats" showAllCode="1"/>
-    <MODULE id="juce_audio_plugin_client" showAllCode="1"/>
-    <MODULE id="juce_audio_processors" showAllCode="1"/>
-    <MODULE id="juce_audio_utils" showAllCode="1"/>
-    <MODULE id="juce_core" showAllCode="1"/>
-    <MODULE id="juce_cryptography" showAllCode="1"/>
-    <MODULE id="juce_data_structures" showAllCode="1"/>
-    <MODULE id="juce_dsp" showAllCode="1"/>
-    <MODULE id="juce_events" showAllCode="1"/>
-    <MODULE id="juce_graphics" showAllCode="1"/>
-    <MODULE id="juce_gui_basics" showAllCode="1"/>
-    <MODULE id="juce_gui_extra" showAllCode="1"/>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="surgesynthteam_tuningui" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="0"/>
   </MODULES>
   <JUCEOPTIONS JUCE_QUICKTIME="disabled" JUCE_USE_FLAC="0" JUCE_USE_OGGVORBIS="0"
                JUCE_USE_MP3AUDIOFORMAT="0" JUCE_USE_LAME_AUDIO_FORMAT="0" JUCE_USE_WINDOWS_MEDIA_FORMAT="0"
                JUCE_WEB_BROWSER="0" JUCE_ASIO="0" JUCE_WASAPI="1" JUCE_WASAPI_EXCLUSIVE="0"
-               JUCE_DIRECTSOUND="0" JUCE_ALSA="1" JUCE_JACK="0" JUCE_USE_ANDROID_OPENSLES="1"
+               JUCE_DIRECTSOUND="0" JUCE_ALSA="1" JUCE_JACK="1" JUCE_USE_ANDROID_OPENSLES="0"
                JUCE_PLUGINHOST_VST="0" JUCE_PLUGINHOST_VST3="1" JUCE_PLUGINHOST_AU="1"
-               JUCE_USE_CDREADER="0" JUCE_USE_CDBURNER="0" JUCE_DONT_AUTOLINK_TO_WIN32_LIBRARIES="1"/>
+               JUCE_VST3_CAN_REPLACE_VST2="0" JUCE_USE_CDREADER="0" JUCE_USE_CDBURNER="0"
+               JUCE_DONT_AUTOLINK_TO_WIN32_LIBRARIES="1"/>
   <LIVE_SETTINGS>
     <OSX/>
     <LINUX/>
