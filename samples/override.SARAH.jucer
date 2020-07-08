@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="pjItUw" name="SARAH" displaySplashScreen="1" reportAppUsage="1"
-              juceFolder="../../external/juce_emscripten"
+              juceFolder="../../external/JUCE"
               splashScreenColour="Dark" projectType="audioplug" version="1.0.0"
               bundleIdentifier="com.yourcompany.SARAH" includeBinaryInAppConfig="1"
               cppLanguageStandard="latest" buildVST="0" buildVST3="0" buildAU="1"
@@ -67,21 +67,21 @@
                        isDebug="0" optimisation="3" targetName="SARAH"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_opengl" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_gui_extra" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_gui_basics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_graphics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_events" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_data_structures" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_cryptography" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_core" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_utils" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_processors" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_plugin_client" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_formats" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_devices" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_basics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_dsp" path="../../external/juce_emscripten/modules" />
+        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules" />
         <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules"/>
       </MODULEPATHS>
     </VS2017>
@@ -97,21 +97,21 @@
         />
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_opengl" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_gui_extra" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_gui_basics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_graphics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_events" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_data_structures" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_cryptography" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_core" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_utils" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_processors" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_plugin_client" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_formats" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_devices" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_basics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_dsp" path="../../external/juce_emscripten/modules" />
+        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules" />
         <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
@@ -131,21 +131,21 @@
                        recommendedWarnings="LLVM"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_opengl" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_gui_extra" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_gui_basics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_graphics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_events" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_data_structures" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_cryptography" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_core" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_utils" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_processors" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_plugin_client" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_formats" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_devices" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_basics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_dsp" path="../../external/juce_emscripten/modules" />
+        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules" />
         <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules"/>
       </MODULEPATHS>
     </ANDROIDSTUDIO>
@@ -159,41 +159,41 @@
             libraryPath="/usr/X11R6/lib/;../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_opengl" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_gui_extra" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_gui_basics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_graphics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_events" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_data_structures" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_cryptography" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_core" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_utils" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_processors" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_plugin_client" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_formats" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_devices" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_basics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_dsp" path="../../external/juce_emscripten/modules" />
+        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules" />
         <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules" />
       </MODULEPATHS>
     </LINUX_MAKE>
     <CLION targetFolder="Builds/CLion">
       <MODULEPATHS>
-        <MODULEPATH id="juce_opengl" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_gui_extra" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_gui_basics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_graphics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_events" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_data_structures" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_cryptography" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_core" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_utils" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_processors" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_plugin_client" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_formats" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_devices" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_audio_basics" path="../../external/juce_emscripten/modules" />
-        <MODULEPATH id="juce_dsp" path="../../external/juce_emscripten/modules" />
+        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules" />
+        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules" />
         <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules"/>
       </MODULEPATHS>
     </CLION>

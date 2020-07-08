@@ -3,7 +3,7 @@
 APP_NAME=$1	# used to determine .jucer file
 		#  e.g. AudioPluginHost
 SRC_PATH=$2	# source directory to copy
-		#  e.g. external/juce_emscripten/extras/AudioPluginHost
+		#  e.g. external/JUCE/extras/AudioPluginHost
 DST_PATH=$3	# destination directory
 		#  e.g. samples/AudioPluginHost
 PATCH_FILE=$4	# patch file path to **relative to** DST_PATH
@@ -28,6 +28,7 @@ fi
 #fi
 
 cp -R $SRC_PATH $DST_PATH
+rm -rf $DST_PATH/.git
 
 cd $DST_PATH
 if [ -f $PATCH_FILE ]; then

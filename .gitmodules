@@ -5,9 +5,8 @@
 	path = external/andes
 	url = https://github.com/artfwo/andes.git
 [submodule "external/juce_emscripten"]
-	path = external/juce_emscripten
-	url = https://github.com/atsushieno/JUCE.git
-	branch = juce_emscripten
+	path = external/JUCE
+	url = https://github.com/juce-framework/JUCE.git
 [submodule "external/SARAH"]
 	path = external/SARAH
 	url = https://github.com/getdunne/SARAH/
@@ -16,7 +15,7 @@
 	url = https://github.com/yokemura/Magical8bitPlug2.git
 [submodule "external/dexed"]
 	path = external/dexed
-	url = https://github.com/atsushieno/dexed.git
+	url = https://github.com/asb2m10/dexed.git
 [submodule "external/OB-Xd"]
 	path = external/OB-Xd
 	url = https://github.com/reales/OB-Xd.git

@@ -1,5 +1,5 @@
-diff -ur external/juce_emscripten/extras/AudioPluginHost/Source/HostStartup.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/HostStartup.cpp
---- external/juce_emscripten/extras/AudioPluginHost/Source/HostStartup.cpp	2020-03-16 02:33:14.673067586 +0900
+diff -ur external/JUCE/extras/AudioPluginHost/Source/HostStartup.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/HostStartup.cpp
+--- external/JUCE/extras/AudioPluginHost/Source/HostStartup.cpp	2020-03-16 02:33:14.673067586 +0900
 +++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/HostStartup.cpp	2020-03-16 02:13:57.738597385 +0900
 @@ -29,7 +29,7 @@
  #include "Plugins/InternalPlugins.h"
@@ -10,8 +10,8 @@ diff -ur external/juce_emscripten/extras/AudioPluginHost/Source/HostStartup.cpp 
  #endif
  
  
-diff -ur external/juce_emscripten/extras/AudioPluginHost/Source/Plugins/PluginGraph.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/Plugins/PluginGraph.cpp
---- external/juce_emscripten/extras/AudioPluginHost/Source/Plugins/PluginGraph.cpp	2020-03-16 02:33:14.673067586 +0900
+diff -ur external/JUCE/extras/AudioPluginHost/Source/Plugins/PluginGraph.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/Plugins/PluginGraph.cpp
+--- external/JUCE/extras/AudioPluginHost/Source/Plugins/PluginGraph.cpp	2020-03-16 02:33:14.673067586 +0900
 +++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/Plugins/PluginGraph.cpp	2020-03-16 02:13:57.742597662 +0900
 @@ -425,7 +425,7 @@
                      {
@@ -23,8 +23,8 @@ diff -ur external/juce_emscripten/extras/AudioPluginHost/Source/Plugins/PluginGr
                      }
                  }
 Only in external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source: test.cpp
-diff -ur external/juce_emscripten/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/GraphEditorPanel.cpp
---- external/juce_emscripten/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp	2020-03-16 02:33:14.673067586 +0900
+diff -ur external/JUCE/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/GraphEditorPanel.cpp
+--- external/JUCE/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp	2020-03-16 02:33:14.673067586 +0900
 +++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/GraphEditorPanel.cpp	2020-03-16 02:13:57.742597662 +0900
 @@ -28,9 +28,10 @@
  #include "GraphEditorPanel.h"
@@ -70,8 +70,8 @@ diff -ur external/juce_emscripten/extras/AudioPluginHost/Source/UI/GraphEditorPa
      std::unique_ptr<AUScanner> scanner;
     #endif
  
-diff -ur external/juce_emscripten/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/MainHostWindow.cpp
---- external/juce_emscripten/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp	2020-03-16 02:33:14.673067586 +0900
+diff -ur external/JUCE/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/MainHostWindow.cpp
+--- external/JUCE/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp	2020-03-16 02:33:14.673067586 +0900
 +++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/MainHostWindow.cpp	2020-03-16 02:13:57.742597662 +0900
 @@ -27,6 +27,7 @@
  #include "../JuceLibraryCode/JuceHeader.h"

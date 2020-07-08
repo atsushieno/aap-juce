@@ -1,7 +1,7 @@
 
 MINIMIZE_INTERMEDIATES=0
 NDK_VERSION=21.2.6472646
-JUCE_DIR=$(shell pwd)/external/juce_emscripten
+JUCE_DIR=$(shell pwd)/external/JUCE
 PROJUCER_BIN_LINUX=$(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/Projucer
 PROJUCER_BIN_DARWIN=$(JUCE_DIR)/extras/Projucer/Builds/MacOSX/build/Debug/Projucer.app/Contents/MacOS/Projucer
 GRADLE_BUILD_TYPE=Release
@@ -69,11 +69,11 @@ do-build-audiopluginhost:
 create-patched-pluginhost: samples/AudioPluginHost/.stamp 
 
 samples/AudioPluginHost/.stamp: \
-		external/juce_emscripten/extras/AudioPluginHost/** \
+		external/JUCE/extras/AudioPluginHost/** \
 		samples/juceaaphost.patch \
 		samples/override.AudioPluginHost.jucer \
 		samples/sample-project.*
-	./create-patched-juce-app.sh  AudioPluginHost  external/juce_emscripten/extras/AudioPluginHost \
+	./create-patched-juce-app.sh  AudioPluginHost  external/JUCE/extras/AudioPluginHost \
 		samples/AudioPluginHost  ../juceaaphost.patch  6  samples/override.AudioPluginHost.jucer
 
 
