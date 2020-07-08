@@ -4,7 +4,9 @@ CURDIR="$( cd `dirname $0` >/dev/null 2>&1 && pwd )"
 ANDROID_SDK_OVERRIDE=$HOME/Android/Sdk
 NDK_VERSION=21.2.6472646
 MINIMIZE_INTERMEDIATES=0
+if [ '$GRADLE_BUILD_TYPE' == '' ] ; then
 GRADLE_BUILD_TYPE=Release
+fi
 if [ `uname` == 'Darwin' ] ; then
 READLINK=greadlink # brew install coreutils
 else
