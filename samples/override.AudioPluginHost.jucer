@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="KpzU0f" name="AudioPluginHost" projectType="guiapp" version="1.0.0"
-              juceFolder="../../external/JUCE"  bundleIdentifier="org.androidaudioplugin.samples.pluginhost" jucerVersion="5.4.5" companyName="AndroidAudioPlugin" displaySplashScreen="0" reportAppUsage="0" companyCopyright="AndroidAudioPlugin developers" cppLanguageStandard="17">
+              juceFolder="../../external/JUCE"  bundleIdentifier="org.androidaudioplugin.samples.pluginhost"
+              companyName="Android Audio Plugin Framework project" displaySplashScreen="0"
+              >
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" rtasFolder="~/SDKs/PT_80_SDK" objCExtraSuffix="M73TRi"
-               smallIcon="c97aUr" bigIcon="c97aUr" microphonePermissionNeeded="1" extraLinkerFlags="-landroidaudioplugin">
+               smallIcon="c97aUr" bigIcon="c97aUr" microphonePermissionNeeded="1"
+               sendAppleEventsPermissionNeeded="1" sendAppleEventsPermissionText="This is required for some third-party plug-ins to function correctly."
+               extraLinkerFlags="-landroidaudioplugin">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" targetName="AudioPluginHost" recommendedWarnings="LLVM"
             headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
@@ -127,10 +131,9 @@
         <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
       </MODULEPATHS>
     </VS2019>
-    <XCODE_IPHONE targetFolder="Builds/iOS" iosScreenOrientation="portraitlandscape"
-                  iPadScreenOrientation="portraitlandscape" iosDeviceFamily="1,2"
-                  microphonePermissionNeeded="1" iosBackgroundAudio="1" iosBackgroundBle="1"
-                  smallIcon="c97aUr" bigIcon="c97aUr">
+    <XCODE_IPHONE targetFolder="Builds/iOS" iosScreenOrientation="" iPadScreenOrientation=""
+                  iosDeviceFamily="1,2" microphonePermissionNeeded="1" iosBackgroundAudio="1"
+                  iosBackgroundBle="1" smallIcon="c97aUr" bigIcon="c97aUr">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" enablePluginBinaryCopyStep="1" isDebug="1" optimisation="1"
                        linkTimeOptimisation="0" targetName="Plugin Host" recommendedWarnings="LLVM"/>
@@ -154,10 +157,9 @@
         <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
       </MODULEPATHS>
     </XCODE_IPHONE>
-    <ANDROIDSTUDIO targetFolder="Builds/Android"
-                   androidMinimumSDK="29" androidTargetSDK="29"
-                   androidExternalWriteNeeded="0" androidExternalReadNeeded="0"
-                   microphonePermissionNeeded="1" androidBluetoothNeeded="1" smallIcon="c97aUr" bigIcon="c97aUr"
+    <ANDROIDSTUDIO targetFolder="Builds/Android" androidMinimumSDK="29" androidInternetNeeded="1"
+                   microphonePermissionNeeded="1" androidBluetoothNeeded="1" smallIcon="c97aUr"
+                   bigIcon="c97aUr"
                    extraLinkerFlags="-landroidaudioplugin"
                    androidDependencies="implementation project(':androidaudioplugin')"
                    androidGradleSettingsContent="include ':androidaudioplugin'&#10;&#10;project(':androidaudioplugin').projectDir = new File('../../../../../../java/androidaudioplugin/')"
@@ -241,10 +243,10 @@
       <FILE id="c97aUr" name="JUCEAppIcon.png" compile="0" resource="1" file="Source/JUCEAppIcon.png"/>
     </GROUP>
   </MAINGROUP>
-  <JUCEOPTIONS JUCE_WASAPI="1" JUCE_DIRECTSOUND="1" JUCE_ALSA="1" JUCE_QUICKTIME="disabled"
-               JUCE_USE_FLAC="0" JUCE_USE_OGGVORBIS="0" JUCE_USE_CDBURNER="0"
-               JUCE_USE_CDREADER="0" JUCE_USE_CAMERA="0" JUCE_PLUGINHOST_AU="1"
-               JUCE_WEB_BROWSER="0" JUCE_PLUGINHOST_VST3="1" JUCE_PLUGINHOST_LADSPA="1"/>
+  <JUCEOPTIONS JUCE_WASAPI="1" JUCE_DIRECTSOUND="1" JUCE_ALSA="1" JUCE_USE_FLAC="0"
+               JUCE_USE_OGGVORBIS="1" JUCE_USE_CDBURNER="0" JUCE_USE_CDREADER="0"
+               JUCE_USE_CAMERA="0" JUCE_PLUGINHOST_AU="1" JUCE_WEB_BROWSER="0"
+               JUCE_PLUGINHOST_VST3="1" JUCE_PLUGINHOST_LADSPA="1"/>
   <MODULES>
     <MODULE id="juceaap_audio_plugin_processors" showAllCode="1" />
     <MODULE id="juce_audio_basics" showAllCode="1"/>
