@@ -1,7 +1,8 @@
-diff -ur external/JUCE/extras/AudioPluginHost/Source/HostStartup.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/HostStartup.cpp
---- external/JUCE/extras/AudioPluginHost/Source/HostStartup.cpp	2020-03-16 02:33:14.673067586 +0900
-+++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/HostStartup.cpp	2020-03-16 02:13:57.738597385 +0900
-@@ -29,7 +29,7 @@
+diff --git a/extras/AudioPluginHost/Source/HostStartup.cpp b/extras/AudioPluginHost/Source/HostStartup.cpp
+index 3e7cc7096..efd3044fd 100644
+--- a/extras/AudioPluginHost/Source/HostStartup.cpp
++++ b/extras/AudioPluginHost/Source/HostStartup.cpp
+@@ -28,7 +28,7 @@
  #include "Plugins/InternalPlugins.h"
  
  #if ! (JUCE_PLUGINHOST_VST || JUCE_PLUGINHOST_VST3 || JUCE_PLUGINHOST_AU)
@@ -10,23 +11,35 @@ diff -ur external/JUCE/extras/AudioPluginHost/Source/HostStartup.cpp external/an
  #endif
  
  
-diff -ur external/JUCE/extras/AudioPluginHost/Source/Plugins/PluginGraph.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/Plugins/PluginGraph.cpp
---- external/JUCE/extras/AudioPluginHost/Source/Plugins/PluginGraph.cpp	2020-03-16 02:33:14.673067586 +0900
-+++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/Plugins/PluginGraph.cpp	2020-03-16 02:13:57.742597662 +0900
-@@ -425,7 +425,7 @@
-                     {
-                         jassert (node->getProcessor() != nullptr);
+diff --git a/extras/AudioPluginHost/Source/Plugins/InternalPlugins.cpp b/extras/AudioPluginHost/Source/Plugins/InternalPlugins.cpp
+index 59f23168d..e9d4e477c 100644
+--- a/extras/AudioPluginHost/Source/Plugins/InternalPlugins.cpp
++++ b/extras/AudioPluginHost/Source/Plugins/InternalPlugins.cpp
+@@ -421,15 +421,15 @@ InternalPluginFormat::InternalPluginFormat()
+         [] { return std::make_unique<InternalPlugin> (std::make_unique<SineWaveSynth>()); },
+         [] { return std::make_unique<InternalPlugin> (std::make_unique<ReverbPlugin>()); },
  
--                        if (auto w = getOrCreateWindowFor (node, type))
-+                        if (auto w = getOrCreateWindowFor (node.get(), type))
-                             w->toFront (true);
-                     }
-                 }
-Only in external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source: test.cpp
-diff -ur external/JUCE/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/GraphEditorPanel.cpp
---- external/JUCE/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp	2020-03-16 02:33:14.673067586 +0900
-+++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/GraphEditorPanel.cpp	2020-03-16 02:13:57.742597662 +0900
-@@ -28,9 +28,10 @@
+-        [] { return std::make_unique<InternalPlugin> (std::make_unique<AUv3SynthProcessor>()); },
++        //[] { return std::make_unique<InternalPlugin> (std::make_unique<AUv3SynthProcessor>()); },
+         [] { return std::make_unique<InternalPlugin> (std::make_unique<Arpeggiator>()); },
+-        [] { return std::make_unique<InternalPlugin> (std::make_unique<DspModulePluginDemoAudioProcessor>()); },
++        //[] { return std::make_unique<InternalPlugin> (std::make_unique<DspModulePluginDemoAudioProcessor>()); },
+         [] { return std::make_unique<InternalPlugin> (std::make_unique<GainProcessor>()); },
+         [] { return std::make_unique<InternalPlugin> (std::make_unique<JuceDemoPluginAudioProcessor>()); },
+         [] { return std::make_unique<InternalPlugin> (std::make_unique<MidiLoggerPluginDemoProcessor>()); },
+-        [] { return std::make_unique<InternalPlugin> (std::make_unique<MultiOutSynth>()); },
++        //[] { return std::make_unique<InternalPlugin> (std::make_unique<MultiOutSynth>()); },
+         [] { return std::make_unique<InternalPlugin> (std::make_unique<NoiseGate>()); },
+-        [] { return std::make_unique<InternalPlugin> (std::make_unique<SamplerAudioProcessor>()); },
++        //[] { return std::make_unique<InternalPlugin> (std::make_unique<SamplerAudioProcessor>()); },
+         [] { return std::make_unique<InternalPlugin> (std::make_unique<SurroundProcessor>()); }
+     }
+ {
+diff --git a/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp b/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp
+index b8bdc95e0..e52fd8b53 100644
+--- a/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp
++++ b/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp
+@@ -27,9 +27,10 @@
  #include "GraphEditorPanel.h"
  #include "../Plugins/InternalPlugins.h"
  #include "MainHostWindow.h"
@@ -38,7 +51,7 @@ diff -ur external/JUCE/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp ext
   class AUScanner
   {
   public:
-@@ -45,7 +46,13 @@
+@@ -44,7 +45,13 @@
  
   private:
       KnownPluginList& knownPluginList;
@@ -52,7 +65,7 @@ diff -ur external/JUCE/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp ext
  
       std::unique_ptr<PluginDirectoryScanner> scanner;
       FileSearchPath paths;
-@@ -1097,7 +1104,7 @@
+@@ -1097,7 +1104,7 @@ struct GraphDocumentComponent::PluginListBoxModel    : public ListBoxModel,
          knownPlugins.addChangeListener (this);
          owner.addMouseListener (this, true);
  
@@ -61,7 +74,7 @@ diff -ur external/JUCE/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp ext
          scanner.reset (new AUScanner (knownPlugins));
         #endif
      }
-@@ -1146,7 +1153,7 @@
+@@ -1146,7 +1153,7 @@ struct GraphDocumentComponent::PluginListBoxModel    : public ListBoxModel,
  
      bool isOverSelectedRow = false;
  
@@ -70,18 +83,19 @@ diff -ur external/JUCE/extras/AudioPluginHost/Source/UI/GraphEditorPanel.cpp ext
      std::unique_ptr<AUScanner> scanner;
     #endif
  
-diff -ur external/JUCE/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/MainHostWindow.cpp
---- external/JUCE/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp	2020-03-16 02:33:14.673067586 +0900
-+++ external/android-audio-plugin-framework/native/juce/samples/AudioPluginHost/Source/UI/MainHostWindow.cpp	2020-03-16 02:13:57.742597662 +0900
-@@ -27,6 +27,7 @@
- #include "../JuceLibraryCode/JuceHeader.h"
+diff --git a/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp b/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp
+index dfd4927c8..e6b11adbd 100644
+--- a/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp
++++ b/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp
+@@ -26,6 +26,7 @@
+ #include <JuceHeader.h>
  #include "MainHostWindow.h"
  #include "../Plugins/InternalPlugins.h"
 +#include "../../../../modules/juceaap_audio_plugin_processors/juce_android_audio_plugin_format.h"
  
  
  //==============================================================================
-@@ -80,6 +81,8 @@
+@@ -79,6 +80,8 @@ MainHostWindow::MainHostWindow()
  {
      formatManager.addDefaultFormats();
      formatManager.addFormat (new InternalPluginFormat());
@@ -90,7 +104,7 @@ diff -ur external/JUCE/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp exter
  
      auto safeThis = SafePointer<MainHostWindow> (this);
      RuntimePermissions::request (RuntimePermissions::recordAudio,
-@@ -215,6 +218,7 @@
+@@ -214,6 +217,7 @@ void MainHostWindow::changeListenerCallback (ChangeBroadcaster* changed)
      {
          menuItemsChanged();
  
@@ -98,7 +112,7 @@ diff -ur external/JUCE/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp exter
          // save the plugin list every time it gets changed, so that if we're scanning
          // and it crashes, we've still saved the previous ones
          if (auto savedPluginList = std::unique_ptr<XmlElement> (knownPluginList.createXml()))
-@@ -222,6 +226,7 @@
+@@ -221,6 +225,7 @@ void MainHostWindow::changeListenerCallback (ChangeBroadcaster* changed)
              getAppProperties().getUserSettings()->setValue ("pluginList", savedPluginList.get());
              getAppProperties().saveIfNeeded();
          }
@@ -106,3 +120,16 @@ diff -ur external/JUCE/extras/AudioPluginHost/Source/UI/MainHostWindow.cpp exter
      }
      else if (graphHolder != nullptr && changed == graphHolder->graph.get())
      {
+diff --git a/modules/juce_audio_devices/native/juce_android_Oboe.cpp b/modules/juce_audio_devices/native/juce_android_Oboe.cpp
+index d3d7c2370..9284ac117 100644
+--- a/modules/juce_audio_devices/native/juce_android_Oboe.cpp
++++ b/modules/juce_audio_devices/native/juce_android_Oboe.cpp
+@@ -1261,7 +1261,7 @@ public:
+             case 22:  return "USB headset";
+             case 23:  return "hearing aid";
+             case 24:  return "built-in speaker safe";
+-            default:  jassertfalse; return {}; // type not supported yet, needs to be added!
++            default:  return {}; // type not supported yet, needs to be added!
+         }
+     }
+ 
