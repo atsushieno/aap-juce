@@ -120,16 +120,3 @@ index dfd4927c8..e6b11adbd 100644
      }
      else if (graphHolder != nullptr && changed == graphHolder->graph.get())
      {
-diff --git a/modules/juce_audio_devices/native/juce_android_Oboe.cpp b/modules/juce_audio_devices/native/juce_android_Oboe.cpp
-index d3d7c2370..9284ac117 100644
---- a/modules/juce_audio_devices/native/juce_android_Oboe.cpp
-+++ b/modules/juce_audio_devices/native/juce_android_Oboe.cpp
-@@ -1261,7 +1261,7 @@ public:
-             case 22:  return "USB headset";
-             case 23:  return "hearing aid";
-             case 24:  return "built-in speaker safe";
--            default:  jassertfalse; return {}; // type not supported yet, needs to be added!
-+            default:  return {}; // type not supported yet, needs to be added!
-         }
-     }
- 

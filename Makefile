@@ -74,7 +74,7 @@ samples/AudioPluginHost/.stamp: \
 		samples/override.AudioPluginHost.jucer \
 		samples/sample-project.*
 	./create-patched-juce-app.sh  AudioPluginHost  external/JUCE/extras/AudioPluginHost \
-		samples/AudioPluginHost  ../juceaaphost.patch  6  samples/override.AudioPluginHost.jucer
+		samples/AudioPluginHost  ../juceaaphost.patch  3  samples/override.AudioPluginHost.jucer
 
 
 .PHONY:
