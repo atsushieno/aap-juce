@@ -1,0 +1,24 @@
+diff --git a/Source/PluginEditor.cpp b/Source/PluginEditor.cpp
+index 494be13..5821f5e 100755
+--- a/Source/PluginEditor.cpp
++++ b/Source/PluginEditor.cpp
+@@ -683,7 +683,7 @@ void ObxdAudioProcessorEditor::mouseUp(const MouseEvent& e)
+ 
+ 		const Point<int> pos = e.getMouseDownScreenPosition();
+ 
+-		int result = menu.showAt(Rectangle<int>(pos.getX(), pos.getY(), 1, 1));
++		std::function<void(int)> callback = [&](int result) {
+ 		if (result >= (skinStart + 1) && result <= (skinStart + skins.size()))
+ 		{
+ 			result -= 1;
+@@ -708,6 +708,10 @@ void ObxdAudioProcessorEditor::mouseUp(const MouseEvent& e)
+ 			result -= progStart;
+ 			processor.setCurrentProgram(result);
+ 		}
++		};
++		PopupMenu::Options options{};
++		options.withTargetScreenArea(Rectangle<int>(pos.getX(), pos.getY(), 1, 1));
++		menu.showMenuAsync(options, callback);
+ 	}
+ }
+ 

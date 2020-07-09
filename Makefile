@@ -154,5 +154,5 @@ samples/OB-Xd/.stamp: \
 		samples/override.OB-Xd.jucer \
 		samples/sample-project.*
 	./create-patched-juce-app.sh  OB_Xd  external/OB-Xd \
-		samples/OB-Xd  ../obxd-aap.patch  0  samples/override.OB-Xd.jucer
+		samples/OB-Xd  ../obxd-aap.patch  1  samples/override.OB-Xd.jucer
 
