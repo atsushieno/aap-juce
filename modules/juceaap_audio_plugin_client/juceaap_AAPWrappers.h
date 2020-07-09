@@ -56,6 +56,8 @@ public:
 
 	virtual ~JuceAAPWrapper()
 	{
+		juce_processor->releaseResources();
+
 	    if (state.raw_data != nullptr)
 	        free((void*) state.raw_data);
 		if (plugin_unique_id != nullptr)
@@ -86,16 +88,15 @@ public:
 	    allocateBuffer(buffer);
 	    if (juce_aap_wrapper_last_error_code != JUCEAAP_SUCCESS)
 	        return;
+		juce_processor->prepareToPlay(sample_rate, buffer->num_frames);
 	}
 
 	void activate()
 	{
-        juce_processor->prepareToPlay(sample_rate, buffer->num_frames);
 	}
 
 	void deactivate()
 	{
-	    juce_processor->releaseResources();
 	}
 
 	int32_t current_bpm = 120; // FIXME: provide way to adjust it
@@ -125,18 +126,19 @@ public:
 		int nBuf = juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels();
         for (int i = 0; i < nIn; i++)
         	memcpy((void *) juce_buffer.getWritePointer(i), audioBuffer->buffers[i + nPara], sizeof(float) * audioBuffer->num_frames);
-        int outputTimeDivision = default_time_division;
+        int rawTimeDivision = default_time_division;
 
         if (juce_processor->acceptsMidi()) {
         	juce_midi_messages.clear();
         	void* src = audioBuffer->buffers[nPara + nBuf];
         	uint8_t* csrc = (uint8_t*) src;
         	int* isrc = (int*) src;
-        	int32_t timeDivision = outputTimeDivision = isrc[0];
-			uint8_t ticksPerFrame = timeDivision & 0xFF; // if it's in SMTPE.
+        	int32_t timeDivision = rawTimeDivision = isrc[0];
+			timeDivision = timeDivision < 0 ? -timeDivision : timeDivision & 0xFF;
         	int32_t srcEnd = isrc[1] + 8;
         	int32_t srcN = 8;
 			uint8_t running_status = 0;
+			uint64_t ticks = 0;
         	while (srcN < srcEnd) {
 				long timecode = 0;
 				int digits = 0;
@@ -152,6 +154,7 @@ public:
 				uint8_t eventType = statusByte & 0xF0;
 				uint32_t midiEventSize = 3;
 				int sysexPos = srcN;
+				double timestamp;
 				switch (eventType) {
 					case 0xF0:
 						midiEventSize = 2; // F0 + F7
@@ -166,12 +169,16 @@ public:
 						break;
 				}
 
-				double timestamp;
-				// FIXME: we will have to revisit here later...
-				if(timeDivision > 0x7FFF) {
-					timestamp = timecode * 1.0f / sample_rate / ticksPerFrame;
+				// JUCE does not have appropriate semantics on how time code is passed.
+				// We consume AAP MIDI message timestamps accordingly, convert them into position in current frame,
+				// and for MIDI output we just pass them through.
+				if(rawTimeDivision < 0) {
+				    // Hour:Min:Sec:Frame. 1sec = `timeDivision` * frames.
+					ticks += ((((timecode & 0xFF000000) >> 24) * 60 + ((timecode & 0xFF0000) >> 16)) * 60 + ((timecode & 0xFF00) >> 8) * timeDivision + (timecode & 0xFF));
+					timestamp = 1.0 * ticks / timeDivision * sample_rate;
 				} else {
-					timestamp = 60.0f / current_bpm * timecode / timeDivision;
+				    ticks += timecode;
+					timestamp += 60.0f / current_bpm * ticks / timeDivision;
 				}
 				MidiMessage m;
 				bool skip = false;
@@ -180,18 +187,18 @@ public:
 					skip = true; // there is no way to create MidiMessage for F6 (tune request) and F7 (end of sysex)
 					break;
 				case 2:
-				    m = MidiMessage{csrc[srcEventStart], csrc[srcEventStart + 1], timestamp};
+				    m = MidiMessage{csrc[srcEventStart], csrc[srcEventStart + 1]};
 				    break;
 				case 3:
-				    m = MidiMessage{csrc[srcEventStart], csrc[srcEventStart + 1], csrc[srcEventStart + 2], timestamp};
+				    m = MidiMessage{csrc[srcEventStart], csrc[srcEventStart + 1], csrc[srcEventStart + 2]};
                     break;
 				default: // sysex etc.
-					m = MidiMessage::createSysExMessage(csrc + srcEventStart, midiEventSize);
+					m = MidiMessage{csrc + (int32_t) srcEventStart, (int32_t) midiEventSize};
                     break;
 				}
 				if (!skip) {
 					m.setChannel((statusByte & 0x0F) + 1); // they accept 1..16, not 0..15...
-					juce_midi_messages.addEvent(m, 0);
+					juce_midi_messages.addEvent(m, timestamp);
 				}
 				srcN += midiEventSize;
 			}
@@ -215,7 +222,7 @@ public:
 				memcpy(cdst + 8 + dstBufSize, data + eventPos, eventSize);
 				dstBufSize += eventSize;
 			}
-			idst[0] = outputTimeDivision;
+			idst[0] = rawTimeDivision;
 			idst[1] = dstBufSize;
 		}
 	}
