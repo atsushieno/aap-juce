@@ -48,18 +48,19 @@ else
 fi
 
 APPNAME=$APPNAME $CURDIR/fixup-project.sh || exit 5
+APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:]`
 
 # There is no way to generate those files in Projucer.
 cp $CURDIR/samples/sample-project.gradle.properties Builds/Android/gradle.properties
 
 # Projucer is too inflexible to generate required content.
 cp $CURDIR/samples/sample-project.build.gradle Builds/Android/build.gradle
+if [ '$IS_TARGET_HOST' == '' ] ; then
+sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.juceports.$APPNAMELOWER/" $CURDIR/samples/template.AndroidManifest.xml > Builds/Android/app/src/main/AndroidManifest.xml
+fi
 
 sed -e "s/project (\"$APPNAME\" C CXX)/project (\"$APPNAME\" C CXX)\n\nlink_directories (\n  \$\{CMAKE_CURRENT_SOURCE_DIR\}\/..\/..\/..\/..\/..\/..\/external\/android-audio-plugin-framework\/build\/native\/androidaudioplugin \n  \$\{CMAKE_CURRENT_SOURCE_DIR\}\/..\/..\/..\/..\/..\/..\/external\/android-audio-plugin-framework\/build\/native\/androidaudioplugin-lv2) \n\n/" Builds/CLion/CMakeLists.txt  > Builds/CLion/CMakeLists.txt.patched
 mv Builds/CLion/CMakeLists.txt.patched Builds/CLion/CMakeLists.txt
-
-# This does not work on bitrise (Ubuntu 16.04) because libfreetype6-dev is somehow too old and lacks some features that is uncaught. Disabled.
-# cd Builds/LinuxMakefile && make && cd ../..
 
 # Some CI servers have only "ndk-bundle" ...
 if [ -d $ANDROID_SDK_ROOT/ndk-bundle ] ; then
@@ -69,9 +70,6 @@ else
     echo "ndk.dir=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION
 sdk.dir=$ANDROID_SDK_ROOT" > $SRCDIR/Builds/Android/local.properties
 fi
-
-echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
-ls $ANDROID_SDK_ROOT
 
 cd Builds/Android && ./gradlew build$GRADLE_BUILD_TYPE && cd ../.. || exit 1
 
