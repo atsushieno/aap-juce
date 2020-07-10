@@ -20,8 +20,8 @@ extern "C" int juce_aap_wrapper_last_error_code{0};
 // JUCE-AAP port mappings:
 //
 //  JUCE parameters (flattened) 0..p-1 -> AAP ports 0..p-1
-// 	JUCE AudioBuffer 0..nIn-1 -> AAP input ports p..p+nIn-1
-//  JUCE AudioBuffer nIn..nIn+nOut-1 -> AAP output ports p+nIn..p+nIn+nOut-1
+// 	JUCE AudioBuffer 0..nOut-1 -> AAP output ports p..p+nOut-1
+//  JUCE AudioBuffer nOut..nIn+nOut-1 -> AAP input ports p+nOut..p+nIn+nOut-1
 //  IF exists JUCE MIDI input buffer -> AAP MIDI input port p+nIn+nOut
 //  IF exists JUCE MIDI output buffer -> AAP MIDI output port last
 
@@ -94,6 +94,8 @@ public:
             cached_parameter_values[i] = 0.0f;
     }
 
+    inline int getNumberOfChannelsOfBus(juce::AudioPluginInstance::Bus* bus) { return bus ? bus->getNumberOfChannels() : 0; }
+
 	void prepare(AndroidAudioPluginBuffer* buffer)
 	{
 	    allocateBuffer(buffer);
@@ -104,8 +106,8 @@ public:
 		play_head_position.bpm = 120;
 
 		juce_processor->setPlayConfigDetails(
-		        juce_processor->getBus(true, 0)->getNumberOfChannels(),
-		        juce_processor->getBus(false, 0)->getNumberOfChannels(),
+                getNumberOfChannelsOfBus(juce_processor->getBus(true, 0)),
+                getNumberOfChannelsOfBus(juce_processor->getBus(false, 0)),
 		        sample_rate, buffer->num_frames);
 		juce_processor->setPlayHead(this);
 
@@ -145,11 +147,11 @@ public:
             }
         }
 
-        int nIn = juce_processor->getMainBusNumInputChannels();
+        int nOut = juce_processor->getMainBusNumOutputChannels();
 		int nBuf = juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels();
-		for (int i = nIn; i < nBuf; i++)
-			memset((void *) juce_buffer.getReadPointer(i), 0, sizeof(float) * audioBuffer->num_frames);
-        for (int i = 0; i < nIn; i++)
+		for (int i = 0; i < nOut; i++)
+			memset((void *) juce_buffer.getWritePointer(i), 0, sizeof(float) * audioBuffer->num_frames);
+        for (int i = nOut; i < nBuf; i++)
         	memcpy((void *) juce_buffer.getWritePointer(i), audioBuffer->buffers[i + nPara], sizeof(float) * audioBuffer->num_frames);
         int rawTimeDivision = default_time_division;
 
@@ -246,7 +248,7 @@ public:
 		play_head_position.timeInSeconds += thisTimeInSeconds;
 		play_head_position.ppqPosition += play_head_position.bpm / 60 * 4 * thisTimeInSeconds;
 
-		for (int i = nIn; i < nBuf; i++)
+		for (int i = 0; i < nOut; i++)
 			memcpy(audioBuffer->buffers[i + nPara], (void *) juce_buffer.getReadPointer(i), sizeof(float) * audioBuffer->num_frames);
 
 		if(juce_processor->producesMidi()) {
@@ -445,14 +447,6 @@ int generate_aap_metadata(const char *aapMetadataFullPath) {
         generate_xml_parameter_node(topLevelPortsElement, node);
     }
 
-    auto inChannels = filter->getBusesLayout().getMainInputChannelSet();
-    for (int i = 0; i < inChannels.size(); i++) {
-        auto portXml = topLevelPortsElement->createNewChildElement("port");
-        portXml->setAttribute("direction", "input");
-        portXml->setAttribute("content", "audio");
-        portXml->setAttribute("name",
-                              inChannels.getChannelTypeName(inChannels.getTypeOfChannel(i)));
-    }
     auto outChannels = filter->getBusesLayout().getMainOutputChannelSet();
     for (int i = 0; i < outChannels.size(); i++) {
         auto portXml = topLevelPortsElement->createNewChildElement("port");
@@ -461,6 +455,14 @@ int generate_aap_metadata(const char *aapMetadataFullPath) {
         portXml->setAttribute("name",
                               outChannels.getChannelTypeName(outChannels.getTypeOfChannel(i)));
     }
+	auto inChannels = filter->getBusesLayout().getMainInputChannelSet();
+	for (int i = 0; i < inChannels.size(); i++) {
+		auto portXml = topLevelPortsElement->createNewChildElement("port");
+		portXml->setAttribute("direction", "input");
+		portXml->setAttribute("content", "audio");
+		portXml->setAttribute("name",
+							  inChannels.getChannelTypeName(inChannels.getTypeOfChannel(i)));
+	}
     if (filter->acceptsMidi()) {
         auto portXml = topLevelPortsElement->createNewChildElement("port");
         portXml->setAttribute("direction", "input");
