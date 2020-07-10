@@ -54,13 +54,17 @@ APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:]`
 cp $CURDIR/samples/sample-project.gradle.properties Builds/Android/gradle.properties
 
 # Projucer is too inflexible to generate required content.
+## build.gradle
 cp $CURDIR/samples/sample-project.build.gradle Builds/Android/build.gradle
-if [ '$IS_TARGET_HOST' != '' ] ; then
+## AndroidManifest.xml (only for plugins)
+if [ -f Builds/Android/app/src/debug/res/xml/aap_metadata.xml ] ; then
 sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.juceports.$APPNAMELOWER/" $CURDIR/samples/template.AndroidManifest.xml > Builds/Android/app/src/main/AndroidManifest.xml || exit 1
 fi
 
+if [ -d Builds/CLion ] ; then
 sed -e "s/project (\"$APPNAME\" C CXX)/project (\"$APPNAME\" C CXX)\n\nlink_directories (\n  \$\{CMAKE_CURRENT_SOURCE_DIR\}\/..\/..\/..\/..\/..\/..\/external\/android-audio-plugin-framework\/build\/native\/androidaudioplugin \n  \$\{CMAKE_CURRENT_SOURCE_DIR\}\/..\/..\/..\/..\/..\/..\/external\/android-audio-plugin-framework\/build\/native\/androidaudioplugin-lv2) \n\n/" Builds/CLion/CMakeLists.txt  > Builds/CLion/CMakeLists.txt.patched || exit 1
 mv Builds/CLion/CMakeLists.txt.patched Builds/CLion/CMakeLists.txt
+fi
 
 # Some CI servers have only "ndk-bundle" ...
 if [ -d $ANDROID_SDK_ROOT/ndk-bundle ] ; then

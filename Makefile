@@ -63,7 +63,7 @@ build-audiopluginhost: create-patched-pluginhost do-build-audiopluginhost
 .PHONY:
 do-build-audiopluginhost:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	NDK_VERSION=$(NDK_VERSION) APPNAME=AudioPluginHost PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) SKIP_METADATA_GENERATOR=1 GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) IS_TARGET_HOST=1 ./build-sample.sh samples/AudioPluginHost/AudioPluginHost.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=AudioPluginHost PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) SKIP_METADATA_GENERATOR=1 GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/AudioPluginHost/AudioPluginHost.jucer
 
 .PHONY:
 create-patched-pluginhost: samples/AudioPluginHost/.stamp 
