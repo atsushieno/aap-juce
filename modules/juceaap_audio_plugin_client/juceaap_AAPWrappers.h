@@ -1,6 +1,8 @@
 
+#include <ctime>
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "../../external/android-audio-plugin-framework/native/plugin-api/include/aap/android-audio-plugin.h"
+#include "../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include/aap/logging.h"
 #if ANDROID
 #include <dlfcn.h>
 #include <jni.h>
@@ -13,7 +15,7 @@ extern "C" int juce_aap_wrapper_last_error_code{0};
 #define JUCEAAP_SUCCESS 0
 #define JUCEAAP_ERROR_INVALID_BUFFER -1
 #define JUCEAAP_ERROR_PROCESS_BUFFER_ALTERED -2
-
+#define JUCEAAP_LOG_PERF 0
 
 // JUCE-AAP port mappings:
 //
@@ -104,12 +106,16 @@ public:
 
 	std::vector<float> cached_parameter_values;
 
-	// FIXME: process() should not really pass audioBuffer.
-	//  It must be always deactivated, re-prepared, and re-activated.
 	void process(AndroidAudioPluginBuffer* audioBuffer, long timeoutInNanoseconds)
 	{
+#if JUCEAAP_LOG_PERF
+		struct timespec timeSpecBegin, timeSpecEnd;
+		struct timespec procTimeSpecBegin, procTimeSpecEnd;
+		clock_gettime(CLOCK_REALTIME, &timeSpecBegin);
+#endif
+
         if (audioBuffer != buffer) {
-            JUCEAAP_ERROR_PROCESS_BUFFER_ALTERED;
+            errno = JUCEAAP_ERROR_PROCESS_BUFFER_ALTERED;
             return;
         }
         int nPara = juce_processor->getParameters().size();
@@ -124,6 +130,8 @@ public:
 
         int nIn = juce_processor->getMainBusNumInputChannels();
 		int nBuf = juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels();
+		for (int i = nIn; i < nBuf; i++)
+			memset((void *) juce_buffer.getReadPointer(i), 0, sizeof(float) * audioBuffer->num_frames);
         for (int i = 0; i < nIn; i++)
         	memcpy((void *) juce_buffer.getWritePointer(i), audioBuffer->buffers[i + nPara], sizeof(float) * audioBuffer->num_frames);
         int rawTimeDivision = default_time_division;
@@ -205,9 +213,16 @@ public:
         }
 
         // process data by the JUCE plugin
+#if JUCEAAP_LOG_PERF
+        clock_gettime(CLOCK_REALTIME, &procTimeSpecBegin);
+#endif
         juce_processor->processBlock(juce_buffer, juce_midi_messages);
+#if JUCEAAP_LOG_PERF
+        clock_gettime(CLOCK_REALTIME, &procTimeSpecEnd);
+        long procTimeDiff = (procTimeSpecEnd.tv_sec - procTimeSpecBegin.tv_sec) * 1000000000 + procTimeSpecEnd.tv_nsec - procTimeSpecBegin.tv_nsec;
+#endif
 
-		for (int i = juce_processor->getMainBusNumInputChannels(); i < nBuf; i++)
+		for (int i = nIn; i < nBuf; i++)
 			memcpy(audioBuffer->buffers[i + nPara], (void *) juce_buffer.getReadPointer(i), sizeof(float) * audioBuffer->num_frames);
 
 		if(juce_processor->producesMidi()) {
@@ -225,6 +240,12 @@ public:
 			idst[0] = rawTimeDivision;
 			idst[1] = dstBufSize;
 		}
+#if JUCEAAP_LOG_PERF
+		clock_gettime(CLOCK_REALTIME, &timeSpecEnd);
+		long timeDiff = (timeSpecEnd.tv_sec - timeSpecBegin.tv_sec) * 1000000000 + timeSpecEnd.tv_nsec - timeSpecBegin.tv_nsec;
+		aap::aprintf("AAP JUCE Bridge %s - Synth TAT: %ld", plugin_unique_id, procTimeDiff);
+		aap::aprintf("AAP JUCE Bridge %s - Process TAT: time diff %ld", plugin_unique_id, timeDiff);
+#endif
 	}
 
 	void getState(AndroidAudioPluginState* result)
