@@ -25,7 +25,7 @@ extern "C" int juce_aap_wrapper_last_error_code{0};
 //  IF exists JUCE MIDI input buffer -> AAP MIDI input port p+nIn+nOut
 //  IF exists JUCE MIDI output buffer -> AAP MIDI output port last
 
-class JuceAAPWrapper {
+class JuceAAPWrapper : juce::AudioPlayHead {
 	AndroidAudioPlugin *aap;
 	const char* plugin_unique_id;
 	int sample_rate;
@@ -36,9 +36,11 @@ class JuceAAPWrapper {
 	juce::AudioBuffer<float> juce_buffer;
 	juce::MidiBuffer juce_midi_messages;
 
+	juce::AudioPlayHead::CurrentPositionInfo play_head_position;
+
 public:
 	JuceAAPWrapper(AndroidAudioPlugin *plugin, const char* pluginUniqueId, int sampleRate, const AndroidAudioPluginExtension * const *extensions)
-		: aap(plugin), plugin_unique_id(pluginUniqueId == nullptr ? nullptr : strdup(pluginUniqueId)), sample_rate(sampleRate), extensions(extensions)
+		: aap(plugin), sample_rate(sampleRate), extensions(extensions)
 	{
 #if ANDROID
 		typedef JavaVM*(*getJVMFunc)();
@@ -51,6 +53,7 @@ public:
         auto prepareMethod = env->GetStaticMethodID(looperClass, "prepare", "()V");
         env->CallStaticVoidMethod(looperClass, prepareMethod);
 #endif
+        plugin_unique_id = pluginUniqueId == nullptr ? nullptr : strdup(pluginUniqueId);
 
         juce::MessageManager::getInstance(); // ensure that we have a message loop.
         juce_processor = createPluginFilter();
@@ -64,6 +67,12 @@ public:
 	        free((void*) state.raw_data);
 		if (plugin_unique_id != nullptr)
 			free((void*) plugin_unique_id);
+	}
+
+	bool getCurrentPosition (juce::AudioPlayHead::CurrentPositionInfo &result) override
+	{
+		result = play_head_position;
+		return true;
 	}
 
 	void allocateBuffer(AndroidAudioPluginBuffer* buffer)
@@ -90,15 +99,27 @@ public:
 	    allocateBuffer(buffer);
 	    if (juce_aap_wrapper_last_error_code != JUCEAAP_SUCCESS)
 	        return;
+
+		play_head_position.resetToDefault();
+		play_head_position.bpm = 120;
+
+		juce_processor->setPlayConfigDetails(
+		        juce_processor->getBus(true, 0)->getNumberOfChannels(),
+		        juce_processor->getBus(false, 0)->getNumberOfChannels(),
+		        sample_rate, buffer->num_frames);
+		juce_processor->setPlayHead(this);
+
 		juce_processor->prepareToPlay(sample_rate, buffer->num_frames);
 	}
 
 	void activate()
 	{
+		play_head_position.isPlaying = true;
 	}
 
 	void deactivate()
 	{
+		play_head_position.isPlaying = false;
 	}
 
 	int32_t current_bpm = 120; // FIXME: provide way to adjust it
@@ -114,10 +135,6 @@ public:
 		clock_gettime(CLOCK_REALTIME, &timeSpecBegin);
 #endif
 
-        if (audioBuffer != buffer) {
-            errno = JUCEAAP_ERROR_PROCESS_BUFFER_ALTERED;
-            return;
-        }
         int nPara = juce_processor->getParameters().size();
         // For JUCE plugins, we can take at best one parameter value to be processed.
         for (int i = 0; i < nPara; i++) {
@@ -137,6 +154,9 @@ public:
         int rawTimeDivision = default_time_division;
 
         if (juce_processor->acceptsMidi()) {
+        	// FIXME: for complete support for AudioPlayHead::CurrentPositionInfo, we would also
+        	//   have to store bpm and timeSignature, based on MIDI messages.
+
         	juce_midi_messages.clear();
         	void* src = audioBuffer->buffers[nPara + nBuf];
         	uint8_t* csrc = (uint8_t*) src;
@@ -221,6 +241,10 @@ public:
         clock_gettime(CLOCK_REALTIME, &procTimeSpecEnd);
         long procTimeDiff = (procTimeSpecEnd.tv_sec - procTimeSpecBegin.tv_sec) * 1000000000 + procTimeSpecEnd.tv_nsec - procTimeSpecBegin.tv_nsec;
 #endif
+		play_head_position.timeInSamples += audioBuffer->num_frames;
+		auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames / sample_rate;
+		play_head_position.timeInSeconds += thisTimeInSeconds;
+		play_head_position.ppqPosition += play_head_position.bpm / 60 * 4 * thisTimeInSeconds;
 
 		for (int i = nIn; i < nBuf; i++)
 			memcpy(audioBuffer->buffers[i + nPara], (void *) juce_buffer.getReadPointer(i), sizeof(float) * audioBuffer->num_frames);
