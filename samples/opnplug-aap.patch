@@ -1,0 +1,35 @@
+diff --git a/sources/ui/look_and_feel.cc b/sources/ui/look_and_feel.cc
+index 46cd338..b7f21d9 100644
+--- a/sources/ui/look_and_feel.cc
++++ b/sources/ui/look_and_feel.cc
+@@ -29,7 +29,7 @@ RESOURCE(Res, Serif_Regular)
+ void Custom_Look_And_Feel::add_custom_tooltip(const String &key, Component *component, bool owned)
+ {
+     OptionalScopedPointer<Component> ptr(component, owned);
+-    custom_tooltips_[key].component = ptr;
++    //custom_tooltips_[key].component = ptr;
+ }
+ 
+ //==============================================================================
+diff --git a/sources/ui/look_and_feel.h b/sources/ui/look_and_feel.h
+index e63d3cd..5d254e8 100644
+--- a/sources/ui/look_and_feel.h
++++ b/sources/ui/look_and_feel.h
+@@ -34,9 +34,9 @@ private:
+         Custom_Tooltip_Entry()
+             {}
+         Custom_Tooltip_Entry(Custom_Tooltip_Entry &&other)
+-            : component(other.component) {}
++            /*: component(other.component)*/ {}
+         Custom_Tooltip_Entry &operator=(Custom_Tooltip_Entry &&other)
+-            { return component = other.component, *this; }
++            { return /*component = other.component,*/ *this; }
+         OptionalScopedPointer<Component> component;
+         JUCE_DECLARE_NON_COPYABLE(Custom_Tooltip_Entry)
+     };
+diff --git a/thirdparty/JUCE b/thirdparty/JUCE
+--- a/thirdparty/JUCE
++++ b/thirdparty/JUCE
+@@ -1 +1 @@
+-Subproject commit a30f7357863a7d480a771e069abf56909cdf0e13
++Subproject commit a30f7357863a7d480a771e069abf56909cdf0e13-dirty

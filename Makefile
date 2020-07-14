@@ -46,7 +46,7 @@ build-aap:
 	cd external/android-audio-plugin-framework && make MINIMIZE_INTERMEDIATES=$(MINIMIZE_INTERMEDIATES)
 
 .PHONY:
-build-samples: build-audiopluginhost build-andes build-sarah build-magical8bitplug2 build-dexed build-obxd
+build-samples: build-audiopluginhost build-andes build-sarah build-magical8bitplug2 build-dexed build-obxd build-opnplug
 
 .PHONY:
 dist:
@@ -155,4 +155,22 @@ samples/OB-Xd/.stamp: \
 		samples/sample-project.*
 	./create-patched-juce-app.sh  OB_Xd  external/OB-Xd \
 		samples/OB-Xd  ../obxd-aap.patch  1  samples/override.OB-Xd.jucer
+
+# OPNplug is part of ADLplug, so the build script would look somewhat different
+.PHONY:
+build-opnplug: create-patched-opnplug do-build-opnplug
+.PHONY:
+do-build-opnplug:
+	echo "PROJUCER is at $(PROJUCER_BIN)"
+	NDK_VERSION=$(NDK_VERSION) APPNAME=OPNplug PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/OPNplug/OPNplug.jucer
+.PHONY:
+create-patched-opnplug: samples/OPNplug/.stamp 
+samples/OPNplug/.stamp: \
+		external/ADLplug/** \
+		samples/andes-aap.patch \
+		samples/override.OPNplug.jucer \
+		samples/sample-project.*
+	./create-patched-juce-app.sh  OPNplug  external/ADLplug \
+		samples/OPNplug  ../opnplug-aap.patch  1  samples/override.OPNplug.jucer
+
 

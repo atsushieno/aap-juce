@@ -19,3 +19,6 @@
 [submodule "external/OB-Xd"]
 	path = external/OB-Xd
 	url = https://github.com/reales/OB-Xd.git
+[submodule "external/ADLplug"]
+	path = external/ADLplug
+	url = https://github.com/atsushieno/ADLplug.git
