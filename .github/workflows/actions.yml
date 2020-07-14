@@ -55,7 +55,7 @@ jobs:
         java-version: 1.8
     - name: install deps
       run: |
-        brew install doxygen pkg-config cmake lilv
+        brew install doxygen pkg-config cmake lilv coreutils
     - name: build
       run: make MINIMIZE_INTERMEDIATES=1
       env:
