@@ -165,18 +165,18 @@
                        enablePluginBinaryCopyStep="1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
         <MODULEPATH id="surgesynthteam_tuningui" path="./libs"/>
         <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules"/>
       </MODULEPATHS>

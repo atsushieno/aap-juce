@@ -128,6 +128,7 @@
         <MODULEPATH id="juce_gui_basics" path="../../../Applications/JUCE/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../../Applications/JUCE/modules"/>
         <MODULEPATH id="juce_opengl" path="../../../Applications/JUCE/modules"/>
+        <MODULEPATH id="juceaap_audio_plugin_client" path="../../modules" />
       </MODULEPATHS>
     </XCODE_MAC>
     <VS2019 targetFolder="Builds/VisualStudio2019" smallIcon="EM0Wl7" bigIcon="a4A23f">
