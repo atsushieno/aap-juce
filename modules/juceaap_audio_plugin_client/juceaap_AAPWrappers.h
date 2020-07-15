@@ -397,12 +397,15 @@ void generate_xml_parameter_node(XmlElement* parent, const AudioProcessorParamet
         auto childXml = parent->createNewChildElement("port");
         childXml->setAttribute("name", para->getName(1024));
         childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
-        childXml->setAttribute("default", para->getDefaultValue());
+        if (!isnormal(para->getDefaultValue()))
+            childXml->setAttribute("default", para->getDefaultValue());
         auto ranged = dynamic_cast<RangedAudioParameter*>(para);
         if (ranged) {
             auto range = ranged->getNormalisableRange();
-            childXml->setAttribute("minimum", range.start);
-            childXml->setAttribute("maximum", range.end);
+            if (isnormal(range.start))
+                childXml->setAttribute("minimum", range.start);
+            if (isnormal(range.end))
+                childXml->setAttribute("maximum", range.end);
         }
         childXml->setAttribute("content", "other");
     }
