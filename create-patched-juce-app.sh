@@ -27,7 +27,8 @@ fi
 #	mv $DST_PATH $DST_PATH-AutoBackup ;
 #fi
 
-cp -R $SRC_PATH $DST_PATH
+mkdir -p $DST_PATH
+cp -R $SRC_PATH/* $DST_PATH/
 rm -rf $DST_PATH/.git
 
 cd $DST_PATH
