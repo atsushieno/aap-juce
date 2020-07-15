@@ -1,3 +1,39 @@
+diff --git a/sources/plugin_editor.cc b/sources/plugin_editor.cc
+index 6f09605..e50b980 100644
+--- a/sources/plugin_editor.cc
++++ b/sources/plugin_editor.cc
+@@ -29,11 +29,17 @@ AdlplugAudioProcessorEditor::AdlplugAudioProcessorEditor(AdlplugAudioProcessor &
+ 
+     Main_Component *main = new Main_Component(p, pb, *conf);
+     main_.reset(main);
+-    addAndMakeVisible(main);
++    auto contentBounds = main->getBounds();
++    Viewport *mainVP = new Viewport(main->getName() + "ViewPort");
++    mainVP->setBounds(0, 0, 400, 400);
++    mainVP->setViewedComponent(main, false);
++    main_viewport_.reset(mainVP);
++    addAndMakeVisible(mainVP);
+ 
+     // Make sure that before the constructor has finished, you've set the
+     // editor's size to whatever you need it to be.
+-    setSize(main->getWidth(), main->getHeight());
++    setSize(mainVP->getWidth() + mainVP->getScrollBarThickness(), mainVP->getHeight() + mainVP->getScrollBarThickness());
++    main->setBounds(contentBounds); // bring back the initial expected size.
+ 
+     // discard_notifications();
+     Timer *timer = Functional_Timer::create([this]() { process_notifications(); });
+diff --git a/sources/plugin_editor.h b/sources/plugin_editor.h
+index f251d66..a5ad115 100644
+--- a/sources/plugin_editor.h
++++ b/sources/plugin_editor.h
+@@ -28,6 +28,7 @@ private:
+     AdlplugAudioProcessor &proc_;
+     std::unique_ptr<Custom_Look_And_Feel> lnf_;
+     std::unique_ptr<Main_Component> main_;
++    std::unique_ptr<Viewport> main_viewport_;
+     std::unique_ptr<TooltipWindow> tooltip_window_;
+ 
+     std::unique_ptr<Timer> notification_timer_;
 diff --git a/sources/ui/look_and_feel.cc b/sources/ui/look_and_feel.cc
 index 46cd338..b7f21d9 100644
 --- a/sources/ui/look_and_feel.cc
@@ -27,9 +63,3 @@ index e63d3cd..5d254e8 100644
          OptionalScopedPointer<Component> component;
          JUCE_DECLARE_NON_COPYABLE(Custom_Tooltip_Entry)
      };
-diff --git a/thirdparty/JUCE b/thirdparty/JUCE
---- a/thirdparty/JUCE
-+++ b/thirdparty/JUCE
-@@ -1 +1 @@
--Subproject commit a30f7357863a7d480a771e069abf56909cdf0e13
-+Subproject commit a30f7357863a7d480a771e069abf56909cdf0e13-dirty
