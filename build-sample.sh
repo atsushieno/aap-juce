@@ -37,15 +37,15 @@ SRCDIR=`dirname $SRCFILE` >/dev/null
 echo "Entering $SRCDIR ..."
 cd $SRCDIR
 
-$PROJUCER --resave $APPNAME.jucer || exit 1
+$PROJUCER --resave `basename $1` || exit 1
 # sed -e "s/#define JUCE_PROJUCER_VERSION/\\/\\/\$1/" JuceLibraryCode/AppConfig.h> JuceLibraryCode/tmpcfg.txt || eixt 2
 # mv JuceLibraryCode/tmpcfg.txt JuceLibraryCode/AppConfig.h || exit 3
 
 if [ `uname` == 'Darwin' ] ; then
 if [ $APPNAME == 'AudioPluginHost' ] ; then
-	pushd . && cd Builds/MacOSX && xcodebuild -project `basename $1 .jucer`.xcodeproj && popd || exit 4
+	pushd . && cd Builds/MacOSX && xcodebuild -project $APPNAME.xcodeproj && popd || exit 4
 else
-	pushd . && cd Builds/MacOSX && xcodebuild -project `basename $1 .jucer`.xcodeproj -target "$APPNAME - Shared Code" && popd || exit 4
+	pushd . && cd Builds/MacOSX && xcodebuild -project $APPNAME.xcodeproj -target "$APPNAME - Shared Code" && popd || exit 4
 fi
 else
 	make -C Builds/LinuxMakefile || exit 4

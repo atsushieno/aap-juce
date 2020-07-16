@@ -145,7 +145,7 @@ build-obxd: create-patched-obxd do-build-obxd
 .PHONY:
 do-build-obxd:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	NDK_VERSION=$(NDK_VERSION) APPNAME=OB_Xd PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/OB-Xd/OB-Xd.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=Obxd PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/OB-Xd/OB_Xd.jucer
 .PHONY:
 create-patched-obxd: samples/OB-Xd/.stamp 
 samples/OB-Xd/.stamp: \
