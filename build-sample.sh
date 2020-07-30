@@ -70,12 +70,7 @@ sed -e "s/project (\"$APPNAME\" C CXX)/project (\"$APPNAME\" C CXX)\n\nlink_dire
 mv Builds/CLion/CMakeLists.txt.patched Builds/CLion/CMakeLists.txt
 fi
 
-# Some CI servers have only "ndk-bundle" ...
-if [ -d $ANDROID_SDK_ROOT/ndk-bundle ] ; then
-    echo "sdk.dir=$ANDROID_SDK_ROOT" >> $SRCDIR/Builds/Android/local.properties
-else
-    echo "sdk.dir=$ANDROID_SDK_ROOT" >> $SRCDIR/Builds/Android/local.properties
-fi
+echo "sdk.dir=$ANDROID_SDK_ROOT" > $SRCDIR/Builds/Android/local.properties
 
 cd Builds/Android && ./gradlew build$GRADLE_BUILD_TYPE && cd ../.. || exit 1
 
