@@ -82,7 +82,7 @@ build-andes: create-patched-andes do-build-andes
 .PHONY:
 do-build-andes:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	NDK_VERSION=$(NDK_VERSION) APPNAME=Andes_1 PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/andes/Andes_1.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=Andes_1 PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/andes/Andes-1.jucer
 .PHONY:
 create-patched-andes: samples/andes/.stamp 
 samples/andes/.stamp: \
@@ -90,7 +90,7 @@ samples/andes/.stamp: \
 		samples/andes-aap.patch \
 		samples/override.Andes-1.jucer \
 		samples/sample-project.*
-	./create-patched-juce-app.sh  Andes_1  external/andes \
+	./create-patched-juce-app.sh  Andes-1  external/andes \
 		samples/andes  ../andes-aap.patch  0  samples/override.Andes-1.jucer
 
 .PHONY:
