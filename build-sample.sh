@@ -72,10 +72,8 @@ fi
 
 # Some CI servers have only "ndk-bundle" ...
 if [ -d $ANDROID_SDK_ROOT/ndk-bundle ] ; then
-    echo "ndk.dir=$ANDROID_SDK_ROOT/ndk-bundle" > $SRCDIR/Builds/Android/local.properties
     echo "sdk.dir=$ANDROID_SDK_ROOT" >> $SRCDIR/Builds/Android/local.properties
 else
-    echo "ndk.dir=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION" > $SRCDIR/Builds/Android/local.properties
     echo "sdk.dir=$ANDROID_SDK_ROOT" >> $SRCDIR/Builds/Android/local.properties
 fi
 
