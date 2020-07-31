@@ -4,8 +4,8 @@ CURDIR="$( cd `dirname $0` >/dev/null 2>&1 && pwd )"
 ANDROID_SDK_OVERRIDE=$HOME/Android/Sdk
 NDK_VERSION=21.2.6472646
 MINIMIZE_INTERMEDIATES=0
-if [ '$GRADLE_BUILD_TYPE' == '' ] ; then
-GRADLE_BUILD_TYPE=Release
+if [ '$GRADLE_TASK' == '' ] ; then
+GRADLE_TASK=build
 fi
 if [ `uname` == 'Darwin' ] ; then
 READLINK=greadlink # brew install coreutils
@@ -72,7 +72,7 @@ fi
 
 echo "sdk.dir=$ANDROID_SDK_ROOT" > $SRCDIR/Builds/Android/local.properties
 
-cd Builds/Android && ./gradlew build$GRADLE_BUILD_TYPE && cd ../.. || exit 1
+cd Builds/Android && ./gradlew $GRADLE_TASK && cd ../.. || exit 1
 
 if [ $MINIMIZE_INTERMEDIATES ] ; then
     rm -rf Builds/Android/app/build/intermediates/

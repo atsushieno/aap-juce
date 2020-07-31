@@ -4,7 +4,7 @@ NDK_VERSION=21.2.6472646
 JUCE_DIR=$(shell pwd)/external/JUCE
 PROJUCER_BIN_LINUX=$(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/Projucer
 PROJUCER_BIN_DARWIN=$(JUCE_DIR)/extras/Projucer/Builds/MacOSX/build/Debug/Projucer.app/Contents/MacOS/Projucer
-GRADLE_BUILD_TYPE=Release
+GRADLE_TASK=build
 
 ifeq ($(shell uname), Linux)
 	PROJUCER_BIN=$(PROJUCER_BIN_LINUX)
@@ -63,7 +63,7 @@ build-audiopluginhost: create-patched-pluginhost do-build-audiopluginhost
 .PHONY:
 do-build-audiopluginhost:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	NDK_VERSION=$(NDK_VERSION) APPNAME=AudioPluginHost PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) SKIP_METADATA_GENERATOR=1 GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/AudioPluginHost/AudioPluginHost.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=AudioPluginHost PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) SKIP_METADATA_GENERATOR=1 GRADLE_TASK=$(GRADLE_TASK) ./build-sample.sh samples/AudioPluginHost/AudioPluginHost.jucer
 
 .PHONY:
 create-patched-pluginhost: samples/AudioPluginHost/.stamp 
@@ -82,7 +82,7 @@ build-andes: create-patched-andes do-build-andes
 .PHONY:
 do-build-andes:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	NDK_VERSION=$(NDK_VERSION) APPNAME=Andes_1 PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/andes/Andes-1.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=Andes_1 PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_TASK=$(GRADLE_TASK) ./build-sample.sh samples/andes/Andes-1.jucer
 .PHONY:
 create-patched-andes: samples/andes/.stamp 
 samples/andes/.stamp: \
@@ -98,7 +98,7 @@ build-sarah: create-patched-sarah do-build-sarah
 .PHONY:
 do-build-sarah:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	NDK_VERSION=$(NDK_VERSION) APPNAME=SARAH PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/SARAH/SARAH.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=SARAH PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_TASK=$(GRADLE_TASK) ./build-sample.sh samples/SARAH/SARAH.jucer
 .PHONY:
 create-patched-sarah: samples/SARAH/.stamp 
 samples/SARAH/.stamp: \
@@ -114,7 +114,7 @@ build-magical8bitplug2: create-patched-magical8bitplug2 do-build-magical8bitplug
 .PHONY:
 do-build-magical8bitplug2:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	NDK_VERSION=$(NDK_VERSION) APPNAME=Magical8bitPlug2 PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/Magical8bitPlug2/Magical8bitPlug2.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=Magical8bitPlug2 PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_TASK=$(GRADLE_TASK) ./build-sample.sh samples/Magical8bitPlug2/Magical8bitPlug2.jucer
 .PHONY:
 create-patched-magical8bitplug2: samples/Magical8bitPlug2/.stamp 
 samples/Magical8bitPlug2/.stamp: \
@@ -130,7 +130,7 @@ build-dexed: create-patched-dexed do-build-dexed
 .PHONY:
 do-build-dexed:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	MINIMIZE_INTERMEDIATES=$(MINIMIZE_INTERMEDIATES) NDK_VERSION=$(NDK_VERSION) APPNAME=Dexed PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/dexed/Dexed.jucer
+	MINIMIZE_INTERMEDIATES=$(MINIMIZE_INTERMEDIATES) NDK_VERSION=$(NDK_VERSION) APPNAME=Dexed PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_TASK=$(GRADLE_TASK) ./build-sample.sh samples/dexed/Dexed.jucer
 .PHONY:
 create-patched-dexed: samples/dexed/.stamp 
 samples/dexed/.stamp: \
@@ -145,7 +145,7 @@ build-obxd: create-patched-obxd do-build-obxd
 .PHONY:
 do-build-obxd:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	NDK_VERSION=$(NDK_VERSION) APPNAME=Obxd PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/OB-Xd/OB_Xd.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=Obxd PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_TASK=$(GRADLE_TASK) ./build-sample.sh samples/OB-Xd/OB_Xd.jucer
 .PHONY:
 create-patched-obxd: samples/OB-Xd/.stamp 
 samples/OB-Xd/.stamp: \
@@ -162,7 +162,7 @@ build-opnplug: create-patched-opnplug do-build-opnplug
 .PHONY:
 do-build-opnplug:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
-	NDK_VERSION=$(NDK_VERSION) APPNAME=OPNplug PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_BUILD_TYPE=$(GRADLE_BUILD_TYPE) ./build-sample.sh samples/OPNplug/OPNplug.jucer
+	NDK_VERSION=$(NDK_VERSION) APPNAME=OPNplug PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) GRADLE_TASK=$(GRADLE_TASK) ./build-sample.sh samples/OPNplug/OPNplug.jucer
 .PHONY:
 create-patched-opnplug: samples/OPNplug/.stamp 
 samples/OPNplug/.stamp: \
