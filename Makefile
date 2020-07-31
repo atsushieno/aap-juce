@@ -56,6 +56,8 @@ dist:
 	mv  samples/SARAH/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk   release-builds/SARAH-release.apk
 	mv  samples/dexed/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  release-builds/dexed-release.apk
 	mv  samples/Magical8bitPlug2/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  release-builds/Magical8bitPlug2-release.apk
+	mv  samples/OB-Xd/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  release-builds/OB-Xd-release.apk
+	mv  samples/OPNplug/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  release-builds/OPNplug-release.apk
 
 
 .PHONY:
