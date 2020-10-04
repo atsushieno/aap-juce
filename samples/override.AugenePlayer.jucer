@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="dikiQC" name="AugenePlayer" projectType="guiapp" companyName="atsushieno"
+              bundleIdentifier="name.atsushieno.augeneplayer" cppLanguageStandard="17"
+              jucerFormatVersion="1" displaySplashScreen="0">
+  <MAINGROUP id="s4kMcw" name="AugenePlayer">
+    <GROUP id="{58F11006-CE5E-8567-0509-4CDE81C75439}" name="Source">
+      <GROUP id="{794F4E1B-523C-62D2-81AC-64C71936E21D}" name="efsw">
+        <GROUP id="{8BD99E9E-3D7E-F052-BCA7-B94E1FA355E4}" name="platform">
+          <FILE id="BGkqUp" name="FileSystemImpl.cpp" compile="1" resource="0"
+                file="../../external/augene/external/efsw/src/efsw/platform/win/FileSystemImpl.cpp"/>
+          <FILE id="AToFjz" name="FileSystemImpl.cpp" compile="1" resource="0"
+                file="../../external/augene/external/efsw/src/efsw/platform/posix/FileSystemImpl.cpp"/>
+          <FILE id="YYVbGu" name="FileSystemImpl.hpp" compile="0" resource="0"
+                file="../../external/augene/external/efsw/src/efsw/platform/win/FileSystemImpl.hpp"/>
+          <FILE id="b7T6E0" name="FileSystemImpl.hpp" compile="0" resource="0"
+                file="../../external/augene/external/efsw/src/efsw/platform/posix/FileSystemImpl.hpp"/>
+          <FILE id="bjKxqq" name="MutexImpl.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/win/MutexImpl.cpp"/>
+          <FILE id="da8QFb" name="MutexImpl.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/posix/MutexImpl.cpp"/>
+          <FILE id="rMN4UK" name="MutexImpl.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/win/MutexImpl.hpp"/>
+          <FILE id="QtJNAg" name="MutexImpl.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/posix/MutexImpl.hpp"/>
+          <FILE id="IMxr1o" name="platformimpl.hpp" compile="0" resource="0"
+                file="../../external/augene/external/efsw/src/efsw/platform/platformimpl.hpp"/>
+          <FILE id="XuV6fD" name="SystemImpl.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/win/SystemImpl.cpp"/>
+          <FILE id="YfFFRq" name="SystemImpl.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/posix/SystemImpl.cpp"/>
+          <FILE id="NauW4J" name="SystemImpl.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/win/SystemImpl.hpp"/>
+          <FILE id="NqncWf" name="SystemImpl.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/posix/SystemImpl.hpp"/>
+          <FILE id="m8xSMS" name="ThreadImpl.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/win/ThreadImpl.cpp"/>
+          <FILE id="cIfFrl" name="ThreadImpl.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/posix/ThreadImpl.cpp"/>
+          <FILE id="i3JGOU" name="ThreadImpl.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/win/ThreadImpl.hpp"/>
+          <FILE id="IIvhVp" name="ThreadImpl.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/platform/posix/ThreadImpl.hpp"/>
+        </GROUP>
+        <FILE id="OgemhO" name="base.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/base.hpp"/>
+        <FILE id="El68Wx" name="Debug.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/Debug.cpp"/>
+        <FILE id="oHV3sA" name="Debug.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/Debug.hpp"/>
+        <FILE id="Fvx2Ja" name="DirectorySnapshot.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/DirectorySnapshot.cpp"/>
+        <FILE id="DYNGDV" name="DirectorySnapshot.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/DirectorySnapshot.hpp"/>
+        <FILE id="HeulPN" name="DirectorySnapshotDiff.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/DirectorySnapshotDiff.cpp"/>
+        <FILE id="xZ1BSJ" name="DirectorySnapshotDiff.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/DirectorySnapshotDiff.hpp"/>
+        <FILE id="a6ncC6" name="DirWatcherGeneric.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/DirWatcherGeneric.cpp"/>
+        <FILE id="Ua1sFA" name="DirWatcherGeneric.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/DirWatcherGeneric.hpp"/>
+        <FILE id="rpbbOp" name="FileInfo.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/FileInfo.cpp"/>
+        <FILE id="vuPtqW" name="FileInfo.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/FileInfo.hpp"/>
+        <FILE id="sDl5UR" name="FileSystem.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/FileSystem.cpp"/>
+        <FILE id="l94PSU" name="FileSystem.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/FileSystem.hpp"/>
+        <FILE id="t5X28Z" name="FileWatcher.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/FileWatcher.cpp"/>
+        <FILE id="FFVYjo" name="FileWatcherCWrapper.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherCWrapper.cpp"/>
+        <FILE id="LKuhkA" name="FileWatcherFSEvents.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherFSEvents.cpp"/>
+        <FILE id="ovW6SS" name="FileWatcherFSEvents.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherFSEvents.hpp"/>
+        <FILE id="syLaJE" name="FileWatcherGeneric.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherGeneric.cpp"/>
+        <FILE id="hYfCw0" name="FileWatcherGeneric.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherGeneric.hpp"/>
+        <FILE id="vYAamp" name="FileWatcherImpl.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherImpl.cpp"/>
+        <FILE id="xbCrPc" name="FileWatcherImpl.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherImpl.hpp"/>
+        <FILE id="xOdYWP" name="FileWatcherInotify.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherInotify.cpp"/>
+        <FILE id="zJDQ42" name="FileWatcherInotify.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherInotify.hpp"/>
+        <FILE id="o3H0xm" name="FileWatcherKqueue.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherKqueue.cpp"/>
+        <FILE id="xDdwYf" name="FileWatcherKqueue.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherKqueue.hpp"/>
+        <FILE id="B3rjYx" name="FileWatcherWin32.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherWin32.cpp"/>
+        <FILE id="MNZcY7" name="FileWatcherWin32.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/FileWatcherWin32.hpp"/>
+        <FILE id="PaAR8w" name="inotify-nosys.h" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/inotify-nosys.h"/>
+        <FILE id="ROA3zO" name="Lock.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/Lock.hpp"/>
+        <FILE id="zMXXZL" name="Log.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/Log.cpp"/>
+        <FILE id="HHDd8a" name="Mutex.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/Mutex.cpp"/>
+        <FILE id="vdiJ0t" name="Mutex.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/Mutex.hpp"/>
+        <FILE id="WuqFMV" name="sophist.h" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/sophist.h"/>
+        <FILE id="zFa7Cw" name="String.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/String.cpp"/>
+        <FILE id="QYmY3O" name="String.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/String.hpp"/>
+        <FILE id="dEJgyO" name="System.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/System.cpp"/>
+        <FILE id="nMzJO1" name="System.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/System.hpp"/>
+        <FILE id="O47XoT" name="Thread.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/Thread.cpp"/>
+        <FILE id="vu5b2m" name="Thread.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/Thread.hpp"/>
+        <FILE id="IwqGzb" name="Utf.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/Utf.hpp"/>
+        <FILE id="IAfISx" name="Utf.inl" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/Utf.inl"/>
+        <FILE id="cyyTqV" name="Watcher.cpp" compile="1" resource="0" file="../../external/augene/external/efsw/src/efsw/Watcher.cpp"/>
+        <FILE id="xj8CJD" name="Watcher.hpp" compile="0" resource="0" file="../../external/augene/external/efsw/src/efsw/Watcher.hpp"/>
+        <FILE id="Y21f3G" name="WatcherFSEvents.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/WatcherFSEvents.cpp"/>
+        <FILE id="BXodRF" name="WatcherFSEvents.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/WatcherFSEvents.hpp"/>
+        <FILE id="SiOAX1" name="WatcherGeneric.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/WatcherGeneric.cpp"/>
+        <FILE id="s2EKjC" name="WatcherGeneric.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/WatcherGeneric.hpp"/>
+        <FILE id="KPdua6" name="WatcherInotify.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/WatcherInotify.cpp"/>
+        <FILE id="kypSi1" name="WatcherInotify.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/WatcherInotify.hpp"/>
+        <FILE id="foMEt6" name="WatcherKqueue.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/WatcherKqueue.cpp"/>
+        <FILE id="MpWuzZ" name="WatcherKqueue.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/WatcherKqueue.hpp"/>
+        <FILE id="yVMrik" name="WatcherWin32.cpp" compile="1" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/WatcherWin32.cpp"/>
+        <FILE id="pPiwaT" name="WatcherWin32.hpp" compile="0" resource="0"
+              file="../../external/augene/external/efsw/src/efsw/WatcherWin32.hpp"/>
+      </GROUP>
+      <FILE id="GR3wZI" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
+      <FILE id="BiMo9P" name="MainComponent.cpp" compile="1" resource="0"
+            file="Source/MainComponent.cpp"/>
+      <FILE id="lLpwG6" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+    </GROUP>
+  </MAINGROUP>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" 
+                       headerPath="../../../../external/augene/external/efsw/src;../../../../external/augene/external/efsw/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
+            />
+        <CONFIGURATION isDebug="0" name="Release"
+                       headerPath="../../../../external/augene/external/efsw/src;../../../../external/augene/external/efsw/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
+            />
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
+        <MODULEPATH id="tracktion_engine" path="../../external/augene/external/tracktion_engine/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+    <XCODE_IPHONE targetFolder="Builds/iOS">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug"/>
+        <CONFIGURATION isDebug="0" name="Release"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
+        <MODULEPATH id="tracktion_engine" path="../../external/augene/external/tracktion_engine/modules"/>
+      </MODULEPATHS>
+    </XCODE_IPHONE>
+    <VS2019 targetFolder="Builds/VisualStudio2019">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug"/>
+        <CONFIGURATION isDebug="0" name="Release"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
+        <MODULEPATH id="tracktion_engine" path="../../external/augene/external/tracktion_engine/modules"/>
+      </MODULEPATHS>
+    </VS2019>
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraLinkerFlags="-landroidaudioplugin">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" 
+                       headerPath="../../../../external/augene/external/efsw/src;../../../../external/augene/external/efsw/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
+            libraryPath="/usr/X11R6/lib/;../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"/>
+        <CONFIGURATION isDebug="0" name="Release"
+                       headerPath="../../../../external/augene/external/efsw/src;../../../../external/augene/external/efsw/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
+            libraryPath="/usr/X11R6/lib/;../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
+        <MODULEPATH id="tracktion_engine" path="../../external/augene/external/tracktion_engine/modules"/>
+      </MODULEPATHS>
+    </LINUX_MAKE>
+    <ANDROIDSTUDIO targetFolder="Builds/Android" androidMinimumSDK="29" androidInternetNeeded="1"
+                   microphonePermissionNeeded="1" androidBluetoothNeeded="1"
+                   extraLinkerFlags="-landroidaudioplugin"
+                   androidDependencies="implementation project(':androidaudioplugin')"
+                   androidGradleSettingsContent="include ':androidaudioplugin'&#10;&#10;project(':androidaudioplugin').projectDir = new File('../../../external/android-audio-plugin-framework/java/androidaudioplugin/')"
+                   androidProjectRepositories="google()&#10;jcenter()&#10;maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }"
+                   androidManifestCustomXmlElements="&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;&#10;&#10;&lt;manifest xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot; android:versionCode=&quot;1&quot; android:versionName=&quot;1.0.0&quot;&#10;          package=&quot;org.androidaudioplugin.samples.augeneplayer&quot;&gt;&#10;  &lt;application android:label=&quot;@string/app_name&quot; android:name=&quot;com.rmsl.juce.JuceApp&quot; android:hardwareAccelerated=&quot;true&quot;&gt;&#10;&lt;/application&gt;&#10;&lt;/manifest&gt;&#10;"
+                   gradleVersion="6.5" gradleWrapperVersion="4.2.0-alpha06"
+                   >
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" 
+                       headerPath="../../../../external/augene/external/efsw/src;../../../../external/augene/external/efsw/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
+                       libraryPath="../../../../external/android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/debug/obj/${ANDROID_ABI}"
+                       optimisation="1" linkTimeOptimisation="0" targetName="Plugin Host"
+                       recommendedWarnings="LLVM"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" linkTimeOptimisation="1"
+                       headerPath="../../../../external/augene/external/efsw/src;../../../../external/augene/external/efsw/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
+                       libraryPath="../../../../external/android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/debug/obj/${ANDROID_ABI}"
+                       targetName="Plugin Host" recommendedWarnings="LLVM"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
+        <MODULEPATH id="tracktion_engine" path="../../external/augene/external/tracktion_engine/modules"/>
+      </MODULEPATHS>
+    </ANDROIDSTUDIO>
+  </EXPORTFORMATS>
+  <MODULES>
+    <MODULE id="juceaap_audio_plugin_processors" showAllCode="1" />
+    <MODULE id="juce_audio_basics" showAllCode="1"/>
+    <MODULE id="juce_audio_devices" showAllCode="1"/>
+    <MODULE id="juce_audio_formats" showAllCode="1"/>
+    <MODULE id="juce_audio_processors" showAllCode="1"/>
+    <MODULE id="juce_audio_utils" showAllCode="1"/>
+    <MODULE id="juce_core" showAllCode="1"/>
+    <MODULE id="juce_cryptography" showAllCode="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1"/>
+    <MODULE id="juce_dsp" showAllCode="1"/>
+    <MODULE id="juce_events" showAllCode="1"/>
+    <MODULE id="juce_graphics" showAllCode="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1"/>
+    <MODULE id="juce_gui_extra" showAllCode="1"/>
+    <MODULE id="juce_opengl" showAllCode="1"/>
+    <MODULE id="juce_osc" showAllCode="1"/>
+    <MODULE id="tracktion_engine" showAllCode="1"/>
+  </MODULES>
+  <LIVE_SETTINGS>
+    <LINUX/>
+    <OSX/>
+  </LIVE_SETTINGS>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_PLUGINHOST_VST3="1" JUCE_PLUGINHOST_AU="1"
+               JUCE_PLUGINHOST_VST='0' JUCE_PLUGINHOST_LADSPA="1"/>
+</JUCERPROJECT>

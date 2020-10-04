@@ -78,6 +78,23 @@ samples/AudioPluginHost/.stamp: \
 	./create-patched-juce-app.sh  AudioPluginHost  external/JUCE/extras/AudioPluginHost \
 		samples/AudioPluginHost  ../juceaaphost.patch  3  samples/override.AudioPluginHost.jucer
 
+.PHONY:
+build-augene: create-patched-augene do-build-augene
+.PHONY:
+do-build-augene:
+	echo "PROJUCER is at $(PROJUCER_BIN)"
+	NDK_VERSION=$(NDK_VERSION) APPNAME=AugenePlayer PROJUCER=$(PROJUCER_BIN) ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) SKIP_METADATA_GENERATOR=1 GRADLE_TASK=$(GRADLE_TASK) ./build-sample.sh samples/AugenePlayer/AugenePlayer.jucer
+
+.PHONY:
+create-patched-augene: samples/AugenePlayer/.stamp 
+
+samples/AugenePlayer/.stamp: \
+		external/augene/augene-player/** \
+		samples/override.AugenePlayer.jucer \
+		samples/sample-project.*
+	./create-patched-juce-app.sh  AugenePlayer  external/augene/augene-player \
+		samples/AugenePlayer  - -  samples/override.AugenePlayer.jucer
+
 
 .PHONY:
 build-andes: create-patched-andes do-build-andes

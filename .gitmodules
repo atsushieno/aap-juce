@@ -22,3 +22,6 @@
 [submodule "external/ADLplug"]
 	path = external/ADLplug
 	url = https://github.com/atsushieno/ADLplug.git
+[submodule "external/augene"]
+	path = external/augene
+	url = https://github.com/atsushieno/augene/

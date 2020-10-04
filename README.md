@@ -22,15 +22,15 @@ It builds on Android and desktop (confirmed only on Linux so far). It can launch
 
 JUCE is a popular cross-platform, cross-plugin-framework audio development framework.
 JUCE itself does not support AAP, but it can be extended by additional modules.
-Still, JUCE is not designed to be extensible *enough*, additional code to support AAP is needed in each app.
 It also supports Android (you can even run UI), which makes things closer to actual app production.
 
 While JUCE itself is useful to develop frameworks like AAP, it is designed to be independent of any other audio development toolkits and frameworks. We stick to minimum dependencies, at least on the public API surface.
 
+Yet, JUCE is not designed to be extensible *enough*, additional code to support AAP is needed in each app. Therefore, we patch the apps and then build them.
 
 ## Why use juce_emscripten?
 
-**UPDATE:** as of current version juce_emscripten is disabled in favor of JUCE 6.0 migration. We might bring back wasm UI support later.
+**UPDATE:** as of current version, juce_emscripten is disabled in favor of JUCE 6.0 migration. We might bring back wasm UI support later.
 
 We use [juce_emscripten](https://github.com/Dreamtonics/juce_emscripten/), which is a fork of JUCE that extends its support to WebAssembly world using [emscripten](emscripten.org/).
 
@@ -75,8 +75,11 @@ In other words, reusing this repo and adding your plugin as part of `samples` wo
 
 ## Build Instruction
 
-You most likely need a Linux desktop. It may build on virtual machines, but you might want get a real Linux desktop because Projucer (the JUCE project fileset generator) depends on X11, even without running GUI (of course if you try to get it working on other OSes Projucer doesn't require X11).
-It should build on any kind of Linux desktop, but since we cannot make sure to write code that works on every distro, it may fail. So far only Ubuntu 19.10 is the verified desktop.
+Currently we support MacOS and Linux (desktop). We have GitHub Actions setup for this repository, so it can be seen as a reference build setup.
+
+It may build on virtual machines, but you might want to get a real Linux desktop because Projucer (the JUCE project fileset generator) depends on X11, even without running GUI (of course if you try to get it working on other OSes Projucer doesn't require X11).
+
+It should build on any kind of Linux desktop, but since we cannot make sure to write code that works on every distro, it may fail. So far only Ubuntu 20.04 is the verified desktop.
 
 You need Android SDK. If you install it via Android Studio it is usually placed under `~/Android/Sdk`.
 You also need Android NDK 21.0. It would be installed under `~/Android/Sdk/ndk/21.*`.
@@ -88,20 +91,21 @@ Depending on the NDK setup you might also have to rewrite `Makefile` and `Builds
 It would be much easier to place Android SDK and NDK to the standard location though. Symbolic links would suffice.
 
 
-## Under the hood
+## Under the hood (for understanding)
 
-JUCE itself already supports JUCE apps running on Android and there is still
-no need to make any changes to the upstream JUCE.
+JUCE itself already supports JUCE apps running on Android and there is no need to make any changes to the upstream JUCE.
 
-We use juce_emscripten for future plan to integrate with wasm builds.
-juce_emscripten is based on 5.4.5-ish so far.
+<del>We use juce_emscripten for future plan to integrate with wasm builds.
+juce_emscripten is based on 5.4.5-ish so far.</del><ins>it is pulled out and we went back to juce-framework/JUCE.</ins>
 
 Projucer is not capable of supporting arbitrary plugin format and it's quite incompete.
 Thus we make additional changes to the generated Android Gradle project.
 It is mostly taken care by `build-sample.sh` and `fixup-project.sh`.
 
+(After this documentation was written, JUCE started supporting CMake to some extent, so we should migrate over there.
+But it's also up to the ported apps. Since not everything will migrate, we will be stuck if we (only ourselves) migrate to CMake.)
 
-## difference between normal JUCE Android app and JUCE-AAP Android app
+### difference between normal JUCE Android app and JUCE-AAP Android app
 
 Projucer can generate Android apps, and we basically make use of it.
 Although its feature is quite insufficient, we don't expect it to generate the entire set of the required files. We (at least on our samples) copy our own support files into the apps instead, namely the top-level `build.gradle`, `gradle-properties` and `settings.gradle`.
@@ -111,8 +115,10 @@ We also don't expect that the original `.jucer` files can be simply patched by s
 They resolve various relative paths to AAP includes and libs.
 Both Projucer and Android Gradle Plugin lack sufficient support to decently resolve them.
 
+(Again, it is going to change by both sides, JUCE supporting CMake and AGP supporting "Prefab" packages.
+It will happen once atsushieno got more time to work on it.)
 
-## Generating aap_metadata.xml
+### Generating aap_metadata.xml
 
 It is already done as part of `fixup-project.sh` but in case you would like
 to run it manually...
@@ -140,19 +146,19 @@ APP=__yourapp__ gcc (__thisdir__)/tools/aap-metadata-generator.cpp \
 Here are the porting steps that we had. Note that this applies only to samples built under this `samples` directory:
 
 - Run Projucer and open the project `.jucer` file.
-- open project settings and ensure to build at least one plugin format (`Standalone` works)
-- Ensure that `JUCEPROJECT` has `name` attribute value only with `_0-9A-Za-z` characters. That should be handled by Projucer but its hands are still too short.
+- If the project is for a plugin, open project settings and ensure to build at least one plugin format (`Standalone` works)
+- Ensure that `JUCEPROJECT` has `name` attribute value only with `_[0-9][A-Z][a-z]` characters. That should be handled by Projucer but its hands are still too short.
   - For example, we had to rename `Andes-1` to `Andes_1`.
 - Go to Modules and add module `juceaap_audio_plugin_client` (via path, typically)
 - Go to Android exporter section and make following changes:
   - Module Dependencies: add list below
   - minSdkVersion 29
-  - targetSdkVersion 29
+  - targetSdkVersion 29 or later
   - Custom Manifest XML content: listed below
   - Gradle Version 6.5
-  - Android Plug-in Version 4.0.0
+  - Android Plug-in Version 4.0.0 or later
 
-For module dependenciesm add below:
+For module dependencies, add below:
 
 ```
 implementation project(':androidaudioplugin')
