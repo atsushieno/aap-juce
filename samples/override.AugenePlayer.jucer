@@ -130,21 +130,21 @@
             />
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_osc" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_osc" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
         <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
         <MODULEPATH id="tracktion_engine" path="../../external/augene/external/tracktion_engine/modules"/>
       </MODULEPATHS>
@@ -155,21 +155,21 @@
         <CONFIGURATION isDebug="0" name="Release"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_osc" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_osc" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
         <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
         <MODULEPATH id="tracktion_engine" path="../../external/augene/external/tracktion_engine/modules"/>
       </MODULEPATHS>
@@ -180,21 +180,21 @@
         <CONFIGURATION isDebug="0" name="Release"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_osc" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_osc" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
         <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
         <MODULEPATH id="tracktion_engine" path="../../external/augene/external/tracktion_engine/modules"/>
       </MODULEPATHS>
@@ -209,21 +209,21 @@
             libraryPath="/usr/X11R6/lib/;../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_osc" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_osc" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
         <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
         <MODULEPATH id="tracktion_engine" path="../../external/augene/external/tracktion_engine/modules"/>
       </MODULEPATHS>
@@ -234,7 +234,7 @@
                    androidDependencies="implementation project(':androidaudioplugin')"
                    androidGradleSettingsContent="include ':androidaudioplugin'&#10;&#10;project(':androidaudioplugin').projectDir = new File('../../../external/android-audio-plugin-framework/java/androidaudioplugin/')"
                    androidProjectRepositories="google()&#10;jcenter()&#10;maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }"
-                   androidManifestCustomXmlElements="&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;&#10;&#10;&lt;manifest xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot; android:versionCode=&quot;1&quot; android:versionName=&quot;1.0.0&quot;&#10;          package=&quot;org.androidaudioplugin.samples.augeneplayer&quot;&gt;&#10;  &lt;application android:label=&quot;@string/app_name&quot; android:name=&quot;com.rmsl.juce.JuceApp&quot; android:hardwareAccelerated=&quot;true&quot;&gt;&#10;&lt;/application&gt;&#10;&lt;/manifest&gt;&#10;"
+                   androidManifestCustomXmlElements="&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;&#10;&#10;&lt;manifest xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot; android:versionCode=&quot;1&quot; android:versionName=&quot;1.0.0&quot;&#10;          package=&quot;org.androidaudioplugin.samples.augeneplayer&quot;&gt;&#10;  &lt;application android:label=&quot;@string/app_name&quot; android:name=&quot;com.rmsl.juce.JuceApp&quot; android:hardwareAccelerated=&quot;true&quot;&gt;&#10;    &lt;provider&#10;        android:authorities=&quot;org.androidaudioplugin.samples.augene.AudioPluginNativeHostContentProvider&quot;&#10;        android:name=&quot;org.androidaudioplugin.AudioPluginNativeHostContentProvider&quot; /&gt;&#10;  &lt;/application&gt;&#10;&lt;/manifest&gt;&#10;"
                    gradleVersion="6.5" gradleWrapperVersion="4.2.0-alpha06"
                    >
       <CONFIGURATIONS>
@@ -249,21 +249,21 @@
                        targetName="Plugin Host" recommendedWarnings="LLVM"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_cryptography" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_dsp" path="../../external/JUCE/modules"/>
-        <MODULEPATH id="juce_osc" path="../../external/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_core" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_events" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
+        <MODULEPATH id="juce_osc" path="../../external/augene/external/tracktion_engine/modules/juce/modules"/>
         <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
         <MODULEPATH id="tracktion_engine" path="../../external/augene/external/tracktion_engine/modules"/>
       </MODULEPATHS>
