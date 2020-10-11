@@ -239,12 +239,12 @@
                    >
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" 
-                       headerPath="../../../../external/augene/external/efsw/src;../../../../external/augene/external/efsw/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
+                       headerPath="../../../../external/augene/external/efsw/src;../../../../external/augene/external/efsw/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/android/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
                        libraryPath="../../../../external/android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/debug/obj/${ANDROID_ABI}"
                        optimisation="1" linkTimeOptimisation="0" targetName="Plugin Host"
                        recommendedWarnings="LLVM"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" linkTimeOptimisation="1"
-                       headerPath="../../../../external/augene/external/efsw/src;../../../../external/augene/external/efsw/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
+                       headerPath="../../../../external/augene/external/efsw/src;../../../../external/augene/external/efsw/include;../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/android/include;../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
                        libraryPath="../../../../external/android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/debug/obj/${ANDROID_ABI}"
                        targetName="Plugin Host" recommendedWarnings="LLVM"/>
       </CONFIGURATIONS>
