@@ -165,7 +165,7 @@
         <MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>
       </MODULEPATHS>
     </XCODE_IPHONE>
-    <ANDROIDSTUDIO targetFolder="Builds/Android" androidMinimumSDK="29" androidInternetNeeded="1"
+    <ANDROIDSTUDIO targetFolder="Builds/Android" androidMinimumSDK="29" androidTargetSDK="30" androidInternetNeeded="1"
                    microphonePermissionNeeded="1" androidBluetoothNeeded="1" smallIcon="c97aUr"
                    bigIcon="c97aUr"
                    extraLinkerFlags="-landroidaudioplugin"
@@ -173,7 +173,7 @@
                    androidGradleSettingsContent="include ':androidaudioplugin'&#10;&#10;project(':androidaudioplugin').projectDir = new File('../../../../../../java/androidaudioplugin/')"
                    androidProjectRepositories="google()&#10;jcenter()&#10;maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }"
                    androidManifestCustomXmlElements="&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;&#10;&#10;&lt;manifest xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot; android:versionCode=&quot;1&quot; android:versionName=&quot;1.0.0&quot;&#10;          package=&quot;org.androidaudioplugin.samples.audiopluginhost&quot;&gt;&#10;  &lt;application android:label=&quot;@string/app_name&quot; android:name=&quot;com.rmsl.juce.JuceApp&quot; android:hardwareAccelerated=&quot;true&quot;&gt;&#10;    &lt;provider&#10;        android:authorities=&quot;org.androidaudioplugin.AudioPluginNativeHostContentProvider&quot;&#10;        android:name=&quot;org.androidaudioplugin.AudioPluginNativeHostContentProvider&quot; /&gt;&#10;  &lt;/application&gt;&#10;&lt;/manifest&gt;&#10;"
-                   gradleVersion="6.5" gradleWrapperVersion="4.2.0-alpha06"
+                   gradleVersion="6.6.1" gradleWrapperVersion="4.2.0-alpha13"
                    >
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" 
