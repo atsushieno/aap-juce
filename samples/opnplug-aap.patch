@@ -1,3 +1,29 @@
+diff --git a/sources/opl3/ui/main_component.cc b/sources/opl3/ui/main_component.cc
+index 3d3df6b..fb798e8 100644
+--- a/sources/opl3/ui/main_component.cc
++++ b/sources/opl3/ui/main_component.cc
+@@ -1247,7 +1247,7 @@ void Main_Component::buttonClicked (Button* buttonThatWasClicked)
+     else if (buttonThatWasClicked == btn_algo_help.get())
+     {
+         //[UserButtonCode_btn_algo_help] -- add your button handler code here..
+-        CallOutBox::launchAsynchronously(new Algorithm_Help, btn_algo_help->getBounds(), this);
++        CallOutBox::launchAsynchronously(std::unique_ptr<Algorithm_Help>(new Algorithm_Help), btn_algo_help->getBounds(), this);
+         //[/UserButtonCode_btn_algo_help]
+     }
+     else if (buttonThatWasClicked == btn_auto4ops.get())
+diff --git a/sources/opn2/ui/main_component.cc b/sources/opn2/ui/main_component.cc
+index b65bb19..4800112 100644
+--- a/sources/opn2/ui/main_component.cc
++++ b/sources/opn2/ui/main_component.cc
+@@ -1057,7 +1057,7 @@ void Main_Component::buttonClicked (Button* buttonThatWasClicked)
+     else if (buttonThatWasClicked == btn_algo_help.get())
+     {
+         //[UserButtonCode_btn_algo_help] -- add your button handler code here..
+-        CallOutBox::launchAsynchronously(new Algorithm_Help, btn_algo_help->getBounds(), this);
++        CallOutBox::launchAsynchronously(std::unique_ptr<Algorithm_Help>(new Algorithm_Help), btn_algo_help->getBounds(), this);
+         //[/UserButtonCode_btn_algo_help]
+     }
+     else if (buttonThatWasClicked == btn_lfo_enable.get())
 diff --git a/sources/plugin_editor.cc b/sources/plugin_editor.cc
 index 6f09605..e50b980 100644
 --- a/sources/plugin_editor.cc
