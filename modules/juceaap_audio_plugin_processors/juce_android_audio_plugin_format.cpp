@@ -304,6 +304,7 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         auto androidInstance = android_host.getInstance(instanceID);
         std::unique_ptr <AndroidAudioPluginInstance> instance{
                 new AndroidAudioPluginInstance(androidInstance)};
+        androidInstance->completeInstantiation();
         callback(std::move(instance), error);
     }
 }
