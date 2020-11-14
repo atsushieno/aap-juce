@@ -61,7 +61,7 @@ dist:
 
 
 .PHONY:
-build-audiopluginhost: create-patched-pluginhost do-build-audiopluginhost
+build-audiopluginhost: build-aap create-patched-pluginhost do-build-audiopluginhost
 .PHONY:
 do-build-audiopluginhost:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
