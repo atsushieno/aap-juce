@@ -12,6 +12,9 @@ READLINK=greadlink # brew install coreutils
 else
 READLINK=readlink
 fi
+if [ '$MACAPPNAME' == '' ] ; then
+MACAPPNAME=$APPNAME
+fi
 
 if [ -d $ANDROID_SDK_OVERRIDE ] ; then
     echo "ANDROID_SDK_OVERRIDE: $ANDROID_SDK_OVERRIDE"
@@ -45,7 +48,7 @@ if [ `uname` == 'Darwin' ] ; then
 if [ $APPNAME == 'AudioPluginHost' ] ; then
 	pushd . && cd Builds/MacOSX && xcodebuild -project $APPNAME.xcodeproj && popd || exit 4
 else
-	pushd . && cd Builds/MacOSX && xcodebuild -project $APPNAME.xcodeproj -target "$APPNAME - Shared Code" && popd || exit 4
+	pushd . && cd Builds/MacOSX && xcodebuild -project $MACAPPNAME.xcodeproj -target "$APPNAME - Shared Code" && popd || exit 4
 fi
 else
 	make -C Builds/LinuxMakefile || exit 4
