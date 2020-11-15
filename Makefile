@@ -190,6 +190,6 @@ samples/OPNplug/.stamp: \
 		samples/override.OPNplug.jucer \
 		samples/sample-project.*
 	./create-patched-juce-app.sh  OPNplug  external/ADLplug \
-		samples/OPNplug  ../opnplug-aap.patch  1  samples/override.OPNplug.jucer
+		samples/OPNplug  -  -  samples/override.OPNplug.jucer
 
 
