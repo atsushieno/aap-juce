@@ -12,7 +12,7 @@ READLINK=greadlink # brew install coreutils
 else
 READLINK=readlink
 fi
-if [ '$MACAPPNAME' == '' ] ; then
+if [ -z "$MACAPPNAME" ] ; then
 MACAPPNAME=$APPNAME
 fi
 
@@ -48,13 +48,14 @@ if [ `uname` == 'Darwin' ] ; then
 if [ $APPNAME == 'AudioPluginHost' ] ; then
 	pushd . && cd Builds/MacOSX && xcodebuild -project $APPNAME.xcodeproj && popd || exit 4
 else
-	pushd . && cd Builds/MacOSX && xcodebuild -project $MACAPPNAME.xcodeproj -target "$APPNAME - Shared Code" && popd || exit 4
+	pushd . && cd Builds/MacOSX && xcodebuild -project $MACAPPNAME.xcodeproj -target "$MACAPPNAME - Shared Code" && popd || exit 4
 fi
+	APPNAME=$MACAPPNAME $CURDIR/fixup-project.sh || exit 5
 else
 	make -C Builds/LinuxMakefile || exit 4
+	APPNAME=$APPNAME $CURDIR/fixup-project.sh || exit 5
 fi
 
-APPNAME=$APPNAME $CURDIR/fixup-project.sh || exit 5
 APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:]`
 
 # There is no way to generate those files in Projucer.
