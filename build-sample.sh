@@ -16,6 +16,8 @@ if [ '$MACAPPNAME' == '' ] ; then
 MACAPPNAME=$APPNAME
 fi
 
+
+
 if [ -d $ANDROID_SDK_OVERRIDE ] ; then
     echo "ANDROID_SDK_OVERRIDE: $ANDROID_SDK_OVERRIDE"
     ANDROID_SDK_ROOT=$ANDROID_SDK_OVERRIDE
@@ -34,6 +36,8 @@ if ! [ -f $1 ] ; then
     exit 2
 fi
 
+echo "build-sample.sh: APPNAME: $APPNAME / MAPAPPNAME: $MACAPPNAME / GRADLE_TASK: $GRADLE_TASK"
+
 SRCFILE=`$READLINK -f $1` >/dev/null
 SRCDIR=`dirname $SRCFILE` >/dev/null
 
@@ -44,11 +48,18 @@ $PROJUCER --resave `basename $1` || exit 1
 # sed -e "s/#define JUCE_PROJUCER_VERSION/\\/\\/\$1/" JuceLibraryCode/AppConfig.h> JuceLibraryCode/tmpcfg.txt || eixt 2
 # mv JuceLibraryCode/tmpcfg.txt JuceLibraryCode/AppConfig.h || exit 3
 
+# If a top-level `local.properties` exists, then copy it into the generated Android project.
+if [ -f ../../local.properties ] ; then
+	cp ../../local.properties Builds/Android/ || exit 1
+else
+	echo "build-sample.sh: building '`basename $1`' without local.properties."
+fi
+
 if [ `uname` == 'Darwin' ] ; then
 if [ $APPNAME == 'AudioPluginHost' ] ; then
-	pushd . && cd Builds/MacOSX && xcodebuild -project $APPNAME.xcodeproj && popd || exit 4
+	pushd . && cd Builds/MacOSX && xcodebuild -project "$APPNAME.xcodeproj" && popd || exit 4
 else
-	pushd . && cd Builds/MacOSX && xcodebuild -project $MACAPPNAME.xcodeproj -target "$APPNAME - Shared Code" && popd || exit 4
+	pushd . && cd Builds/MacOSX && xcodebuild -project "$MACAPPNAME.xcodeproj" -target "$APPNAME - Shared Code" && popd || exit 4
 fi
 else
 	make -C Builds/LinuxMakefile || exit 4
@@ -58,14 +69,14 @@ APPNAME=$APPNAME $CURDIR/fixup-project.sh || exit 5
 APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:]`
 
 # There is no way to generate those files in Projucer.
-cp $CURDIR/samples/sample-project.gradle.properties Builds/Android/gradle.properties
+cp $CURDIR/sample-project.gradle.properties Builds/Android/gradle.properties
 
 # Projucer is too inflexible to generate required content.
 ## build.gradle
-cp $CURDIR/samples/sample-project.build.gradle Builds/Android/build.gradle
+cp $CURDIR/sample-project.build.gradle Builds/Android/build.gradle
 ## AndroidManifest.xml (only for plugins)
 if [ -f Builds/Android/app/src/debug/res/xml/aap_metadata.xml ] ; then
-sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.juceports.$APPNAMELOWER/" $CURDIR/samples/template.AndroidManifest.xml > Builds/Android/app/src/main/AndroidManifest.xml || exit 1
+sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.juceports.$APPNAMELOWER/" $CURDIR/template.AndroidManifest.xml > Builds/Android/app/src/main/AndroidManifest.xml || exit 1
 fi
 
 if [ -d Builds/CLion ] ; then
@@ -78,8 +89,8 @@ echo "sdk.dir=$ANDROID_SDK_ROOT" > $SRCDIR/Builds/Android/local.properties
 cd Builds/Android && ./gradlew $GRADLE_TASK && cd ../.. || exit 1
 
 if [ $MINIMIZE_INTERMEDIATES ] ; then
-    rm -rf Builds/Android/app/build/intermediates/
-    rm -rf Builds/Android/app/.cxx
+    rm -rf Builds/Android/app/build/intermediates/ ;
+    rm -rf Builds/Android/app/.cxx ;
     rm -rf Builds/LinuxMakefile/build/intermediates/
 fi
 

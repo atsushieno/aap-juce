@@ -1,12 +1,6 @@
-[submodule "android-audio-plugin-framework"]
-	path = external/android-audio-plugin-framework
-	url = https://github.com/atsushieno/android-audio-plugin-framework.git
 [submodule "external/andes"]
 	path = external/andes
 	url = https://github.com/artfwo/andes.git
-[submodule "external/juce_emscripten"]
-	path = external/JUCE
-	url = https://github.com/juce-framework/JUCE.git
 [submodule "external/SARAH"]
 	path = external/SARAH
 	url = https://github.com/getdunne/SARAH/
@@ -22,6 +16,3 @@
 [submodule "external/ADLplug"]
 	path = external/ADLplug
 	url = https://github.com/atsushieno/ADLplug.git
-[submodule "external/augene"]
-	path = external/augene
-	url = https://github.com/atsushieno/augene/

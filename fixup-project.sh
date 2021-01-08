@@ -17,7 +17,7 @@ echo "Static library for `uname` is $LIBNAME"
 if ! [ $SKIP_METADATA_GENERATOR ] ; then
 	rm -f `pwd`/aap_metadata.xml ;
 	echo "building aap-metadata-generator tool..." ;
-	$PLAT_COMPILER -g ../../tools/aap-metadata-generator.cpp \
+	$PLAT_COMPILER -g ../../aap-juce/tools/aap-metadata-generator.cpp \
 		$LIBNAME \
 		$PLAT_LDFLAGS \
 	        -lstdc++ -ldl -lm -lpthread \
@@ -25,13 +25,16 @@ if ! [ $SKIP_METADATA_GENERATOR ] ; then
 	./aap-metadata-generator `pwd`/aap_metadata.xml ;
 fi
 
-cp $CURDIR/samples/sample-project.settings.gradle Builds/Android/settings.gradle
+cp $CURDIR/sample-project.settings.gradle Builds/Android/settings.gradle
 
 # There is no way to generate this in Projucer.
-cp $CURDIR/samples/sample-project.gradle.properties Builds/Android/gradle.properties
+cp $CURDIR/sample-project.gradle.properties Builds/Android/gradle.properties
+
+# Only Android Studio 2020.3.1 Canary comes with working debugger ATM.
+cp $CURDIR/sample-project.gradle-wrapper.properties Builds/Android/gradle/wrapper/gradle-wrapper.properties
 
 # Projucer is too inflexible to generate required content.
-cp $CURDIR/samples/sample-project.build.gradle Builds/Android/build.gradle
+cp $CURDIR/sample-project.build.gradle Builds/Android/build.gradle
 
 mkdir -p Builds/Android/app/src/debug/res/xml/
 mkdir -p Builds/Android/app/src/release/res/xml/
