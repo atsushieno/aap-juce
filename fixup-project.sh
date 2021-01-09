@@ -17,12 +17,12 @@ echo "Static library for `uname` is $LIBNAME"
 if ! [ $SKIP_METADATA_GENERATOR ] ; then
 	rm -f `pwd`/aap_metadata.xml ;
 	echo "building aap-metadata-generator tool..." ;
-	$PLAT_COMPILER -g ../../aap-juce/tools/aap-metadata-generator.cpp \
+	$PLAT_COMPILER -g $CURDIR/tools/aap-metadata-generator.cpp \
 		$LIBNAME \
 		$PLAT_LDFLAGS \
 	        -lstdc++ -ldl -lm -lpthread \
-	        -o aap-metadata-generator  || exit 1;
-	./aap-metadata-generator `pwd`/aap_metadata.xml ;
+	        -o $CURDIR/tools/aap-metadata-generator  || exit 1;
+	$CURDIR/tools/aap-metadata-generator `pwd`/aap_metadata.xml ;
 fi
 
 cp $CURDIR/sample-project.settings.gradle Builds/Android/settings.gradle
