@@ -1,26 +1,29 @@
 # AAP JUCE audio processor and client modules
 
-This repo is the place where we have JUCE integration support modules for [android-audio-plugin-framework](https://github.com/atsushieno/android-audio-plugin-framework) (AAP), both plugins and hosts, as well as handful of samples.
-(Although make sure to check [issues](https://github.com/atsushieno/aap-juce/issues), there are not a few samples that don't work as expected.)
-
-- Host sample
-  - [AudioPluginHost](https://github.com/WeAreROLI/JUCE/tree/master/extras/AudioPluginHost/)
-- Plugin sample
-  - [andes](https://github.com/artfwo/andes/)
-  - [SARAH](https://github.com/getdunne/SARAH/)
-  - [dexed](https://github.com/asb2m10/dexed/) (we use private fork)
-  - [Magical8bitPlug2](https://github.com/yokemura/Magical8bitPlug2/)
-  - [OB-Xd](https://github.com/reales/OB-Xd)
+This repo is the place where we have JUCE integration support modules for [android-audio-plugin-framework](https://github.com/atsushieno/android-audio-plugin-framework) (AAP), for both plugins and hosts.
 
 The entire AAP framework is on early development phase and not ready for any consumption yet.
 Everything is subject to change. Contributions are welcome but documentation is poor, and source code is ugly yet.
+
+This repository used to contain a handful of sample projects, but to avoid bloat core library repository, they are split from here and have their own repositories:
+
+- Host
+  - [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) from [AudioPluginHost](https://github.com/WeAreROLI/JUCE/tree/master/extras/AudioPluginHost/)
+- Plugins
+  - [aap-juce-dexed](https://github.com/atsushieno/aap-juce-dexed) from [dexed](https://github.com/asb2m10/dexed/) (we use private fork)
+  - [aap-juce-adlplug](https://github.com/atsushieno/aap-juce-adlplug) from [ADLplug](https://github.com/jpcima/ADLplug)
+  - [aap-juce-ports](https://github.com/atsushieno/aap-juce-ports) contains other various ports from...
+    - [andes](https://github.com/artfwo/andes/)
+    - [SARAH](https://github.com/getdunne/SARAH/)
+    - [Magical8bitPlug2](https://github.com/yokemura/Magical8bitPlug2/)
+    - [OB-Xd](https://github.com/reales/OB-Xd)
 
 It builds on Android and desktop (confirmed only on Linux so far). It can launch, enumerate the installed audio plugins on the system, and instantiate each plugin (only one can be instantiated), but audio inputs are not verified to work.
 
 
 ## Why JUCE?
 
-JUCE is a popular cross-platform, cross-plugin-framework audio development framework.
+JUCE is a popular cross-platform, cross-plugin-format audio development framework.
 JUCE itself does not support AAP, but it can be extended by additional modules.
 Still, JUCE is not designed to be extensible *enough*, additional code to support AAP is needed in each app.
 It also supports Android (you can even run UI), which makes things closer to actual app production.
@@ -48,9 +51,9 @@ We keep using juce_emscripten so far though; it may become usable at some stage.
 
 You need a host app and a plugin to try at least one plugin via one host.
 
-THe host can be either `aaphostsample` in android-audio-plugin-framework repo, or `AudioPluginHost` in this repo (which is JUCE AudioPluginHost with AAP support).
+THe host can be either `aaphostsample` in android-audio-plugin-framework repo, or `AudioPluginHost` in aap-juce-plugin-host repo (which is JUCE AudioPluginHost with AAP support).
 
-The plugin can be either `aappluginsample` in android-audio-plugin-framework repo (more stable), or plugins like `samples/andes` in this repo (less stable).
+The plugin can be either `aapbarebonepluginsample` in android-audio-plugin-framework repo (more stable), or plugins like `apps/andes` in aap-juce-ports repo (less stable).
 
 Once you run `make` then those apps are built. JUCE Android apps are built under `Build/Android/app/build/outputs/` in each app directory.
 Though we typically use Android Studio and open `Build/Android` and then run or debug there, once top-level `make` ran successfully.
@@ -81,7 +84,7 @@ You most likely need a Linux desktop. It may build on virtual machines, but you 
 It should build on any kind of Linux desktop, but since we cannot make sure to write code that works on every distro, it may fail. So far only Ubuntu 19.10 is the verified desktop.
 
 You need Android SDK. If you install it via Android Studio it is usually placed under `~/Android/Sdk`.
-You also need Android NDK 21.0. It would be installed under `~/Android/Sdk/ndk/21.*`.
+You also need Android NDK, most likely 21.0 (no verification with other versions). It would be installed under `~/Android/Sdk/ndk/21.*`.
 
 Once they are all set, simply run `make`.
 
