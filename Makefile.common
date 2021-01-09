@@ -1,0 +1,111 @@
+# ------------------------------------------------------------------------
+# This file is supposed to be included from the main project Makefile.
+# ------------------------------------------------------------------------
+
+
+# Beginning of user configuration -------------------------------
+
+# General build configuration -----------------------------------
+## Specify path to overriden jucer file.
+APP_CUSTOM_JUCER=$(shell pwd)/apps/override.$(APP_NAME).jucer
+
+## Specify path to aap-juce. The default is the submodule path.
+AAP_JUCE_DIR=$(shell pwd)/aap-juce
+
+## Specify path to juce. The default is the submodule path.
+JUCE_DIR=$(shell pwd)/external/JUCE
+
+## Specify path to aap core. The default is the submodule path.
+AAP_DIR=$(shell pwd)/external/android-audio-plugin-framework
+
+## If the build output is going to be too huge to keep, use this flag to delete.
+MINIMIZE_INTERMEDIATES=0
+
+## Specify arbitrary NDK version. No guarantee on that your version works.
+NDK_VERSION=21.3.6528147
+
+## Specify whatever gradle task you want to run.
+GRADLE_TASK=build
+
+
+# End of user configuration. ------------------------------------
+
+PROJUCER_BIN_LINUX=$(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/Projucer
+PROJUCER_BIN_DARWIN=$(JUCE_DIR)/extras/Projucer/Builds/MacOSX/build/Debug/Projucer.app/Contents/MacOS/Projucer
+
+ifeq ($(shell uname), Linux)
+	PROJUCER_BIN=$(PROJUCER_BIN_LINUX)
+else
+ifeq ($(shell uname), Darwin)
+	PROJUCER_BIN=$(PROJUCER_BIN_DARWIN)
+else
+	PROJUCER_BIN=___error___
+endif
+endif
+
+
+.PHONY:
+all: build
+
+.PHONY:
+build: prepare build-aap build-samples
+
+.PHONY:
+prepare: build-projucer
+
+.PHONY:
+build-projucer: $(PROJUCER_BIN)
+	@echo "Projucer target: $(PROJUCER_BIN)"
+
+$(PROJUCER_BIN_LINUX):
+	make -C $(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile
+	if [ $(MINIMIZE_INTERMEDIATES) ] ; then \
+		rm -rf $(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/intermediate/ ; \
+	fi
+
+$(PROJUCER_BIN_DARWIN):
+	xcodebuild -project $(JUCE_DIR)/extras/Projucer/Builds/MacOSX/Projucer.xcodeproj
+	if [ $(MINIMIZE_INTERMEDIATES) ] ; then \
+		rm -rf $(JUCE_DIR)/extras/Projucer/Builds/MacOSX/build/intermediate/ ; \
+	fi
+
+.PHONY:
+build-aap:
+	cd $(AAP_DIR) && make MINIMIZE_INTERMEDIATES=$(MINIMIZE_INTERMEDIATES)
+
+.PHONY:
+build-samples: build-target-app
+
+.PHONY:
+dist:
+	mkdir -p release-builds
+	mv  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  release-builds/$(APP_NAME)-release.apk
+
+
+.PHONY:
+build-target-app: create-patched-app do-build-target-app
+
+.PHONY:
+do-build-target-app:
+	echo "PROJUCER is at $(PROJUCER_BIN)"
+	cd $(APP_BUILD_DIR) && \
+		MINIMIZE_INTERMEDIATES=$(MINIMIZE_INTERMEDIATES) \
+		NDK_VERSION=$(NDK_VERSION) \
+		APPNAME=$(APP_NAME) \
+		PROJUCER=$(PROJUCER_BIN) \
+		ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) \
+		GRADLE_TASK=$(GRADLE_TASK) \
+		SKIP_METADATA_GENERATOR=1 \
+		$(AAP_JUCE_DIR)/build-sample.sh $(APP_NAME).jucer
+
+.PHONY:
+create-patched-app: $(APP_BUILD_DIR)/.stamp 
+
+$(APP_BUILD_DIR)/.stamp: \
+		$(APP_SRC_DIR)/** \
+		$(APP_CUSTOM_JUCER) \
+		$(AAP_JUCE_DIR)/sample-project.*
+	$(AAP_JUCE_DIR)/create-patched-juce-app.sh  $(APP_NAME)  $(APP_SRC_DIR) \
+		$(APP_BUILD_DIR)  $(PATCH_FILE)  $(PATCH_DEPTH)  $(APP_CUSTOM_JUCER)
+	ln -s $(AAP_JUCE_DIR)/modules $(APP_BUILD_DIR)/modules
+
