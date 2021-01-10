@@ -48,7 +48,7 @@ endif
 all: build
 
 .PHONY:
-build: prepare build-aap build-samples
+build: prepare build-aap build-target-app
 
 .PHONY:
 prepare: build-projucer
@@ -74,9 +74,6 @@ build-aap:
 	cd $(AAP_DIR) && make MINIMIZE_INTERMEDIATES=$(MINIMIZE_INTERMEDIATES)
 
 .PHONY:
-build-samples: build-target-app
-
-.PHONY:
 dist:
 	mkdir -p release-builds
 	mv  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  release-builds/$(APP_NAME)-release.apk
@@ -95,7 +92,7 @@ do-build-target-app:
 		PROJUCER=$(PROJUCER_BIN) \
 		ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) \
 		GRADLE_TASK=$(GRADLE_TASK) \
-		SKIP_METADATA_GENERATOR=1 \
+		SKIP_METADATA_GENERATOR=$(SKIP_METADATA_GENERATOR) \
 		$(AAP_JUCE_DIR)/build-sample.sh $(APP_NAME).jucer
 
 .PHONY:
