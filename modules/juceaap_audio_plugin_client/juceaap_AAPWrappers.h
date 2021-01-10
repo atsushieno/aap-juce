@@ -1,8 +1,8 @@
 
 #include <ctime>
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "../../external/android-audio-plugin-framework/native/plugin-api/include/aap/android-audio-plugin.h"
-#include "../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include/aap/logging.h"
+#include "aap/android-audio-plugin.h"
+#include "aap/logging.h"
 #if ANDROID
 #include <dlfcn.h>
 #include <jni.h>
