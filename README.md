@@ -12,11 +12,11 @@ This repository used to contain a handful of sample projects, but to avoid bloat
 - Plugins
   - [aap-juce-dexed](https://github.com/atsushieno/aap-juce-dexed) from [dexed](https://github.com/asb2m10/dexed/) (we use private fork)
   - [aap-juce-adlplug](https://github.com/atsushieno/aap-juce-adlplug) from [ADLplug](https://github.com/jpcima/ADLplug)
+  - [aap-juce-obxd](https://github.com/atsushieno/aap-juce-obxd) from [OB-Xd](https://github.com/reales/OB-Xd)
   - [aap-juce-ports](https://github.com/atsushieno/aap-juce-ports) contains other various ports from...
     - [andes](https://github.com/artfwo/andes/)
     - [SARAH](https://github.com/getdunne/SARAH/)
     - [Magical8bitPlug2](https://github.com/yokemura/Magical8bitPlug2/)
-    - [OB-Xd](https://github.com/reales/OB-Xd)
 
 It builds on Android and desktop (confirmed only on Linux so far). It can launch, enumerate the installed audio plugins on the system, and instantiate each plugin (only one can be instantiated), but audio inputs are not verified to work.
 
@@ -259,5 +259,3 @@ Here is an example output (measured with Magical8bitPlug2, simple 3 notes chord,
 ## Code origin and license
 
 This repository itself is licensed under the GPLv3 license.
-
-JUCE and the sample app submodules are licensed under each license.
