@@ -70,11 +70,11 @@ fi
 APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:]`
 
 # There is no way to generate those files in Projucer.
-cp $CURDIR/sample-project.gradle.properties Builds/Android/gradle.properties
+cp $CURDIR/sample-project.gradle.properties Builds/Android/gradle.properties || exit 1
 
 # Projucer is too inflexible to generate required content.
 ## build.gradle
-cp $CURDIR/sample-project.build.gradle Builds/Android/build.gradle
+cp $CURDIR/sample-project.build.gradle Builds/Android/build.gradle || exit 1
 ## AndroidManifest.xml (only for plugins)
 if [ -f Builds/Android/app/src/debug/res/xml/aap_metadata.xml ] ; then
 sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.juceports.$APPNAMELOWER/" $CURDIR/template.AndroidManifest.xml > Builds/Android/app/src/main/AndroidManifest.xml || exit 1
