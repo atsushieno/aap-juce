@@ -28,6 +28,9 @@ NDK_VERSION=21.3.6528147
 GRADLE_TASK=build
 
 
+## dist directory to collect build artifacts
+DIST_DIR=$(shell pwd)/release-builds
+
 # End of user configuration. ------------------------------------
 
 PROJUCER_BIN_LINUX=$(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/Projucer
@@ -75,8 +78,8 @@ build-aap:
 
 .PHONY:
 dist:
-	mkdir -p release-builds
-	mv  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  release-builds/$(APP_NAME)-release.apk
+	mkdir -p $(DIST_DIR)
+	mv  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  $(DIST_DIR)/$(APP_NAME)-release.apk
 
 
 .PHONY:
