@@ -108,13 +108,13 @@ $(APP_BUILD_DIR)/.stamp: \
 	$(AAP_JUCE_DIR)/create-patched-juce-app.sh  $(APP_NAME)  $(APP_SRC_DIR) \
 		$(APP_BUILD_DIR)  $(PATCH_FILE)  $(PATCH_DEPTH)  $(APP_CUSTOM_JUCER)
 	if [ ! -e $(APP_BUILD_DIR)/modules ] ; then \
-		ln -s $(AAP_JUCE_DIR)/modules $(APP_BUILD_DIR)/modules \
+		ln -s $(AAP_JUCE_DIR)/modules $(APP_BUILD_DIR)/modules ; \
 	fi
 	if [ ! -e $(APP_BUILD_DIR)/juce-modules ] ; then \
-		ln -s $(JUCE_DIR)/modules $(APP_BUILD_DIR)/juce-modules \
+		ln -s $(JUCE_DIR)/modules $(APP_BUILD_DIR)/juce-modules ; \
 	fi
 	if [ ! -e $(APP_BUILD_DIR)/android-audio-plugin-framework ] ; then \
-		ln -s $(AAP_DIR) $(APP_BUILD_DIR)/android-audio-plugin-framework \
+		ln -s $(AAP_DIR) $(APP_BUILD_DIR)/android-audio-plugin-framework ; \
 	fi
 
 
