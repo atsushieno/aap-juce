@@ -1,12 +1,14 @@
 
 #include <ctime>
-#include "../JuceLibraryCode/JuceHeader.h"
+#include <juce_audio_processors/juce_audio_processors.h>
 #include "aap/android-audio-plugin.h"
 #include "aap/logging.h"
 #if ANDROID
 #include <dlfcn.h>
 #include <jni.h>
 #endif
+
+using namespace juce;
 
 extern juce::AudioProcessor* createPluginFilter(); // it is defined in each Audio plugin project (by Projucer).
 
