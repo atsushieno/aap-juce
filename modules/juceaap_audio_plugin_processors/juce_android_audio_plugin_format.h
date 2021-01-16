@@ -1,5 +1,7 @@
-#include "../JuceLibraryCode/JuceHeader.h"
+#include <juce_audio_processors/juce_audio_processors.h>
 #include "aap/android-audio-plugin-host.hpp"
+
+using namespace juce;
 
 namespace juceaap {
 
