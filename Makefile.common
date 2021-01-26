@@ -33,8 +33,13 @@ DIST_DIR=$(shell pwd)/release-builds
 
 # End of user configuration. ------------------------------------
 
+THISFILE=$(abspath $(lastword $(MAKEFILE_LIST)))
+THISDIR=$(dir $(THISFILE))
+
 PROJUCER_BIN_LINUX=$(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/Projucer
 PROJUCER_BIN_DARWIN=$(JUCE_DIR)/extras/Projucer/Builds/MacOSX/build/Debug/Projucer.app/Contents/MacOS/Projucer
+
+ANDROID_DIR=$(APP_BUILD_DIR)/Builds/Android
 
 ifeq ($(shell uname), Linux)
 	PROJUCER_BIN=$(PROJUCER_BIN_LINUX)
@@ -83,29 +88,24 @@ dist:
 
 
 .PHONY:
-build-target-app: create-patched-app do-build-target-app
+build-target-app: copy-and-patch-app-sources projuce-app do-build-target-android
 
 .PHONY:
-do-build-target-app:
+build-target-desktop:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
 	cd $(APP_BUILD_DIR) && \
-		MINIMIZE_INTERMEDIATES=$(MINIMIZE_INTERMEDIATES) \
-		NDK_VERSION=$(NDK_VERSION) \
 		APPNAME=$(APP_NAME) \
 		PROJUCER=$(PROJUCER_BIN) \
-		ANDROID_SDK_ROOT=$(ANDROID_SDK_ROOT) \
-		GRADLE_TASK=$(GRADLE_TASK) \
-		SKIP_METADATA_GENERATOR=$(SKIP_METADATA_GENERATOR) \
-		$(AAP_JUCE_DIR)/build-sample.sh $(APP_NAME).jucer
+		$(AAP_JUCE_DIR)/build-desktop.sh $(APP_NAME).jucer
 
 .PHONY:
-create-patched-app: $(APP_BUILD_DIR)/.stamp 
+copy-and-patch-app-sources: $(APP_BUILD_DIR)/.stamp 
 
 $(APP_BUILD_DIR)/.stamp: \
 		$(APP_SRC_DIR)/** \
 		$(APP_CUSTOM_JUCER) \
 		$(AAP_JUCE_DIR)/sample-project.*
-	$(AAP_JUCE_DIR)/create-patched-juce-app.sh  $(APP_NAME)  $(APP_SRC_DIR) \
+	$(AAP_JUCE_DIR)/copy-and-patch-app-sources.sh  $(APP_NAME)  $(APP_SRC_DIR) \
 		$(APP_BUILD_DIR)  $(PATCH_FILE)  $(PATCH_DEPTH)  $(APP_CUSTOM_JUCER)
 	if [ ! -e $(APP_BUILD_DIR)/modules ] ; then \
 		ln -s $(AAP_JUCE_DIR)/modules $(APP_BUILD_DIR)/modules ; \
@@ -117,4 +117,30 @@ $(APP_BUILD_DIR)/.stamp: \
 		ln -s $(AAP_DIR) $(APP_BUILD_DIR)/android-audio-plugin-framework ; \
 	fi
 
+.PHONY:
+projuce-app:
+	echo "PROJUCER is at $(PROJUCER_BIN)"
+	cd $(APP_BUILD_DIR) && \
+		NDK_VERSION=$(NDK_VERSION) \
+		APPNAME=$(APP_NAME) \
+		PROJUCER=$(PROJUCER_BIN) \
+		AAP_METADATA_XML_SOURCE=$(AAP_METADATA_XML_SOURCE) \
+		$(AAP_JUCE_DIR)/projuce-app.sh $(APP_NAME).jucer
 
+.PHONY:
+do-build-target-android:
+	cd $(ANDROID_DIR) && ./gradlew $(GRADLE_TASK) && cd ../.. || exit 1
+	if [ $(MINIMIZE_INTERMEDIATES) ] ; then \
+		rm -rf $(ANDROID_DIR)/app/build/intermediates/ ; \
+		rm -rf $(ANDROID_DIR)/app/.cxx ; \
+	fi
+
+# Independent Tasks that have to be performed manually
+
+.PHONY:
+update-aap-metadata: build-target-desktop
+	#if [ '`uname`' = 'Darwin' ] ; then \
+	#	cd $(APP_BUILD_DIR) && APPNAME=$(MACAPPNAME) $(THISDIR)/generate-metadata.sh || exit 1 ; \
+	#else \
+		cd $(APP_BUILD_DIR) && APPNAME=$(APP_NAME) $(THISDIR)/generate-metadata.sh || exit 1 ; \
+	#fi

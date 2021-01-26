@@ -89,7 +89,7 @@ You also need Android NDK, most likely 21.0 (no verification with other versions
 Once they are all set, simply run `make`.
 
 
-Depending on the NDK setup you might also have to rewrite `Makefile` and `Builds/Android/local.properties` to point to the right NDK location. Then run `cd Builds/Android && ./gradlew build` instead of `./build-sample.sh`.
+Depending on the NDK setup you might also have to rewrite `Makefile` and `Builds/Android/local.properties` to point to the right NDK location. Then run `cd Builds/Android && ./gradlew build` instead of `./projuce-app.sh`.
 It would be much easier to place Android SDK and NDK to the standard location though. Symbolic links would suffice.
 
 
@@ -103,8 +103,25 @@ juce_emscripten is based on 5.4.5-ish so far.
 
 Projucer is not capable of supporting arbitrary plugin format and it's quite incompete.
 Thus we make additional changes to the generated Android Gradle project.
-It is mostly taken care by `build-sample.sh` and `fixup-project.sh`.
+It is mostly taken care by `projuce-app.sh`.
 
+
+## Makefile Tasks
+
+There are couple of tasks that the build scripts process:
+
+- Create a patched copy of the app sources and overwrite .jucer file. Unless you have an updated patch or changing the entire patching step (by hacking build system), it has to be done only once.
+  - Some projects don't actually "overwrite" the .jucer file, but they copy .jucer anyways. There will be unused original .jucer file and then app's .jucer file that is actually in use.
+- Generate desktop and Android projects using Projucer, and overwrite some build scripts such as top-level `build.gradle`.
+  - It does not involve updating `aap_metadata.xml` anymore. It has to be manually done with desktop version of the app.
+
+There are related build scripts and Makefile targets:
+
+- `copy-and-patch-app-sources` : since we patch the sources but do not want to leave the app source tree dirty, we first copy the app sources, and then apply the patch to them (if exists). This has to be done once before running Projucer.
+- `update-aap-metadata` : it is NOT part of ordinary build step. Whenever app porting maintainer updates the sources, they should run this process to automatically update `aap_metadata.xml`.
+  - It internally builds Linux or Mac desktop version of the imported application, and then builds `aap-metadata-importer` tool, linking the "shared code" of the application, and at last runs it to generate `aap_metadata.xml`.
+  - `aap_metadata.xml` is generated at the imported application top directory, so porting maintainer is supposed to copy it to the app source directory that would also contain `override.*.jucer` and the source patch (if any).
+  - `build-desktop.sh` is used to accomplish this task.
 
 ## difference between normal JUCE Android app and JUCE-AAP Android app
 
@@ -119,7 +136,7 @@ Both Projucer and Android Gradle Plugin lack sufficient support to decently reso
 
 ## Generating aap_metadata.xml
 
-It is already done as part of `fixup-project.sh` but in case you would like
+There is a `update-aap-metadata` target in Makefile, but in case you would like
 to run it manually...
 
 To import JUCE audio plugins into AAP world, we have to create plugin
