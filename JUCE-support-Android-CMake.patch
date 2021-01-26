@@ -1,13 +1,14 @@
 diff --git a/modules/juce_events/messages/juce_Initialisation.h b/modules/juce_events/messages/juce_Initialisation.h
-index 2fc9b96c9..e26161c4d 100644
+index 2fc9b96c9..3143a36d5 100644
 --- a/modules/juce_events/messages/juce_Initialisation.h
 +++ b/modules/juce_events/messages/juce_Initialisation.h
-@@ -116,7 +116,8 @@ public:
+@@ -116,7 +116,9 @@ public:
   #elif JUCE_ANDROID
  
    #define JUCE_CREATE_APPLICATION_DEFINE(AppClass) \
 -    extern "C" juce::JUCEApplicationBase* juce_CreateApplication() { return new AppClass(); }
-+    extern "C" __attribute((visibility("default"))) AndroidAudioPluginFactory* GetJuceAAPFactoryStandalone() { return GetJuceAAPFactory(); } \
++    extern "C" void* GetJuceAAPFactory(); \
++    extern "C" __attribute((visibility("default"))) void* GetJuceAAPFactoryStandalone() { return GetJuceAAPFactory(); } \
 +    extern "C" __attribute((visibility("default"))) juce::JUCEApplicationBase* juce_CreateApplication() { return new AppClass(); }
  
    #define JUCE_MAIN_FUNCTION_DEFINITION
