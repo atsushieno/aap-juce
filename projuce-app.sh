@@ -43,8 +43,13 @@ cp $CURDIR/sample-project.build.gradle Builds/Android/build.gradle
 
 # copy aap_metadata.xml once Builds/Android is created.
 # Projucer behavior is awkward. It generates "debug" and "release" directories, and any other common resources are ignored.
-mkdir -p Builds/Android/app/src/debug/res/xml && cp $AAP_METADATA_XML_SOURCE Builds/Android/app/src/debug/res/xml/aap_metadata.xml || exit 1
-mkdir -p Builds/Android/app/src/release/res/xml && cp $AAP_METADATA_XML_SOURCE Builds/Android/app/src/release/res/xml/aap_metadata.xml || exit 1
+if [ $AAP_METADATA_XML_SOURCE ] ; then
+echo "SPECIFIED METADATA XML is: $AAP_METADATA_XML_SOURCE"
+mkdir -p Builds/Android/app/src/debug/res/xml ;
+cp $AAP_METADATA_XML_SOURCE Builds/Android/app/src/debug/res/xml/aap_metadata.xml || exit 1 ;
+mkdir -p Builds/Android/app/src/release/res/xml ;
+cp $AAP_METADATA_XML_SOURCE Builds/Android/app/src/release/res/xml/aap_metadata.xml || exit 1 ;
+fi
 
 APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:]`
 
