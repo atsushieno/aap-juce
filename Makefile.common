@@ -10,7 +10,9 @@
 APP_CUSTOM_JUCER=$(shell pwd)/apps/override.$(APP_NAME).jucer
 
 ## Specify path to aap-juce. The default is the submodule path.
+ifeq ('$(AAP_JUCE_DIR)', '')
 AAP_JUCE_DIR=$(shell pwd)/aap-juce
+endif
 
 ## Specify path to juce. The default is the submodule path.
 JUCE_DIR=$(shell pwd)/external/JUCE
@@ -140,7 +142,18 @@ do-build-target-android:
 .PHONY:
 update-aap-metadata: build-target-desktop
 	#if [ '`uname`' = 'Darwin' ] ; then \
-	#	cd $(APP_BUILD_DIR) && APPNAME=$(MACAPPNAME) $(THISDIR)/generate-metadata.sh || exit 1 ; \
+	#	cd $(APP_BUILD_DIR) && APPNAME=$(MACAPPNAME) EXTRA_OUTDIR=Builds/Android $(THISDIR)/generate-metadata.sh || exit 1 ; \
 	#else \
-		cd $(APP_BUILD_DIR) && APPNAME=$(APP_NAME) $(THISDIR)/generate-metadata.sh || exit 1 ; \
+		cd $(APP_BUILD_DIR) && APPNAME=$(APP_NAME) EXTRA_OUTDIR=Builds/Android $(THISDIR)/generate-metadata.sh || exit 1 ; \
 	#fi
+
+.PHONY:
+update-aap-metadata-cmake:
+	mkdir -p $(APP_SRC_DIR)/build-desktop
+	cd $(APP_SRC_DIR)/build-desktop && cmake .. && make && cd $(CURDIR)
+	APPNAME=$(APP_NAME) \
+	EXTRA_OUTDIR=. \
+	LIBRARY=lib$(APP_NAME)_Standalone.so \
+	ENTRYPOINT=GetJuceAAPFactoryStandalone \
+	LIBFILES="$(APP_SRC_DIR)/build-desktop/$(APP_NAME)_artefacts/lib$(APP_NAME)_SharedCode.a external/$(APP_NAME)/build-desktop/lib$(APP_NAME)Data.a" \
+	$(AAP_JUCE_DIR)/generate-metadata.sh 

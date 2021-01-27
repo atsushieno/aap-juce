@@ -417,7 +417,7 @@ extern "C" {
 
 __attribute__((used))
 __attribute__((visibility("default")))
-int generate_aap_metadata(const char *aapMetadataFullPath) {
+int generate_aap_metadata(const char *aapMetadataFullPath, const char *library = "libjuce_jni.so", const char *entrypoint = "GetJuceAAPFactory") {
 
     // FIXME: start application loop
 
@@ -442,8 +442,8 @@ int generate_aap_metadata(const char *aapMetadataFullPath) {
     pluginElement->setAttribute("unique-id",
                                 String::formatted("juceaap:%x", JucePlugin_PluginCode));
     //pluginElement->setAttribute("library", "lib" JucePlugin_Name ".so");
-    pluginElement->setAttribute("library", "libjuce_jni.so");
-    pluginElement->setAttribute("entrypoint", "GetJuceAAPFactory");
+    pluginElement->setAttribute("library", library);
+    pluginElement->setAttribute("entrypoint", entrypoint);
     pluginElement->setAttribute("assets", "");
 
     auto &tree = filter->getParameterTree();
