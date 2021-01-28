@@ -86,7 +86,7 @@ build-aap:
 .PHONY:
 dist:
 	mkdir -p $(DIST_DIR)
-	mv  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  $(DIST_DIR)/$(APP_NAME)-release.apk
+	cp  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  $(DIST_DIR)/$(APP_NAME)-release.apk
 
 
 .PHONY:

@@ -45,7 +45,7 @@ DIST_DIR=$(shell pwd)/release-builds
 THISFILE=$(abspath $(lastword $(MAKEFILE_LIST)))
 THISDIR=$(dir $(THISFILE))
 
-# for CMake, it is the same as $(APP_BUILD_DIR
+# for CMake, it is the same as $(APP_BUILD_DIR)
 ANDROID_DIR=$(APP_BUILD_DIR)
 
 all: build-cmake
@@ -80,7 +80,7 @@ build-app-cmake:
 .PHONY:
 dist:
 	mkdir -p $(DIST_DIR)
-	mv  $(APP_BUILD_DIR)/app/build/outputs/apk/release_/release/app-release_-release.apk  $(DIST_DIR)/$(APP_NAME)-release.apk
+	cp $(APP_BUILD_DIR)/app/build/outputs/apk/release/app-release-unsigned.apk $(DIST_DIR)/$(APP_NAME)-release.apk
 
 
 # Independent Tasks that have to be performed manually
