@@ -20,7 +20,9 @@ APP_SHARED_CODE_LIBS="$(APP_NAME)_artefacts/lib$(APP_NAME)_SharedCode.a"
 endif
 
 ## Specify path to juce. The default is the submodule path.
+ifeq ('$(JUCE_DIR)', '')
 JUCE_DIR=$(shell pwd)/external/JUCE
+endif
 
 ## Specify path to aap core. The default is the submodule path.
 AAP_DIR=$(shell pwd)/external/android-audio-plugin-framework
