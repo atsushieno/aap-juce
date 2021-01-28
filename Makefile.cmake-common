@@ -1,0 +1,96 @@
+# ------------------------------------------------------------------------
+# This file is supposed to be included from the main project Makefile.
+# ------------------------------------------------------------------------
+
+
+# Beginning of user configuration -------------------------------
+
+# General build configuration -----------------------------------
+## Specify path to overriden jucer file.
+APP_CUSTOM_JUCER=$(shell pwd)/apps/override.$(APP_NAME).jucer
+
+## Specify path to aap-juce. The default is the submodule path.
+ifeq ('$(AAP_JUCE_DIR)', '')
+AAP_JUCE_DIR=$(shell pwd)/external/aap-juce
+endif
+
+# For metadata updates, relative to build-desktop
+ifeq ('$(APP_SHARED_CODE_LIBS)', '')
+APP_SHARED_CODE_LIBS="$(APP_NAME)_artefacts/lib$(APP_NAME)_SharedCode.a"
+endif
+
+## Specify path to juce. The default is the submodule path.
+JUCE_DIR=$(shell pwd)/external/JUCE
+
+## Specify path to aap core. The default is the submodule path.
+AAP_DIR=$(shell pwd)/external/android-audio-plugin-framework
+
+## If the build output is going to be too huge to keep, use this flag to delete.
+MINIMIZE_INTERMEDIATES=0
+
+## Specify arbitrary NDK version. No guarantee on that your version works.
+NDK_VERSION=21.3.6528147
+
+## Specify whatever gradle task you want to run.
+GRADLE_TASK=build
+
+
+## dist directory to collect build artifacts
+DIST_DIR=$(shell pwd)/release-builds
+
+# End of user configuration. ------------------------------------
+
+THISFILE=$(abspath $(lastword $(MAKEFILE_LIST)))
+THISDIR=$(dir $(THISFILE))
+
+# for CMake, it is the same as $(APP_BUILD_DIR
+ANDROID_DIR=$(APP_BUILD_DIR)
+
+all: build-cmake
+
+build-cmake: patch-juce-cmake patch-app-cmake build-aap-core build-app-cmake
+
+patch-juce-cmake: .stamp-juce
+
+.stamp-juce:
+	cd $(JUCE_DIR) && patch -i $(AAP_JUCE_DIR)/JUCE-support-Android-CMake.patch -p1
+	touch .stamp-juce
+
+patch-app-cmake: $(APP_SRC_DIR)/.stamp-app
+
+$(APP_SRC_DIR)/.stamp-app:
+	if [ $(PATCH_FILE) ] ; then \
+	cd $(APP_SRC_DIR) && patch -i $(PATCH_FILE) -p$(PATCH_DEPTH) ; \
+	touch $(APP_SRC_DIR)/.stamp-app ; \
+	fi
+
+build-aap-core:
+	cd $(AAP_DIR)/java && ./gradlew publishToMavenLocal
+
+build-app-cmake:
+	./gradlew build
+	mkdir -p release-builds
+	if [ $(MINIMIZE_INTERMEDIATES) ] ; then \
+		rm -rf $(ANDROID_DIR)/app/build/intermediates/ ; \
+		rm -rf $(ANDROID_DIR)/app/.cxx ; \
+	fi
+
+.PHONY:
+dist:
+	mkdir -p $(DIST_DIR)
+	mv  $(APP_BUILD_DIR)/app/build/outputs/apk/release_/release/app-release_-release.apk  $(DIST_DIR)/$(APP_NAME)-release.apk
+
+
+# Independent Tasks that have to be performed manually
+
+.PHONY:
+update-aap-metadata-cmake:
+	mkdir -p $(APP_SRC_DIR)/build-desktop
+	cd $(APP_SRC_DIR)/build-desktop && cmake .. && make && cd $(CURDIR)
+	cd $(APP_SRC_DIR)/build-desktop && \
+		APPNAME=$(APP_NAME) \
+		EXTRA_OUTDIR=. \
+		LIBRARY=lib$(APP_NAME)_Standalone.so \
+		ENTRYPOINT=GetJuceAAPFactoryStandalone \
+		LIBFILES=$(APP_SHARED_CODE_LIBS) \
+		$(AAP_JUCE_DIR)/generate-metadata.sh 
