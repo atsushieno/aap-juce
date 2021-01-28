@@ -52,11 +52,11 @@ all: build-cmake
 
 build-cmake: patch-juce-cmake patch-app-cmake build-aap-core build-app-cmake
 
-patch-juce-cmake: .stamp-juce
+patch-juce-cmake: $(JUCE_DIR)/.stamp-juce
 
-.stamp-juce:
+$(JUCE_DIR)/.stamp-juce:
 	cd $(JUCE_DIR) && patch -i $(AAP_JUCE_DIR)/JUCE-support-Android-CMake.patch -p1
-	touch .stamp-juce
+	touch $(JUCE_DIR)/.stamp-juce
 
 patch-app-cmake: $(APP_SRC_DIR)/.stamp-app
 
