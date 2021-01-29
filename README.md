@@ -1,32 +1,40 @@
-# AAP JUCE audio processor and client modules
+# AAP-JUCE: JUCE audio plugin and hosting support for AAP (Android Audio Plugin)
+
+WARNING: aap-juce has been changing a lot during these couple of weeks, and I'm on restructuring this documentation which takes a while. Some parts are outdated, and soem parts need more new information (such as CMake support).
 
 This repo is the place where we have JUCE integration support modules for [android-audio-plugin-framework](https://github.com/atsushieno/android-audio-plugin-framework) (AAP), for both plugins and hosts.
 
-The entire AAP framework is on early development phase and not ready for any consumption yet.
+The entire AAP framework is on early development phase and not ready for any serious consumption yet.
 Everything is subject to change. Contributions are welcome but documentation is poor, and source code is ugly yet.
 
-This repository used to contain a handful of sample projects, but to avoid bloat core library repository, they are split from here and have their own repositories:
+This repository used to contain a handful of sample projects, but to avoid bloat core library repository, they are split from here and have their own repositories.
 
-- Host
+- There is [aap-juce-world](https://github.com/atsushieno/aap-juce-world) repository that builds "everything" that at least build. It is rarely updated as it takes 5 hours with 700MB for build artifacts on GitHub Actions.
+- Host:
   - [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) from [AudioPluginHost](https://github.com/WeAreROLI/JUCE/tree/master/extras/AudioPluginHost/)
-- Plugins
-  - [aap-juce-dexed](https://github.com/atsushieno/aap-juce-dexed) from [dexed](https://github.com/asb2m10/dexed/) (we use private fork)
-  - [aap-juce-adlplug](https://github.com/atsushieno/aap-juce-adlplug) from [ADLplug](https://github.com/jpcima/ADLplug)
-  - [aap-juce-obxd](https://github.com/atsushieno/aap-juce-obxd) from [OB-Xd](https://github.com/reales/OB-Xd)
+- Plugins:
+  - [aap-juce-dexed](https://github.com/atsushieno/aap-juce-dexed) from [asb2m10/dexed](https://github.com/asb2m10/dexed/) (we use private fork)
+  - [aap-juce-adlplug](https://github.com/atsushieno/aap-juce-adlplug) from [jpcima/ADLplug](https://github.com/jpcima/ADLplug)
+  - [aap-juce-obxd](https://github.com/atsushieno/aap-juce-obxd) from [reales/OB-Xd](https://github.com/reales/OB-Xd)
+  - [aap-juce-frequalizer](https://github.com/atsushieno/aap-juce-frequalizer) from [ffAudio/Frequalizer](https://github.com/ffAudio/Frequalizer)
+  - [aap-juce-odin2](https://github.com/atsushieno/aap-juce-odin2) from [TheWaveWarden/odin2](https://github.com/TheWaveWarden/odin2)
   - [aap-juce-ports](https://github.com/atsushieno/aap-juce-ports) contains other various ports from...
-    - [andes](https://github.com/artfwo/andes/)
-    - [SARAH](https://github.com/getdunne/SARAH/)
-    - [Magical8bitPlug2](https://github.com/yokemura/Magical8bitPlug2/)
+    - [artfwo/andes](https://github.com/artfwo/andes/)
+    - [getdunne/SARAH](https://github.com/getdunne/SARAH/)
+    - [yokemura/Magical8bitPlug2](https://github.com/yokemura/Magical8bitPlug2/)
+  - There are some experimental ports from CMake based projects as well, namely:
+    - [aap-juce-witte-eq](https://github.com/atsushieno/aap-juce-witte-eq) from [witte/Eq](https://github.com/witte/Eq)
+    - [aap-juce-chow-phaser](https://github.com/atsushieno/aap-juce-chow-phaser) from [jatinchowdhury18/ChowPhaser](https://github.com/jatinchowdhury18/ChowPhaser/)
 
-It builds on Android and desktop (confirmed only on Linux so far). It can launch, enumerate the installed audio plugins on the system, and instantiate each plugin (only one can be instantiated), but audio inputs are not verified to work.
+It builds on Android, and probably on desktop (confirmed only on Linux so far). It can launch, enumerate the installed audio plugins on the system, and instantiate each plugin, but audio inputs are currently known as not working. It is likely a [variety of JUCE Android issues](https://github.com/juce-framework/JUCE/issues?q=is%3Aissue+is%3Aopen+Android) though.
 
 
 ## Why JUCE?
 
 JUCE is a popular cross-platform, cross-plugin-format audio development framework.
 JUCE itself does not support AAP, but it can be extended by additional modules.
+JUCE also supports Android (you can even run UI), which makes things closer to actual app production.
 Still, JUCE is not designed to be extensible *enough*, additional code to support AAP is needed in each app.
-It also supports Android (you can even run UI), which makes things closer to actual app production.
 
 While JUCE itself is useful to develop frameworks like AAP, it is designed to be independent of any other audio development toolkits and frameworks. We stick to minimum dependencies, at least on the public API surface.
 
@@ -51,20 +59,21 @@ We keep using juce_emscripten so far though; it may become usable at some stage.
 
 You need a host app and a plugin to try at least one plugin via one host.
 
-THe host can be either `aaphostsample` in android-audio-plugin-framework repo, or `AudioPluginHost` in aap-juce-plugin-host repo (which is JUCE AudioPluginHost with AAP support).
+The host can be either `aaphostsample` in android-audio-plugin-framework repo, or `AudioPluginHost` in aap-juce-plugin-host repo (which is JUCE AudioPluginHost with AAP support).
 
 The plugin can be either `aapbarebonepluginsample` in android-audio-plugin-framework repo (more stable), or plugins like `apps/andes` in aap-juce-ports repo (less stable).
 
-Once you run `make` then those apps are built. JUCE Android apps are built under `Build/Android/app/build/outputs/` in each app directory.
-Though we typically use Android Studio and open `Build/Android` and then run or debug there, once top-level `make` ran successfully.
+Once you run `make` then those apps are built. JUCE Android apps are built under `Builds/Android/app/build/outputs/` in each app directory.
+Though we typically use Android Studio and open `Builds/Android` and then run or debug there, once top-level `make` ran successfully.
 
+(For those projects that does not use Projucer, there is no `Builds/Android` path part.)
 
 ## How can we bring in our own apps and/or plugins?
 
 Conceptually, there are only a few steps:
 
 - Make sure that your JUCE app builds on Android (no AAP required)
-- add androidaudioplugin.aar as a dependency
+- add `androidaudioplugin.aar` as a dependency
 - add `juceaap_audio_plugin_client` or `juceaap_audio_plugin_processors` module depending on whether your app is a plugin or a host.
   - add include and lib paths to your project `.jucer` to make it possible.
 - add required service description in AndroidManifest.xml (most likely doable via Projucer).
@@ -73,21 +82,17 @@ Conceptually, there are only a few steps:
 
 The more details are described later in this README.
 
-At this state, this repository is more of a set of build scripts that lets you bring in your own JUCE based audio plugins into AAP world.
-There are handful of samples that uses this repo as a submodule, such as [aap-juce-ports](https://github.com/atsushieno/aap-juce-ports), [aap-juce-dexed](https://github.com/atsushieno/aap-juce-dexed), [aap-juce-adlplug](https://github.com/atsushieno/aap-juce-adlplug).
-Another useful example is [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host), which is a port of JUCE AudioPluginHost which can be used to check if AAP plugins work or not.
+At this state, this repository is more of a set of build scripts that lets you bring in your own JUCE based audio plugins into AAP world. There are handful of porting projects for both plugins and hosts, listed earlier on this README.
 
 
 ## Build Instruction
 
-You most likely need a Linux desktop. It may build on virtual machines, but you might want get a real Linux desktop because Projucer (the JUCE project fileset generator) depends on X11, even without running GUI (of course if you try to get it working on other OSes Projucer doesn't require X11).
-It should build on any kind of Linux desktop, but since we cannot make sure to write code that works on every distro, it may fail. So far only Ubuntu 19.10 is the verified desktop.
+There is a GitHub Actions workflow setup, which is an official build instructions. It is almost one `make` call if all conditions are met.
+
+We used to require Linux desktop for complete builds, but now that we skip desktop builds of those plugins, there are much less requirements. Yet, we need a working "Projucer" as well as bash-baked Makefiles, so you'd still need a Unix-y environment. It may change again once we support UI integration, but until then it would be quite portable.
 
 You need Android SDK. If you install it via Android Studio it is usually placed under `~/Android/Sdk`.
-You also need Android NDK, most likely 21.0 (no verification with other versions). It would be installed under `~/Android/Sdk/ndk/21.*`.
-
-Once they are all set, simply run `make`.
-
+You also need Android NDK, most likely 21.x (no verification with other versions). It would be installed under `~/Android/Sdk/ndk/21.*`.
 
 Depending on the NDK setup you might also have to rewrite `Makefile` and `Builds/Android/local.properties` to point to the right NDK location. Then run `cd Builds/Android && ./gradlew build` instead of `./projuce-app.sh`.
 It would be much easier to place Android SDK and NDK to the standard location though. Symbolic links would suffice.
@@ -134,28 +139,14 @@ They resolve various relative paths to AAP includes and libs.
 Both Projucer and Android Gradle Plugin lack sufficient support to decently resolve them.
 
 
-## Generating aap_metadata.xml
+## Generating and updating aap_metadata.xml
 
-There is a `update-aap-metadata` target in Makefile, but in case you would like
-to run it manually...
+There is `update-aap-metadata` target in `Makefile.common` or `update-aap-metadata-cmake` target in `Makefile.cmake-common`, but in case you would like to run it manually...
 
 To import JUCE audio plugins into AAP world, we have to create plugin
 descriptor (`aap_metadata.xml`). We have a supplemental tool source to
 help generating it automatically from JUCE plugin binary (shared code).
 
-The command line below builds `aap-metadata-generator` under
-`Builds/LinuxMakefile/build` and generates `aap_metadata.xml` at the plugin
-top level directory:
-
-```
-APP=__yourapp__ gcc (__thisdir__)/tools/aap-metadata-generator.cpp \
-	Builds/LinuxMakefile/build/intermediate/Debug/*.o \
-	-lstdc++ -ldl -lm -lpthread -lGL \
-	-L../../external/android-audio-plugin-framework/build/native/androidaudioplugin -landroidaudioplugin 
-	`pkg-config --libs alsa x11 xinerama xext freetype2 libcurl webkit2gtk-4.0` \
-	-o aap-metadata-generator \
-	&&./aap-metadata-generator aap_metadata.xml
-```
 
 ## Porting other JUCE-based audio apps (details)
 
