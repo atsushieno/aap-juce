@@ -26,10 +26,11 @@ This repository used to contain a handful of sample projects, but to avoid bloat
     - [aap-juce-witte-eq](https://github.com/atsushieno/aap-juce-witte-eq) from [witte/Eq](https://github.com/witte/Eq)
     - [aap-juce-chow-phaser](https://github.com/atsushieno/aap-juce-chow-phaser) from [jatinchowdhury18/ChowPhaser](https://github.com/jatinchowdhury18/ChowPhaser/)
 
-It builds on Android, and probably on desktop (confirmed only on Linux so far). It can launch, enumerate the installed audio plugins on the system, and instantiate each plugin, but audio inputs are currently known as not working. It is likely a [variety of JUCE Android issues](https://github.com/juce-framework/JUCE/issues?q=is%3Aissue+is%3Aopen+Android) though.
+It builds on Android, and partly on desktop (confirmed only on Linux desktop so far). It can launch, enumerate the installed audio plugins on the system, and instantiate each plugin. Audio inputs are however known as not working at the moment. It is likely a [variety of JUCE Android issues](https://github.com/juce-framework/JUCE/issues?q=is%3Aissue+is%3Aopen+Android) though.
 
+At this state, this repository itself is almost only about a set of build scripts that lets you bring in your own JUCE based audio plugins into AAP world. And probably more importantly, this README.
 
-## Why JUCE?
+## Why JUCE for AAP?
 
 JUCE is a popular cross-platform, cross-plugin-format audio development framework.
 JUCE itself does not support AAP, but it can be extended by additional modules.
@@ -38,51 +39,25 @@ Still, JUCE is not designed to be extensible *enough*, additional code to suppor
 
 While JUCE itself is useful to develop frameworks like AAP, it is designed to be independent of any other audio development toolkits and frameworks. We stick to minimum dependencies, at least on the public API surface.
 
-
-## Why use juce_emscripten?
-
-**UPDATE:** as of current version juce_emscripten is disabled in favor of JUCE 6.0 migration. We might bring back wasm UI support later.
-
-We use [juce_emscripten](https://github.com/Dreamtonics/juce_emscripten/), which is a fork of JUCE that extends its support to WebAssembly world using [emscripten](emscripten.org/).
-
-At this state, we can use the official JUCE distribution, without forking and making any changes for AAP itself. But when we would like to build a plugin UI that can launch from within the host (DAW) application, the WebAssembly bundle is going to make it possible. juce_emscripten is needed for that purpose.
-
-(Note that external UI integration is not implemented in the framework yet.)
-
-Our repository makes use of [our own fork that supports JUCE 5.4.7 and Web MIDI API](https://github.com/atsushieno/JUCE/tree/juce_emscripten/) (which may not be required once Dreamtonics is back on that effort).
-
-UPDATE: after some investigation, it turned out that current Chrome (and inherently Android WebView)  does not support [Actomics](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics) which is essential to juce_emscripten internals, therefore it will not work on Android so far.
-We keep using juce_emscripten so far though; it may become usable at some stage.
+Their API is stable-ish, while AAP API is not. So if anyone wants to get audio plugins portable without fear of API breakage, JUCE can be your good friend.
 
 
 ## How to try it out?
 
-You need a host app and a plugin to try at least one plugin via one host.
+There are some release builds at [aap-juce-world](https://github.com/atsushieno/aap-juce-world) that contains various 
 
-The host can be either `aaphostsample` in android-audio-plugin-framework repo, or `AudioPluginHost` in aap-juce-plugin-host repo (which is JUCE AudioPluginHost with AAP support).
+You need a host app and a plugin to try at least one plugin via one host. This repository does not contain any application within itself.
 
-The plugin can be either `aapbarebonepluginsample` in android-audio-plugin-framework repo (more stable), or plugins like `apps/andes` in aap-juce-ports repo (less stable).
+The host can be either `aaphostsample` in android-audio-plugin-framework repo, or `AudioPluginHost` in [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) repo (which is JUCE AudioPluginHost with AAP support).
 
-Once you run `make` then those apps are built. JUCE Android apps are built under `Builds/Android/app/build/outputs/` in each app directory.
+The plugin can be either `aapbarebonepluginsample` in android-audio-plugin-framework repo (more stable), or plugins like `apps/andes` in aap-juce-ports repo (less stable, but simplest in the aap-juce world).
+
+For those `aap-juce-*` repositories that are part of `aap-juce-world`, `make` will build them.
+
+For JUCE apps that use Projucer, JUCE Android apps are generated and built under `Builds/Android/app/build/outputs/` in each app directory.
 Though we typically use Android Studio and open `Builds/Android` and then run or debug there, once top-level `make` ran successfully.
 
 (For those projects that does not use Projucer, there is no `Builds/Android` path part.)
-
-## How can we bring in our own apps and/or plugins?
-
-Conceptually, there are only a few steps:
-
-- Make sure that your JUCE app builds on Android (no AAP required)
-- add `androidaudioplugin.aar` as a dependency
-- add `juceaap_audio_plugin_client` or `juceaap_audio_plugin_processors` module depending on whether your app is a plugin or a host.
-  - add include and lib paths to your project `.jucer` to make it possible.
-- add required service description in AndroidManifest.xml (most likely doable via Projucer).
-- prepare `aap_metadata.xml` as an Android resource.
-- for hosts, AndroidAudioPluginFormat has to be added to the app's AudioPluginFormatManager.
-
-The more details are described later in this README.
-
-At this state, this repository is more of a set of build scripts that lets you bring in your own JUCE based audio plugins into AAP world. There are handful of porting projects for both plugins and hosts, listed earlier on this README.
 
 
 ## Build Instruction
@@ -98,20 +73,106 @@ Depending on the NDK setup you might also have to rewrite `Makefile` and `Builds
 It would be much easier to place Android SDK and NDK to the standard location though. Symbolic links would suffice.
 
 
+## Porting a plugin or a host to AAP
+
+To port existing plugins, or even with a new project, you will either follow the CMake way, or the Projucer way.
+You would normally have no choice, the original project would be either of those already.
+In either approach, you end up with an Android Studio (Gradle) project that you can open on Android Studio (or stick to Gradle to build and adb to install).
+
+### Making application itself builds for Android
+
+If you are trying to port an existing project to Android, the first thing to do is to make it build for Android, without AAP.
+If it is a Projucer project, open Projucer, add Android Studio exporter, resave, open on Android Studio and try to build.
+If it is a CMake project, follow check the following section "Make AAP-specific changes: CMake".
+
+JUCE API is in general less featureful on Android than desktop. For example, you have no access to synchronous dialog boxes.
+So you will have to rewrite code to follow asynchronous way or disable code so far. Once it's done, let's mark it as **the** porting target application.
+
+### Make AAP-specific changes: CMake
+
+For a project that build with CMake, it is fairly easier to port to AAP.
+
+There are existing sample projects ([aap-juce-witte-eq](https://github.com/atsushieno/aap-juce-witte-eq) and [aap-juce-chow-phaser](https://github.com/atsushieno/aap-juce-chow-phaser)), and to port an existing plugin project (or even if you are going to create a new JUCE plugin project), it is easier to create new project based off of those existing ones, making changes to your plugin specifics.
+
+The best way to find out what you should make changes can be found by:
+
+```
+diff -u aap-juce-witte-eq/ aap-juce-chow-phaser/
+diff -u aap-juce-witte-eq/app aap-juce-chow-phaser/app
+```
+
+are some important bits:
+
+- JUCE needs some changes. [JUCE-support-Android-CMake.patch](JUCE-support-Android-CMake.patch) is applied if you build those ports with `make`.
+- The plugin's top level `CMakeLists.txt` : we need `Standalone` plugin build (as no other formats are supported, and on Android it is built as a shared library). Also there are handful of 
+- `app/CMakeLists.txt` has plugin-specific information, as well as references to JUCE subdirectories.
+
+A typical porting trouble we encounter is that even if the activity launches, it shows an empty screen.
+It is because the application somehow fails to bootstrap (call to `com.rmsl.juce.Java.initialiseJUCE()`).
+
+Another typical problem is that it fails to load the plugin shared library. It is due to missing shared library within the apk, inconsistent `aap_metadata.xml` description (either `library` or `entrypoint` attribute), or missing entrypoint function symbol in the shared library (which must not be visibility=hidden).
+
+### Make AAP-specific changes: Projucer
+
+With the current Projucer based project structure that makes use of `Makefile.common` in this repository, such as `atsushieno/aap-juce-*` projects, it once copies the application source tree into another directory, then apply patches to make it build for Android.
+
+Then we run Projucer to generate Android app sources, and we overwrite some source files that Projucer generated with our own.
+Once it's done, you get a workable Android Studio (Gradle) project, just like Projucer does for you.
+
+In short, `make` does all these tasks above for you:
+
+- copy and patch app sources
+- run projucer, and overwrite some generated files
+- gradlew build
+
+Now, we have to dive into our sausage internals more in depth...
+
+The copied project has overwritten .jucer project (or sometimes different .jucer file than the original aside) that you can keep working with Projucer and Android Studio without creating patched source tree over and over again.
+But any changes made to the source code has to be backported to the original source tree.
+And if you indeed need to perform this process, run `make copy-and-patch-app-sources` which will recreate the application source tree.
+
+In any case, before performing this task, you need this "modified version of `.jucer` file". This work is too verbose to explain here. I wrote the details later in this README ("Rewriting .jucer file for AAP").
+
+Once you are done with the modified .jucer file, you still need `aap_metadata.xml` for your project, so run `make generate-metadata` to generate it (explained later too).
+Copy it somewhere with some identical name, typically under `apps`.
+`make copy-and-patch-app-sources` will copy it if the file is appropriately specified in `Makefile` and it indeed exists.
+
+After these tasks, you are ready to run `make copy-and-patch-app-sources` for your own port.
+
+If you are not making changes to .jucer file, you can keep working with the generated Android Studio project and diagnose any issues.
+If you run Projucer to resave the project, the project is overwritten, which invalidates project fixup for AAP (we rewrite AndroidManifest.xml, build.gradle, and so on), so you should avoid that.
+Instead, run `make projuce-app` to resave projects and perform required overwrites.
+
+Lastly, for hosts, `AndroidAudioPluginFormat` has to be added to the app's `AudioPluginFormatManager` instances in the application code.
+
+
+### Generating and updating aap_metadata.xml
+
+This only applies to plugins.
+
+There is some non-trivial task: `aap_metadata.xml` has to be created for the plugin. Sometimes it can be hundreds of lines of markup, so you would like to automatically generate from existing code.
+
+There is `update-aap-metadata` target in `Makefile.common` or `update-aap-metadata-cmake` target in `Makefile.cmake-common`, but in case you would like to run it manually...
+
+To import JUCE audio plugins into AAP world, we have to create plugin
+descriptor (`aap_metadata.xml`). We have a supplemental tool source to
+help generating it automatically from JUCE plugin binary (shared code).
+
+
 ## Under the hood
 
-JUCE itself already supports JUCE apps running on Android and there is still
-no need to make any changes to the upstream JUCE.
+JUCE itself already supports JUCE apps running on Android and there is still no need to make any changes to the upstream JUCE, except that if you want to build CMake based project (see [this post by @atsushieno](https://atsushieno.github.io/2021/01/16/juce-cmake-android-now-works.html) for details).
 
-We use juce_emscripten for future plan to integrate with wasm builds.
-juce_emscripten is based on 5.4.5-ish so far.
-
-Projucer is not capable of supporting arbitrary plugin format and it's quite incompete.
-Thus we make additional changes to the generated Android Gradle project.
+On the other hand, we make a lot of changes to whatever Projucer generates.
+Projucer is not capable of supporting arbitrary plugin format and it's quite counter-intuitive to try to use various option fields on Projucer.
+Thus we simply replace various parts of the generated Android Gradle project.
 It is mostly taken care by `projuce-app.sh`.
 
+CMake is preferred, but it is not officially supported by JUCE so far either, but the impact of the changes is small so that they can be manually made.
 
-## Makefile Tasks
+We plan to juce_emscripten for future integration with wasm UI builds.
+
+### Makefile Tasks
 
 There are couple of tasks that the build scripts process:
 
@@ -123,39 +184,41 @@ There are couple of tasks that the build scripts process:
 There are related build scripts and Makefile targets:
 
 - `copy-and-patch-app-sources` : since we patch the sources but do not want to leave the app source tree dirty, we first copy the app sources, and then apply the patch to them (if exists). This has to be done once before running Projucer.
+- `projuce-app` : this executes `Projucer --resave` and then replaces some of the files that Projucer generated with whtaeever we actually need.
 - `update-aap-metadata` : it is NOT part of ordinary build step. Whenever app porting maintainer updates the sources, they should run this process to automatically update `aap_metadata.xml`.
   - It internally builds Linux or Mac desktop version of the imported application, and then builds `aap-metadata-importer` tool, linking the "shared code" of the application, and at last runs it to generate `aap_metadata.xml`.
   - `aap_metadata.xml` is generated at the imported application top directory, so porting maintainer is supposed to copy it to the app source directory that would also contain `override.*.jucer` and the source patch (if any).
   - `build-desktop.sh` is used to accomplish this task.
 
-## difference between normal JUCE Android app and JUCE-AAP Android app
+`make projuce-app` will rewrite some files that Projucer --resave has generated, namely:
+
+- build.gradle (top level)
+- settings.gradle
+- gradle.properties
+- gradle/wrapper/gradle-wrapper.properties
+- app/src/main/AndroidManifest.xml
+
+At this state, the build script is not flexible enough to make them further customizible.
+
+### difference between normal JUCE Android app and JUCE-AAP Android app
 
 Projucer can generate Android apps, and we basically make use of it.
-Although its feature is quite insufficient, we don't expect it to generate the entire set of the required files. We (at least on our samples) copy our own support files into the apps instead, namely the top-level `build.gradle`, `gradle-properties` and `settings.gradle`.
+Although its feature is quite insufficient, we don't expect it to generate the entire set of the required files with sufficient information. Projucer is basically not well-suited tool to do that job.
+We (at least on our samples) copy our own support files into the apps instead, namely the top-level `build.gradle`, `gradle-properties` and `settings.gradle`.
 It is mostly about AAP dependencies.
 
 We also don't expect that the original `.jucer` files can be simply patched by simple diff tool, so we have an entire `.jucer` file to override for each sample project.
 They resolve various relative paths to AAP includes and libs.
 Both Projucer and Android Gradle Plugin lack sufficient support to decently resolve them.
 
+### Rewriting .jucer file for AAP
 
-## Generating and updating aap_metadata.xml
-
-There is `update-aap-metadata` target in `Makefile.common` or `update-aap-metadata-cmake` target in `Makefile.cmake-common`, but in case you would like to run it manually...
-
-To import JUCE audio plugins into AAP world, we have to create plugin
-descriptor (`aap_metadata.xml`). We have a supplemental tool source to
-help generating it automatically from JUCE plugin binary (shared code).
-
-
-## Porting other JUCE-based audio apps (details)
-
-Here are the porting steps that we had. Note that this applies only to samples built under this `samples` directory:
+Here are the porting steps that we had. Note that this applies only to `atsushieno/aap-juce-*` projects that make use of the helper files in this repository:
 
 - Run Projucer and open the project `.jucer` file.
 - open project settings and ensure to build at least one plugin format (`Standalone` works)
 - Ensure that `JUCEPROJECT` has `name` attribute value only with `_0-9A-Za-z` characters. That should be handled by Projucer but its hands are still too short.
-  - For example, we had to rename `Andes-1` to `Andes_1`.
+  - For example, we had to rename `Andes-1` to `Andes_1` and `OB-Xd` to `OB_Xd`.
 - Go to Modules and add module `juceaap_audio_plugin_client` (via path, typically)
 - Go to Android exporter section and make following changes (Gradle/AGP versions may vary):
   - Module Dependencies: add list below
@@ -165,78 +228,76 @@ Here are the porting steps that we had. Note that this applies only to samples b
   - Gradle Version 6.8.1-rc-1
   - Android Plug-in Version 7.0.0-alpha04
 
-For module dependenciesm add below (aar versions may vary):
+Changes below are also needed. You can edit with text editors, which would be easier:
 
-```
-implementation 'org.androidaudioplugin:androidaudioplugin:0.6.3'
-implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.3.61"
-```
-
-For custom Manifest XML content, replace `!!!APPNAME!!!` part with your own (this is verified with JUCE 5.4.7 and may change in any later versions):
-
-```
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.androidaudioplugin.aappluginsample" android:versionCode="1" android:versionName="0.1">
-  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-  <application android:allowBackup="true" android:label="@string/app_name"
-               android:supportsRtl="true" android:name="com.roli.juce.JuceApp" android:hardwareAccelerated="false">
-    <service android:name="org.androidaudioplugin.AudioPluginService" android:label="!!!APPNAME!!!Plugin">
-      <intent-filter>
-        <action android:name="org.androidaudioplugin.AudioPluginService"/>
-      </intent-filter>
-      <meta-data android:name="org.androidaudioplugin.AudioPluginService#Plugins" android:resource="@xml/aap_metadata"/>
-    </service>
-  </application>
-</manifest>
-```
-
-Below can be edited with text editor:
-
-- On the top-level `<JUCERPROJECT>` element add `juceFolder="../../external/juce_emscripten"`
-- On every `<MODULEPATH>` element, specify `path="../../external/juce_emscripten/modules"` everywhere. Yes, the path on `<JUCERPROJECT>` does not apply here, Projucer is incapable of taking it into consideration.
-  - If you don't set `path` to point to the exact location e.g. to the one in the submodule in this repo, then it may result in system global path to JUCE (or fails if it is not installed) and any unexpected build breakage could happen. THe build log would tell if it went as such.
+- On every `<MODULEPATH>` element, specify `path="./juce-modules"` everywhere.
+  - `make copy-and-patch-app-sources` adds symbolic link `juce-modules` to the JUCE `modules` directory. If it does not exist, then this change does not work.
+  - If you don't set `path` to point to the exact location e.g. to the one in the submodule in this repo, then it may result in system global path to JUCE (or fails if it is not installed) and any unexpected build breakage could happen. The build log would tell if it went as such.
   - If you are copy-pasting `<MODULES>` element, make sure that you do not accidentally remove necessary ones. @atsushieno had spent a lot of time on finding that he was missing `<MODULE>` for `juce_audio_plugin_client` when copying from `AudioPluginHost` to `Andes_1`...
-- Add `<MODULEPATH id="juceaap_audio_plugin_processors" path="../../modules"/>` for each `<MODULEPATHS>` for each `<EXPORTFORMAT>`. (You can do this in Projucer too, but copypasting on a text editor is 10x easier.)
+- Add `<MODULEPATH id="juceaap_audio_plugin_processors" path="./modules"/>` for each `<MODULEPATHS>` for each `<EXPORTFORMAT>`. (You can do this in Projucer too, but copypasting on a text editor is 10x easier.)
+  - Similar to JUCE modules, the make target adds a symbolic link `modules` here.
 - In `<LINUX_MAKE>` and `<ANDROIDSTUDIO>` element, replace `<CONFIGURATION>` elements with the contents explained below for each.
 
-For `<LINUX_MAKE>` for desktop (`Builds/LinuxMakefile`, not to be confused with the one for `EMSCRIPTEN`), below, replacing `!!!APPNAME!!!` part with the actual name:
+Below are `<CONFIGURATION>` rewrites.
+Note that `make copy-and-patch-app-sources` adds a symbolic link `android-audio-plugin-framework` to AAP submodule, so without it those configuration sections won't work.
+Also this ignores any possible existing header and library paths specified, so if there are any, do not forget to add them to those paths as well.
+
+For `<LINUX_MAKE>` for desktop (`Builds/LinuxMakefile`, not to be confused with the one for `EMSCRIPTEN`, if exists), below:
 
 ```
-        <CONFIGURATION name="Debug" isDebug="1" targetName="!!!APPNAME!!!"
-            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/native/plugin-api/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
-            libraryPath="/usr/X11R6/lib/;../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"/>
-        <CONFIGURATION name="Release" isDebug="0" optimisation="2" targetName="!!!APPNAME!!!"
-            headerPath="../../../../external/android-audio-plugin-framework/native/plugin-api/include;../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/native/plugin-api/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include"
-            libraryPath="/usr/X11R6/lib/;../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin;${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/android-audio-plugin-framework/build/native/androidaudioplugin"/>
+        <CONFIGURATION name="Debug" isDebug="1"
+            headerPath="../../android-audio-plugin-framework/native/plugin-api/include;../../android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="/usr/X11R6/lib/;../../android-audio-plugin-framework/build/native/androidaudioplugin"
+            />
+        <CONFIGURATION name="Release" isDebug="0" optimisation="2"
+            headerPath="../../android-audio-plugin-framework/native/plugin-api/include;../../android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            libraryPath="/usr/X11R6/lib/;../../android-audio-plugin-framework/build/native/androidaudioplugin"
+            />
 ```
 
-For `<ANDROIDSTUDIO>` (`targetName` attribute can be specified here too, but totally optional):
+For `<ANDROIDSTUDIO>`:
 
 ```
         <CONFIGURATION name="Debug" isDebug="1" 
-                       headerPath="${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/native/plugin-api/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
-                       libraryPath="${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/debug/obj/${ANDROID_ABI}"
+                       headerPath="../../android-audio-plugin-framework/native/androidaudioplugin/core/include;$../../android-audio-plugin-framework/native/plugin-api/include"
+                       libraryPath="../../android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/debug/obj/${ANDROID_ABI}"
                        optimisation="1" linkTimeOptimisation="0"
                        recommendedWarnings="LLVM"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" linkTimeOptimisation="1"
-                       headerPath="${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/native/androidaudioplugin/core/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/native/plugin-api/include;${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/dependencies/tinyxml2"
-                       libraryPath="${CMAKE_CURRENT_SOURCE_DIR}/../../../../../external/android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/release/obj/${ANDROID_ABI}"
+                       headerPath="../../android-audio-plugin-framework/native/androidaudioplugin/core/include;../../android-audio-plugin-framework/native/plugin-api/include"
+                       libraryPath="../../android-audio-plugin-framework/java/androidaudioplugin/build/intermediates/cmake/release/obj/${ANDROID_ABI}"
                        recommendedWarnings="LLVM"/>
 ```
 
-Note that those relative paths are valid only if those source directories exist under `samples` directory. Projucer is of a lot of hacks and there is no valid way to specify required paths.
-If you don't want to be messed a lot, just specify absolute paths that won't be viable outside your machine (we don't accept such PRs), but it would work for you.
+Once you made all those changes to .jucer, copy the resulting .jucer as `override.${APP_NAME}.jucer` and put it under `apps` directory.
+Then run `make copy-and-patch-app-sources` to create the actual application in a copy. It is created under `apps/${APP_NAME}`
 
-Lastly, copy `sample-project-build.gradle` as the project top-level `build.gradle` in `Builds/Android`. Projucer lacks options to specify required content so we have to come up with manually generated ones. Fortunately there is nothing specific to the project, usually.
+### juce_emscripten for UI (future)
+
+**UPDATE:** as of current version juce_emscripten is disabled in favor of JUCE 6.0 migration. We might bring back wasm UI support later.
+
+We use [juce_emscripten](https://github.com/Dreamtonics/juce_emscripten/), which is a fork of JUCE that extends its support to WebAssembly world using [emscripten](emscripten.org/).
+
+At this state, we can use the official JUCE distribution, without forking and making any changes for AAP itself. But when we would like to build a plugin UI that can launch from within the host (DAW) application, the WebAssembly bundle is going to make it possible. juce_emscripten is needed for that purpose.
+
+(Note that external UI integration is not implemented in the framework yet.)
+
+Our repository makes use of [our own fork that supports JUCE 5.4.7 and Web MIDI API](https://github.com/atsushieno/JUCE/tree/juce_emscripten/) (which may not be required once Dreamtonics is back on that effort).
+
+UPDATE: after some investigation, it turned out that current Chrome (and inherently Android WebView)  does not support [Actomics](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics) which is essential to juce_emscripten internals, therefore it will not work on Android so far.
+We keep using juce_emscripten so far though; it may become usable at some stage.
 
 
-## HACKING
+## Hacking JUCEAAP modules
 
 The easiest way to hack AAP JUCE integration itself would be still via sample app projects on Android Studio.
 
 Although on the other hand, JUCE integration on desktop is significantly easy as JUCE is primarily developed for desktop, if code to hack is not Android specific.
 JUCE exporter for CLion may be useful for debugging (especially that Android Studio native builds are also for CMake either way). On CLion (verified with 2019.3) setting the project root with `Tools` -> `CMake` -> `Change Project Root` command would make it possible to diagnose issues with breakpoints on the sources from AAP itself (also LV2 dependencies and prebuilt LV2 plugins e.g. mda-lv2, but it is out of scope of this repo).
 
-### Debugging plugins
+## Debugging plugins (obsolete?)
+
+WARNING: this does not "seem" to apply anymore. @atsushieno does not need this anyhow. But in case debuggers does not work, this might give some hints so I would leave this section as is...
 
 It is not very intuitive to debug a plugin service. As a standard Android debugging tip, a service needs to call `android.os.waitForDebugger()` to accept debugger connection from Android Studio (or anything that supports ADB/JDWP).
 
@@ -250,7 +311,7 @@ Also, aap-juce plugins are apps with the default Activity from Juce Android supp
 
 Also note that depending on which application you are debugging, you either want to debug the host app or the plugin app, opening corresponding projects on one or more Android Studio instances.
 
-### Measuring performance
+## Measuring performance
 
 `juceaap_AAPWrappers.h` has a simple performance measurement aid which can be enabled with [`JUCEAAP_LOG_PERF` variable](https://github.com/atsushieno/aap-juce/blob/cc649d9/modules/juceaap_audio_plugin_client/juceaap_AAPWrappers.h#L18)
 
