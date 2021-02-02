@@ -6,6 +6,7 @@
 #if ANDROID
 #include <dlfcn.h>
 #include <jni.h>
+#include <android/looper.h>
 #endif
 
 using namespace juce;
@@ -45,15 +46,9 @@ public:
 		: aap(plugin), sample_rate(sampleRate), extensions(extensions)
 	{
 #if ANDROID
-		typedef JavaVM*(*getJVMFunc)();
-	    auto libaap = dlopen("libandroidaudioplugin.so", RTLD_NOW);
-        auto getJVM = (getJVMFunc) dlsym(libaap, "getJVM");
-        auto jvm = getJVM();
-        JNIEnv *env;
-        jvm->AttachCurrentThread(&env, nullptr);
-        auto looperClass = env->FindClass("android/os/Looper");
-        auto prepareMethod = env->GetStaticMethodID(looperClass, "prepare", "()V");
-        env->CallStaticVoidMethod(looperClass, prepareMethod);
+		auto looper = ALooper_forThread();
+		if (!looper)
+			ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
 #endif
         plugin_unique_id = pluginUniqueId == nullptr ? nullptr : strdup(pluginUniqueId);
 
