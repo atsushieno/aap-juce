@@ -5,8 +5,7 @@ buildscript {
     ext.dokkaVersion = '0.9.17'
     repositories {
         google()
-        jcenter()
-        maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
+        mavenCentral()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.0.0-alpha05'
@@ -19,10 +18,9 @@ buildscript {
 
 allprojects {
     repositories {
-        google()
-        jcenter()
         mavenLocal()
-        maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
+        google()
+        mavenCentral()
     }
 }
 
