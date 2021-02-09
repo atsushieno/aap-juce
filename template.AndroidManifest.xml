@@ -15,7 +15,6 @@
 	android:configChanges="keyboardHidden|orientation|screenSize"
 	android:screenOrientation="userLandscape"
 	android:launchMode="singleTask"
-	android:exported="true"
 	android:hardwareAccelerated="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
