@@ -25,6 +25,7 @@ This repository used to contain a handful of sample projects, but to avoid bloat
   - There are some experimental ports from CMake based projects as well, namely:
     - [aap-juce-witte-eq](https://github.com/atsushieno/aap-juce-witte-eq) from [witte/Eq](https://github.com/witte/Eq)
     - [aap-juce-chow-phaser](https://github.com/atsushieno/aap-juce-chow-phaser) from [jatinchowdhury18/ChowPhaser](https://github.com/jatinchowdhury18/ChowPhaser/)
+    - [aap-juce-hera](https://github.com/atsushieno/aap-juce-hera) from [jpcima/Hera](https://github.com/jpcima/Hera)
 
 It builds on Android, and partly on desktop (confirmed only on Linux desktop so far). It can launch, enumerate the installed audio plugins on the system, and instantiate each plugin. Audio inputs are however known as not working at the moment. It is likely a [variety of JUCE Android issues](https://github.com/juce-framework/JUCE/issues?q=is%3Aissue+is%3Aopen+Android) though.
 
@@ -78,6 +79,17 @@ It would be much easier to place Android SDK and NDK to the standard location th
 To port existing plugins, or even with a new project, you will either follow the CMake way, or the Projucer way.
 You would normally have no choice, the original project would be either of those already.
 In either approach, you end up with an Android Studio (Gradle) project that you can open on Android Studio (or stick to Gradle to build and adb to install).
+
+### Find reference projects from existing ports
+
+There are not a few example ports of existing open source JUCE plugins, and some of them are deliverately picked up to fill this matrix:
+
+| Project kind | Instruments | Effects | Hosts |
+|-|-|-|-|
+| Projucer | Dexed, Obxd, ... | Frequalizer | AudioPluginHost |
+| CMake | Hera | witte/Eq, ChowPhaser | - |
+
+(AudioPluginHost builds with CMake too, but our since CMake support came later it is still based on Projucer. This may change in the near future.)
 
 ### Making application itself builds for Android
 
