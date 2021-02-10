@@ -85,7 +85,7 @@ In either approach, you end up with an Android Studio (Gradle) project that you 
 There are not a few example ports of existing open source JUCE plugins, and some of them are deliverately picked up to fill this matrix:
 
 | Project kind | Instruments | Effects | Hosts |
-|-|-|-|
+|-|-|-|-|
 | Projucer | Dexed, Obxd, ... | Frequalizer | AudioPluginHost |
 | CMake | Hera | witte/Eq, ChowPhaser | - |
 
