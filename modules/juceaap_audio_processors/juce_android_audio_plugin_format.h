@@ -1,28 +1,9 @@
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "aap/android-audio-plugin-host.hpp"
+#include "aap/audio-plugin-host.h"
 
 using namespace juce;
 
 namespace juceaap {
-
-class AndroidAudioPluginEditor : public juce::AudioProcessorEditor {
-	aap::EditorInstance *native;
-
-public:
-
-    AndroidAudioPluginEditor(juce::AudioProcessor *processor, aap::EditorInstance *native);
-
-	inline void startEditorUI() {
-		native->startEditorUI();
-	}
-
-	// TODO: FUTURE (v0.6). most likely ignorable as the UI is for Android anyways.
-	/*
-    virtual void setScaleFactor(float newScale)
-    {
-    }
-    */
-};
 
 class AndroidAudioPluginParameter;
 

@@ -13,11 +13,6 @@ using namespace juce;
 
 namespace juceaap {
 
-AndroidAudioPluginEditor::AndroidAudioPluginEditor(AudioProcessor *audioProcessor, aap::EditorInstance *editorInstance)
-    : juce::AudioProcessorEditor(audioProcessor), native(editorInstance)
-{
-}
-
 double AndroidAudioPluginInstance::getTailLengthSeconds() const {
     return native->getTailTimeInMilliseconds() / 1000.0;
 }
@@ -229,11 +224,7 @@ bool AndroidAudioPluginInstance::hasMidiPort(bool isInput) const {
 }
 
 AudioProcessorEditor *AndroidAudioPluginInstance::createEditor() {
-    if (!native->getPluginInformation()->hasEditor())
-        return nullptr;
-    auto ret = new AndroidAudioPluginEditor(this, native->createEditor());
-    ret->startEditorUI();
-    return ret;
+    return nullptr;
 }
 
 void AndroidAudioPluginInstance::fillInPluginDescription(PluginDescription &description) const {
