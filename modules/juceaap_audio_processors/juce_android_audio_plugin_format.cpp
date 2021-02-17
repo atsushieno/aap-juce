@@ -6,6 +6,9 @@
 #if ANDROID
 #include <android/sharedmem.h>
 #else
+namespace aap {
+extern void aap_parse_plugin_descriptor_into(const char* pluginPackageName, const char* pluginLocalName, const char* xmlfile, std::vector<PluginInformation*>& plugins);
+}
 #endif
 
 using namespace aap;
@@ -270,7 +273,9 @@ void AndroidAudioPluginFormat::findAllTypesForFile(OwnedArray <PluginDescription
     }
 #else
 	auto metadataPath = fileOrIdentifier.toRawUTF8();
-	for (auto p : PluginInformation::parsePluginMetadataXml(metadataPath, metadataPath, metadataPath)) {
+	std::vector<PluginInformation*> plugins{};
+	aap::aap_parse_plugin_descriptor_into(nullptr, nullptr, metadataPath, plugins);
+	for (auto p : plugins) {
 		auto dst = new PluginDescription();
 		juce_plugin_descs.add(dst); // to automatically free when disposing `this`.
 		fillPluginDescriptionFromNative(*dst, *p);
