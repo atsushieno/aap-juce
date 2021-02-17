@@ -395,14 +395,14 @@ void generate_xml_parameter_node(XmlElement* parent, const AudioProcessorParamet
         childXml->setAttribute("name", para->getName(1024));
         childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
         if (!std::isnormal(para->getDefaultValue()))
-            childXml->setAttribute("default", para->getDefaultValue());
+            childXml->setAttribute("pp:default", para->getDefaultValue());
         auto ranged = dynamic_cast<RangedAudioParameter*>(para);
         if (ranged) {
             auto range = ranged->getNormalisableRange();
             if (std::isnormal(range.start))
-                childXml->setAttribute("minimum", range.start);
+                childXml->setAttribute("pp:minimum", range.start);
             if (std::isnormal(range.end))
-                childXml->setAttribute("maximum", range.end);
+                childXml->setAttribute("pp:maximum", range.end);
         }
         childXml->setAttribute("content", "other");
     }
@@ -429,6 +429,8 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
         return JUCEAAP_EXPORT_AAP_METADATA_INVALID_DIRECTORY;
     }
     std::unique_ptr<juce::XmlElement> pluginsElement{new XmlElement("plugins")};
+    pluginsElement->setAttribute("xmlns", "urn:org.androidaudioplugin.core");
+    pluginsElement->setAttribute("xmlns:pp", "urn:org.androidaudioplugin.port");
     auto pluginElement = pluginsElement->createNewChildElement("plugin");
     pluginElement->setAttribute("name", JucePlugin_Name);
     pluginElement->setAttribute("category", JucePlugin_IsSynth ? "Synth" : "Effect");
