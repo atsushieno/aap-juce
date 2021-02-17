@@ -18,11 +18,11 @@ LIBDEFAULTS=Builds/LinuxMakefile/build/$APPNAME.a
 PLAT_LDFLAGS=`pkg-config --libs alsa x11 xinerama xext freetype2 libcurl webkit2gtk-4.0`
 PLAT_COMPILER=gcc
 fi
-if [ ! '$LIBFILES' ] ; then
+if [ ! $LIBFILES ] ; then
 LIBFILES=$LIBDEFAULTS
 fi
 
-echo "Static librares for `uname` are $LIBFILES"
+echo "Static libraries for `uname` are $LIBFILES"
 
 rm -f `pwd`/aap_metadata.xml ;
 echo "building aap-metadata-generator tool..." ;
