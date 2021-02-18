@@ -11,7 +11,8 @@ This repository used to contain a handful of sample projects, but to avoid bloat
 
 - There is [aap-juce-world](https://github.com/atsushieno/aap-juce-world) repository that builds "everything" that at least build. It is rarely updated as it takes 5 hours with 700MB for build artifacts on GitHub Actions.
 - Host:
-  - [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) from [AudioPluginHost](https://github.com/WeAreROLI/JUCE/tree/master/extras/AudioPluginHost/)
+  - [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) from JUCE [AudioPluginHost](https://github.com/WeAreROLI/JUCE/tree/master/extras/AudioPluginHost/)
+  - [aap-juce-helio](https://github.com/atsushieno/aap-juce-helio) from [helio-fm/helio-workstation](https://github.com/helio-fm/helio-workstation)
 - Plugins:
   - [aap-juce-dexed](https://github.com/atsushieno/aap-juce-dexed) from [asb2m10/dexed](https://github.com/asb2m10/dexed/) (we use private fork)
   - [aap-juce-adlplug](https://github.com/atsushieno/aap-juce-adlplug) from [jpcima/ADLplug](https://github.com/jpcima/ADLplug)
