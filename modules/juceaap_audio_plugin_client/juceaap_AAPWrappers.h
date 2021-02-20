@@ -46,9 +46,15 @@ public:
 		: aap(plugin), sample_rate(sampleRate), extensions(extensions)
 	{
 #if ANDROID
-		auto looper = ALooper_forThread();
-		if (!looper)
-			ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
+        typedef JavaVM*(*getJVMFunc)();
+        auto libaap = dlopen("libandroidaudioplugin.so", RTLD_NOW);
+        auto getJVM = (getJVMFunc) dlsym(libaap, "_ZN3aap15get_android_jvmEv"); // aap::get_android_jvm()
+        auto jvm = getJVM();
+        JNIEnv *env;
+        jvm->AttachCurrentThread(&env, nullptr);
+        auto looperClass = env->FindClass("android/os/Looper");
+        auto prepareMethod = env->GetStaticMethodID(looperClass, "prepare", "()V");
+        env->CallStaticVoidMethod(looperClass, prepareMethod);
 #endif
         plugin_unique_id = pluginUniqueId == nullptr ? nullptr : strdup(pluginUniqueId);
 
