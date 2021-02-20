@@ -1,7 +1,5 @@
 # AAP-JUCE: JUCE audio plugin and hosting support for AAP (Android Audio Plugin)
 
-WARNING: aap-juce has been changing a lot during these couple of weeks, and I'm on restructuring this documentation which takes a while. Some parts are outdated, and soem parts need more new information (such as CMake support).
-
 This repo is the place where we have JUCE integration support modules for [android-audio-plugin-framework](https://github.com/atsushieno/android-audio-plugin-framework) (AAP), for both plugins and hosts.
 
 The entire AAP framework is on early development phase and not ready for any serious consumption yet.
@@ -11,7 +9,8 @@ This repository used to contain a handful of sample projects, but to avoid bloat
 
 - There is [aap-juce-world](https://github.com/atsushieno/aap-juce-world) repository that builds "everything" that at least build. It is rarely updated as it takes 5 hours with 700MB for build artifacts on GitHub Actions.
 - Host:
-  - [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) from [AudioPluginHost](https://github.com/WeAreROLI/JUCE/tree/master/extras/AudioPluginHost/)
+  - [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) from JUCE [AudioPluginHost](https://github.com/WeAreROLI/JUCE/tree/master/extras/AudioPluginHost/)
+  - [aap-juce-helio](https://github.com/atsushieno/aap-juce-helio) from [helio-fm/helio-workstation](https://github.com/helio-fm/helio-workstation)
 - Plugins:
   - [aap-juce-dexed](https://github.com/atsushieno/aap-juce-dexed) from [asb2m10/dexed](https://github.com/asb2m10/dexed/) (we use private fork)
   - [aap-juce-adlplug](https://github.com/atsushieno/aap-juce-adlplug) from [jpcima/ADLplug](https://github.com/jpcima/ADLplug)
@@ -86,7 +85,7 @@ There are not a few example ports of existing open source JUCE plugins, and some
 
 | Project kind | Instruments | Effects | Hosts |
 |-|-|-|-|
-| Projucer | Dexed, Obxd, ... | Frequalizer | AudioPluginHost |
+| Projucer | Dexed, Obxd, ... | Frequalizer | AudioPluginHost, Helio Workstation |
 | CMake | Hera | witte/Eq, ChowPhaser | - |
 
 (AudioPluginHost builds with CMake too, but our since CMake support came later it is still based on Projucer. This may change in the near future.)
