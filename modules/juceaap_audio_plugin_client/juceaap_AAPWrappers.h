@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "aap/android-audio-plugin.h"
 #include "aap/logging.h"
+
 #if ANDROID
 #include <dlfcn.h>
 #include <jni.h>
@@ -11,7 +12,8 @@
 
 using namespace juce;
 
-extern juce::AudioProcessor* createPluginFilter(); // it is defined in each Audio plugin project (by Projucer).
+extern juce::AudioProcessor *
+createPluginFilter(); // it is defined in each Audio plugin project (by Projucer).
 
 extern "C" int juce_aap_wrapper_last_error_code{0};
 
@@ -29,22 +31,22 @@ extern "C" int juce_aap_wrapper_last_error_code{0};
 //  IF exists JUCE MIDI output buffer -> AAP MIDI output port last
 
 class JuceAAPWrapper : juce::AudioPlayHead {
-	AndroidAudioPlugin *aap;
-	const char* plugin_unique_id;
-	int sample_rate;
-	const AndroidAudioPluginExtension * const *extensions;
-	AndroidAudioPluginBuffer *buffer;
+    AndroidAudioPlugin *aap;
+    const char *plugin_unique_id;
+    int sample_rate;
+    const AndroidAudioPluginExtension *const *extensions;
+    AndroidAudioPluginBuffer *buffer;
     AndroidAudioPluginState state{0, nullptr};
-	juce::AudioProcessor *juce_processor;
-	juce::AudioBuffer<float> juce_buffer;
-	juce::MidiBuffer juce_midi_messages;
+    juce::AudioProcessor *juce_processor;
+    juce::AudioBuffer<float> juce_buffer;
+    juce::MidiBuffer juce_midi_messages;
 
-	juce::AudioPlayHead::CurrentPositionInfo play_head_position;
+    juce::AudioPlayHead::CurrentPositionInfo play_head_position;
 
 public:
-	JuceAAPWrapper(AndroidAudioPlugin *plugin, const char* pluginUniqueId, int sampleRate, const AndroidAudioPluginExtension * const *extensions)
-		: aap(plugin), sample_rate(sampleRate), extensions(extensions)
-	{
+    JuceAAPWrapper(AndroidAudioPlugin *plugin, const char *pluginUniqueId, int sampleRate,
+                   const AndroidAudioPluginExtension *const *extensions)
+            : aap(plugin), sample_rate(sampleRate), extensions(extensions) {
 #if ANDROID
         typedef JavaVM*(*getJVMFunc)();
         auto libaap = dlopen("libandroidaudioplugin.so", RTLD_NOW);
@@ -60,26 +62,23 @@ public:
 
         juce::MessageManager::getInstance(); // ensure that we have a message loop.
         juce_processor = createPluginFilter();
-	}
+    }
 
-	virtual ~JuceAAPWrapper()
-	{
-		juce_processor->releaseResources();
+    virtual ~JuceAAPWrapper() {
+        juce_processor->releaseResources();
 
-	    if (state.raw_data != nullptr)
-	        free((void*) state.raw_data);
-		if (plugin_unique_id != nullptr)
-			free((void*) plugin_unique_id);
-	}
+        if (state.raw_data != nullptr)
+            free((void *) state.raw_data);
+        if (plugin_unique_id != nullptr)
+            free((void *) plugin_unique_id);
+    }
 
-	bool getCurrentPosition (juce::AudioPlayHead::CurrentPositionInfo &result) override
-	{
-		result = play_head_position;
-		return true;
-	}
+    bool getCurrentPosition(juce::AudioPlayHead::CurrentPositionInfo &result) override {
+        result = play_head_position;
+        return true;
+    }
 
-	void allocateBuffer(AndroidAudioPluginBuffer* buffer)
-    {
+    void allocateBuffer(AndroidAudioPluginBuffer *buffer) {
         if (!buffer) {
             errno = juce_aap_wrapper_last_error_code = JUCEAAP_ERROR_INVALID_BUFFER;
             return;
@@ -90,54 +89,53 @@ public:
             juce_processor->getBus(true, 0)->enable();
         if (juce_processor->getBusCount(false) > 0)
             juce_processor->getBus(false, 0)->enable();
-        juce_buffer.setSize(juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels(), buffer->num_frames);
+        juce_buffer.setSize(juce_processor->getMainBusNumInputChannels() +
+                            juce_processor->getMainBusNumOutputChannels(), buffer->num_frames);
         juce_midi_messages.clear();
         cached_parameter_values.resize(juce_processor->getParameters().size());
         for (int i = 0; i < cached_parameter_values.size(); i++)
             cached_parameter_values[i] = 0.0f;
     }
 
-    inline int getNumberOfChannelsOfBus(juce::AudioPluginInstance::Bus* bus) { return bus ? bus->getNumberOfChannels() : 0; }
+    inline int getNumberOfChannelsOfBus(juce::AudioPluginInstance::Bus *bus) {
+        return bus ? bus->getNumberOfChannels() : 0;
+    }
 
-	void prepare(AndroidAudioPluginBuffer* buffer)
-	{
-	    allocateBuffer(buffer);
-	    if (juce_aap_wrapper_last_error_code != JUCEAAP_SUCCESS)
-	        return;
+    void prepare(AndroidAudioPluginBuffer *buffer) {
+        allocateBuffer(buffer);
+        if (juce_aap_wrapper_last_error_code != JUCEAAP_SUCCESS)
+            return;
 
-		play_head_position.resetToDefault();
-		play_head_position.bpm = 120;
+        play_head_position.resetToDefault();
+        play_head_position.bpm = 120;
 
-		juce_processor->setPlayConfigDetails(
+        juce_processor->setPlayConfigDetails(
                 getNumberOfChannelsOfBus(juce_processor->getBus(true, 0)),
                 getNumberOfChannelsOfBus(juce_processor->getBus(false, 0)),
-		        sample_rate, buffer->num_frames);
-		juce_processor->setPlayHead(this);
+                sample_rate, buffer->num_frames);
+        juce_processor->setPlayHead(this);
 
-		juce_processor->prepareToPlay(sample_rate, buffer->num_frames);
-	}
+        juce_processor->prepareToPlay(sample_rate, buffer->num_frames);
+    }
 
-	void activate()
-	{
-		play_head_position.isPlaying = true;
-	}
+    void activate() {
+        play_head_position.isPlaying = true;
+    }
 
-	void deactivate()
-	{
-		play_head_position.isPlaying = false;
-	}
+    void deactivate() {
+        play_head_position.isPlaying = false;
+    }
 
-	int32_t current_bpm = 120; // FIXME: provide way to adjust it
-	int32_t default_time_division = 192;
+    int32_t current_bpm = 120; // FIXME: provide way to adjust it
+    int32_t default_time_division = 192;
 
-	std::vector<float> cached_parameter_values;
+    std::vector<float> cached_parameter_values;
 
-	void process(AndroidAudioPluginBuffer* audioBuffer, long timeoutInNanoseconds)
-	{
+    void process(AndroidAudioPluginBuffer *audioBuffer, long timeoutInNanoseconds) {
 #if JUCEAAP_LOG_PERF
-		struct timespec timeSpecBegin, timeSpecEnd;
-		struct timespec procTimeSpecBegin, procTimeSpecEnd;
-		clock_gettime(CLOCK_REALTIME, &timeSpecBegin);
+        struct timespec timeSpecBegin, timeSpecEnd;
+        struct timespec procTimeSpecBegin, procTimeSpecEnd;
+        clock_gettime(CLOCK_REALTIME, &timeSpecBegin);
 #endif
 
         int nPara = juce_processor->getParameters().size();
@@ -151,90 +149,105 @@ public:
         }
 
         int nOut = juce_processor->getMainBusNumOutputChannels();
-		int nBuf = juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels();
-		for (int i = 0; i < nOut; i++)
-			memset((void *) juce_buffer.getWritePointer(i), 0, sizeof(float) * audioBuffer->num_frames);
+        int nBuf = juce_processor->getMainBusNumInputChannels() +
+                   juce_processor->getMainBusNumOutputChannels();
+        for (int i = 0; i < nOut; i++)
+            memset((void *) juce_buffer.getWritePointer(i), 0,
+                   sizeof(float) * audioBuffer->num_frames);
         for (int i = nOut; i < nBuf; i++)
-        	memcpy((void *) juce_buffer.getWritePointer(i), audioBuffer->buffers[i + nPara], sizeof(float) * audioBuffer->num_frames);
+            memcpy((void *) juce_buffer.getWritePointer(i), audioBuffer->buffers[i + nPara],
+                   sizeof(float) * audioBuffer->num_frames);
         int rawTimeDivision = default_time_division;
 
         if (juce_processor->acceptsMidi()) {
-        	// FIXME: for complete support for AudioPlayHead::CurrentPositionInfo, we would also
-        	//   have to store bpm and timeSignature, based on MIDI messages.
+            // FIXME: for complete support for AudioPlayHead::CurrentPositionInfo, we would also
+            //   have to store bpm and timeSignature, based on MIDI messages.
 
-        	juce_midi_messages.clear();
-        	void* src = audioBuffer->buffers[nPara + nBuf];
-        	uint8_t* csrc = (uint8_t*) src;
-        	int* isrc = (int*) src;
-        	int32_t timeDivision = rawTimeDivision = isrc[0];
-			timeDivision = timeDivision < 0 ? -timeDivision : timeDivision & 0xFF;
-        	int32_t srcEnd = isrc[1] + 8;
-        	int32_t srcN = 8;
-			uint8_t running_status = 0;
-			uint64_t ticks = 0;
-        	while (srcN < srcEnd) {
-				long timecode = 0;
-				int digits = 0;
-				while (csrc[srcN] >= 0x80 && srcN < srcEnd) // variable length
-					timecode += ((csrc[srcN++] - 0x80) << (7 * digits++));
-				if (srcN == srcEnd)
-					break; // invalid data
-				timecode += (csrc[srcN++] << (7 * digits));
+            juce_midi_messages.clear();
+            void *src = audioBuffer->buffers[nPara + nBuf];
+            uint8_t *csrc = (uint8_t *) src;
+            int *isrc = (int *) src;
+            int32_t timeDivision = rawTimeDivision = isrc[0];
+            timeDivision = timeDivision < 0 ? -timeDivision : timeDivision & 0xFF;
+            int32_t srcEnd = isrc[1] + 8;
+            int32_t srcN = 8;
+            uint8_t running_status = 0;
+            uint64_t ticks = 0;
+            while (srcN < srcEnd) {
+                long timecode = 0;
+                int digits = 0;
+                while (csrc[srcN] >= 0x80 && srcN < srcEnd) // variable length
+                    timecode += ((csrc[srcN++] - 0x80) << (7 * digits++));
+                if (srcN == srcEnd)
+                    break; // invalid data
+                timecode += (csrc[srcN++] << (7 * digits));
 
-				int32_t srcEventStart = srcN;
-				uint8_t statusByte = csrc[srcN] >= 0x80 ? csrc[srcN] : running_status;
-				running_status = statusByte;
-				uint8_t eventType = statusByte & 0xF0;
-				uint32_t midiEventSize = 3;
-				int sysexPos = srcN;
-				double timestamp;
-				switch (eventType) {
-					case 0xF0:
-						midiEventSize = 2; // F0 + F7
-						while (csrc[sysexPos++] != 0xF7 && sysexPos < srcEnd)
-							midiEventSize++;
-						break;
-					case 0xC0: case 0xD0: case 0xF1: case 0xF3: case 0xF9: midiEventSize = 2; break;
-					case 0xF6: case 0xF7: midiEventSize = 1; break;
-					default:
-						if (eventType > 0xF8)
-							midiEventSize = 1;
-						break;
-				}
+                int32_t srcEventStart = srcN;
+                uint8_t statusByte = csrc[srcN] >= 0x80 ? csrc[srcN] : running_status;
+                running_status = statusByte;
+                uint8_t eventType = statusByte & 0xF0;
+                uint32_t midiEventSize = 3;
+                int sysexPos = srcN;
+                double timestamp;
+                switch (eventType) {
+                    case 0xF0:
+                        midiEventSize = 2; // F0 + F7
+                        while (csrc[sysexPos++] != 0xF7 && sysexPos < srcEnd)
+                            midiEventSize++;
+                        break;
+                    case 0xC0:
+                    case 0xD0:
+                    case 0xF1:
+                    case 0xF3:
+                    case 0xF9:
+                        midiEventSize = 2;
+                        break;
+                    case 0xF6:
+                    case 0xF7:
+                        midiEventSize = 1;
+                        break;
+                    default:
+                        if (eventType > 0xF8)
+                            midiEventSize = 1;
+                        break;
+                }
 
-				// JUCE does not have appropriate semantics on how time code is passed.
-				// We consume AAP MIDI message timestamps accordingly, convert them into position in current frame,
-				// and for MIDI output we just pass them through.
-				if(rawTimeDivision < 0) {
-				    // Hour:Min:Sec:Frame. 1sec = `timeDivision` * frames.
-					ticks += ((((timecode & 0xFF000000) >> 24) * 60 + ((timecode & 0xFF0000) >> 16)) * 60 + ((timecode & 0xFF00) >> 8) * timeDivision + (timecode & 0xFF));
-					timestamp = 1.0 * ticks / timeDivision * sample_rate;
-				} else {
-				    ticks += timecode;
-					timestamp += 60.0f / current_bpm * ticks / timeDivision;
-				}
-				MidiMessage m;
-				bool skip = false;
-				switch (midiEventSize) {
-				case 1:
-					skip = true; // there is no way to create MidiMessage for F6 (tune request) and F7 (end of sysex)
-					break;
-				case 2:
-				    m = MidiMessage{csrc[srcEventStart], csrc[srcEventStart + 1]};
-				    break;
-				case 3:
-				    m = MidiMessage{csrc[srcEventStart], csrc[srcEventStart + 1], csrc[srcEventStart + 2]};
-                    break;
-				default: // sysex etc.
-					m = MidiMessage{csrc + (int32_t) srcEventStart, (int32_t) midiEventSize};
-                    break;
-				}
-				if (!skip) {
-					m.setChannel((statusByte & 0x0F) + 1); // they accept 1..16, not 0..15...
-					juce_midi_messages.addEvent(m, timestamp);
-				}
-				srcN += midiEventSize;
-			}
+                // JUCE does not have appropriate semantics on how time code is passed.
+                // We consume AAP MIDI message timestamps accordingly, convert them into position in current frame,
+                // and for MIDI output we just pass them through.
+                if (rawTimeDivision < 0) {
+                    // Hour:Min:Sec:Frame. 1sec = `timeDivision` * frames.
+                    ticks += (
+                            (((timecode & 0xFF000000) >> 24) * 60 + ((timecode & 0xFF0000) >> 16)) *
+                            60 + ((timecode & 0xFF00) >> 8) * timeDivision + (timecode & 0xFF));
+                    timestamp = 1.0 * ticks / timeDivision * sample_rate;
+                } else {
+                    ticks += timecode;
+                    timestamp += 60.0f / current_bpm * ticks / timeDivision;
+                }
+                MidiMessage m;
+                bool skip = false;
+                switch (midiEventSize) {
+                    case 1:
+                        skip = true; // there is no way to create MidiMessage for F6 (tune request) and F7 (end of sysex)
+                        break;
+                    case 2:
+                        m = MidiMessage{csrc[srcEventStart], csrc[srcEventStart + 1]};
+                        break;
+                    case 3:
+                        m = MidiMessage{csrc[srcEventStart], csrc[srcEventStart + 1],
+                                        csrc[srcEventStart + 2]};
+                        break;
+                    default: // sysex etc.
+                        m = MidiMessage{csrc + (int32_t) srcEventStart, (int32_t) midiEventSize};
+                        break;
+                }
+                if (!skip) {
+                    m.setChannel((statusByte & 0x0F) + 1); // they accept 1..16, not 0..15...
+                    juce_midi_messages.addEvent(m, timestamp);
+                }
+                srcN += midiEventSize;
+            }
         }
 
         // process data by the JUCE plugin
@@ -246,139 +259,128 @@ public:
         clock_gettime(CLOCK_REALTIME, &procTimeSpecEnd);
         long procTimeDiff = (procTimeSpecEnd.tv_sec - procTimeSpecBegin.tv_sec) * 1000000000 + procTimeSpecEnd.tv_nsec - procTimeSpecBegin.tv_nsec;
 #endif
-		play_head_position.timeInSamples += audioBuffer->num_frames;
-		auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames / sample_rate;
-		play_head_position.timeInSeconds += thisTimeInSeconds;
-		play_head_position.ppqPosition += play_head_position.bpm / 60 * 4 * thisTimeInSeconds;
+        play_head_position.timeInSamples += audioBuffer->num_frames;
+        auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames / sample_rate;
+        play_head_position.timeInSeconds += thisTimeInSeconds;
+        play_head_position.ppqPosition += play_head_position.bpm / 60 * 4 * thisTimeInSeconds;
 
-		for (int i = 0; i < nOut; i++)
-			memcpy(audioBuffer->buffers[i + nPara], (void *) juce_buffer.getReadPointer(i), sizeof(float) * audioBuffer->num_frames);
+        for (int i = 0; i < nOut; i++)
+            memcpy(audioBuffer->buffers[i + nPara], (void *) juce_buffer.getReadPointer(i),
+                   sizeof(float) * audioBuffer->num_frames);
 
-		if(juce_processor->producesMidi()) {
-			int32_t bufIndex = nPara + nBuf + (juce_processor->acceptsMidi() ? 1 : 0);
-			void *dst = buffer->buffers[bufIndex];
-			uint8_t *cdst = (uint8_t*) dst;
-			int* idst = (int*) dst;
-			MidiBuffer::Iterator iterator{juce_midi_messages};
-			const uint8_t* data;
-			int32_t eventSize, eventPos, dstBufSize = 0;
-			while (iterator.getNextEvent(data, eventSize, eventPos)) {
-				memcpy(cdst + 8 + dstBufSize, data + eventPos, eventSize);
-				dstBufSize += eventSize;
-			}
-			idst[0] = rawTimeDivision;
-			idst[1] = dstBufSize;
-		}
+        if (juce_processor->producesMidi()) {
+            int32_t bufIndex = nPara + nBuf + (juce_processor->acceptsMidi() ? 1 : 0);
+            void *dst = buffer->buffers[bufIndex];
+            uint8_t *cdst = (uint8_t *) dst;
+            int *idst = (int *) dst;
+            MidiBuffer::Iterator iterator{juce_midi_messages};
+            const uint8_t *data;
+            int32_t eventSize, eventPos, dstBufSize = 0;
+            while (iterator.getNextEvent(data, eventSize, eventPos)) {
+                memcpy(cdst + 8 + dstBufSize, data + eventPos, eventSize);
+                dstBufSize += eventSize;
+            }
+            idst[0] = rawTimeDivision;
+            idst[1] = dstBufSize;
+        }
 #if JUCEAAP_LOG_PERF
-		clock_gettime(CLOCK_REALTIME, &timeSpecEnd);
-		long timeDiff = (timeSpecEnd.tv_sec - timeSpecBegin.tv_sec) * 1000000000 + timeSpecEnd.tv_nsec - timeSpecBegin.tv_nsec;
-		aap::aprintf("AAP JUCE Bridge %s - Synth TAT: %ld", plugin_unique_id, procTimeDiff);
-		aap::aprintf("AAP JUCE Bridge %s - Process TAT: time diff %ld", plugin_unique_id, timeDiff);
+        clock_gettime(CLOCK_REALTIME, &timeSpecEnd);
+        long timeDiff = (timeSpecEnd.tv_sec - timeSpecBegin.tv_sec) * 1000000000 + timeSpecEnd.tv_nsec - timeSpecBegin.tv_nsec;
+        aap::aprintf("AAP JUCE Bridge %s - Synth TAT: %ld", plugin_unique_id, procTimeDiff);
+        aap::aprintf("AAP JUCE Bridge %s - Process TAT: time diff %ld", plugin_unique_id, timeDiff);
 #endif
-	}
+    }
 
-	void getState(AndroidAudioPluginState* result)
-	{
-	    MemoryBlock mb;
-	    mb.reset();
-	    juce_processor->getStateInformation(mb);
-	    if (state.raw_data == nullptr || state.data_size < mb.getSize()) {
-	        if (state.raw_data != nullptr)
-	            free((void*) state.raw_data);
+    void getState(AndroidAudioPluginState *result) {
+        MemoryBlock mb;
+        mb.reset();
+        juce_processor->getStateInformation(mb);
+        if (state.raw_data == nullptr || state.data_size < mb.getSize()) {
+            if (state.raw_data != nullptr)
+                free((void *) state.raw_data);
             state.raw_data = calloc(mb.getSize(), 1);
-	    }
-        memcpy((void*) state.raw_data, mb.begin(), mb.getSize());
+        }
+        memcpy((void *) state.raw_data, mb.begin(), mb.getSize());
         result->data_size = state.data_size;
         result->raw_data = state.raw_data;
-	}
+    }
 
-	void setState(AndroidAudioPluginState* input)
-	{
-	    juce_processor->setStateInformation(input->raw_data, input->data_size);
-	}
+    void setState(AndroidAudioPluginState *input) {
+        juce_processor->setStateInformation(input->raw_data, input->data_size);
+    }
 };
 
-JuceAAPWrapper* getWrapper(AndroidAudioPlugin* plugin)
-{
-	return (JuceAAPWrapper*) plugin->plugin_specific;
+JuceAAPWrapper *getWrapper(AndroidAudioPlugin *plugin) {
+    return (JuceAAPWrapper *) plugin->plugin_specific;
 }
 
 void juceaap_prepare(
-	AndroidAudioPlugin *plugin,
-	AndroidAudioPluginBuffer* audioBuffer)
-{
-	getWrapper(plugin)->prepare(audioBuffer);
+        AndroidAudioPlugin *plugin,
+        AndroidAudioPluginBuffer *audioBuffer) {
+    getWrapper(plugin)->prepare(audioBuffer);
 }
 
-void juceaap_activate(AndroidAudioPlugin *plugin)
-{
-	getWrapper(plugin)->activate();
+void juceaap_activate(AndroidAudioPlugin *plugin) {
+    getWrapper(plugin)->activate();
 }
 
-void juceaap_deactivate(AndroidAudioPlugin *plugin)
-{
-	getWrapper(plugin)->deactivate();
+void juceaap_deactivate(AndroidAudioPlugin *plugin) {
+    getWrapper(plugin)->deactivate();
 }
 
 void juceaap_process(
-	AndroidAudioPlugin *plugin,
-	AndroidAudioPluginBuffer* audioBuffer,
-	long timeoutInNanoseconds)
-{
-	getWrapper(plugin)->process(audioBuffer, timeoutInNanoseconds);
+        AndroidAudioPlugin *plugin,
+        AndroidAudioPluginBuffer *audioBuffer,
+        long timeoutInNanoseconds) {
+    getWrapper(plugin)->process(audioBuffer, timeoutInNanoseconds);
 }
 
-void juceaap_get_state(AndroidAudioPlugin *plugin, AndroidAudioPluginState* result)
-{
-	getWrapper(plugin)->getState(result);
+void juceaap_get_state(AndroidAudioPlugin *plugin, AndroidAudioPluginState *result) {
+    getWrapper(plugin)->getState(result);
 }
 
-void juceaap_set_state(AndroidAudioPlugin *plugin, AndroidAudioPluginState *input)
-{
-	getWrapper(plugin)->setState(input);
+void juceaap_set_state(AndroidAudioPlugin *plugin, AndroidAudioPluginState *input) {
+    getWrapper(plugin)->setState(input);
 }
 
-AndroidAudioPlugin* juceaap_instantiate(
-	AndroidAudioPluginFactory *pluginFactory,
-	const char* pluginUniqueId,
-	int sampleRate,
-	AndroidAudioPluginExtension** extensions)
-{
-	auto *ret = new AndroidAudioPlugin();
-	auto *ctx = new JuceAAPWrapper(ret, pluginUniqueId, sampleRate, extensions);
+AndroidAudioPlugin *juceaap_instantiate(
+        AndroidAudioPluginFactory *pluginFactory,
+        const char *pluginUniqueId,
+        int sampleRate,
+        AndroidAudioPluginExtension **extensions) {
+    auto *ret = new AndroidAudioPlugin();
+    auto *ctx = new JuceAAPWrapper(ret, pluginUniqueId, sampleRate, extensions);
 
-	ret->plugin_specific = ctx;
+    ret->plugin_specific = ctx;
 
-	ret->prepare = juceaap_prepare;
-	ret->activate = juceaap_activate;
-	ret->process = juceaap_process;
-	ret->deactivate = juceaap_deactivate;
-	ret->get_state = juceaap_get_state;
-	ret->set_state = juceaap_set_state;
+    ret->prepare = juceaap_prepare;
+    ret->activate = juceaap_activate;
+    ret->process = juceaap_process;
+    ret->deactivate = juceaap_deactivate;
+    ret->get_state = juceaap_get_state;
+    ret->set_state = juceaap_set_state;
 
-	return ret;
+    return ret;
 }
 
 void juceaap_release(
-	AndroidAudioPluginFactory *pluginFactory,
-	AndroidAudioPlugin *instance)
-{
-	auto ctx = getWrapper(instance);
-	if (ctx != nullptr) {
-		delete ctx;
-		instance->plugin_specific = nullptr;
-	}
-	delete instance;
+        AndroidAudioPluginFactory *pluginFactory,
+        AndroidAudioPlugin *instance) {
+    auto ctx = getWrapper(instance);
+    if (ctx != nullptr) {
+        delete ctx;
+        instance->plugin_specific = nullptr;
+    }
+    delete instance;
 }
 
 struct AndroidAudioPluginFactory juceaap_factory{
-	juceaap_instantiate,
-	juceaap_release
+        juceaap_instantiate,
+        juceaap_release
 };
 
-extern "C" AndroidAudioPluginFactory* GetJuceAAPFactory()
-{
-  return &juceaap_factory;
+extern "C" AndroidAudioPluginFactory *GetJuceAAPFactory() {
+    return &juceaap_factory;
 }
 
 // The code below are used by aap-metadata-generator tool
@@ -387,8 +389,8 @@ extern "C" AndroidAudioPluginFactory* GetJuceAAPFactory()
 #define JUCEAAP_EXPORT_AAP_METADATA_INVALID_DIRECTORY 1
 #define JUCEAAP_EXPORT_AAP_METADATA_INVALID_OUTPUT_FILE 2
 
-void generate_xml_parameter_node(XmlElement* parent, const AudioProcessorParameterGroup::AudioProcessorParameterNode* node)
-{
+void generate_xml_parameter_node(XmlElement *parent,
+                                 const AudioProcessorParameterGroup::AudioProcessorParameterNode *node) {
     auto group = node->getGroup();
     if (group != nullptr) {
         auto childXml = parent->createNewChildElement("ports");
@@ -402,7 +404,7 @@ void generate_xml_parameter_node(XmlElement* parent, const AudioProcessorParamet
         childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
         if (!std::isnormal(para->getDefaultValue()))
             childXml->setAttribute("pp:default", para->getDefaultValue());
-        auto ranged = dynamic_cast<RangedAudioParameter*>(para);
+        auto ranged = dynamic_cast<RangedAudioParameter *>(para);
         if (ranged) {
             auto range = ranged->getNormalisableRange();
             if (std::isnormal(range.start))
@@ -418,7 +420,8 @@ extern "C" {
 
 __attribute__((used))
 __attribute__((visibility("default")))
-int generate_aap_metadata(const char *aapMetadataFullPath, const char *library = "libjuce_jni.so", const char *entrypoint = "GetJuceAAPFactory") {
+int generate_aap_metadata(const char *aapMetadataFullPath, const char *library = "libjuce_jni.so",
+                          const char *entrypoint = "GetJuceAAPFactory") {
 
     // FIXME: start application loop
 
@@ -434,7 +437,7 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
                   << "' does not exist." << std::endl;
         return JUCEAAP_EXPORT_AAP_METADATA_INVALID_DIRECTORY;
     }
-    std::unique_ptr<juce::XmlElement> pluginsElement{new XmlElement("plugins")};
+    std::unique_ptr <juce::XmlElement> pluginsElement{new XmlElement("plugins")};
     pluginsElement->setAttribute("xmlns", "urn:org.androidaudioplugin.core");
     pluginsElement->setAttribute("xmlns:pp", "urn:org.androidaudioplugin.port");
     auto pluginElement = pluginsElement->createNewChildElement("plugin");
@@ -463,14 +466,14 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
         portXml->setAttribute("name",
                               outChannels.getChannelTypeName(outChannels.getTypeOfChannel(i)));
     }
-	auto inChannels = filter->getBusesLayout().getMainInputChannelSet();
-	for (int i = 0; i < inChannels.size(); i++) {
-		auto portXml = topLevelPortsElement->createNewChildElement("port");
-		portXml->setAttribute("direction", "input");
-		portXml->setAttribute("content", "audio");
-		portXml->setAttribute("name",
-							  inChannels.getChannelTypeName(inChannels.getTypeOfChannel(i)));
-	}
+    auto inChannels = filter->getBusesLayout().getMainInputChannelSet();
+    for (int i = 0; i < inChannels.size(); i++) {
+        auto portXml = topLevelPortsElement->createNewChildElement("port");
+        portXml->setAttribute("direction", "input");
+        portXml->setAttribute("content", "audio");
+        portXml->setAttribute("name",
+                              inChannels.getChannelTypeName(inChannels.getTypeOfChannel(i)));
+    }
     if (filter->acceptsMidi()) {
         auto portXml = topLevelPortsElement->createNewChildElement("port");
         portXml->setAttribute("direction", "input");
@@ -485,8 +488,9 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
     }
 
     FileOutputStream output{aapMetadataFile};
-    if(!output.openedOk()) {
-        std::cerr << "Cannot create output file '" << aapMetadataFile.getFullPathName() << "'" << std::endl;
+    if (!output.openedOk()) {
+        std::cerr << "Cannot create output file '" << aapMetadataFile.getFullPathName() << "'"
+                  << std::endl;
         return JUCEAAP_EXPORT_AAP_METADATA_INVALID_OUTPUT_FILE;
     }
     auto s = pluginsElement->toString();

@@ -52,80 +52,80 @@ static void fillPluginDescriptionFromNative(PluginDescription &description,
 
 
 void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audioBuffer,
-														MidiBuffer &midiBuffer) {
-	// FIXME: there is some glitch between how JUCE AudioBuffer assigns a channel for each buffer item
-	//  and how AAP expects them.
+                                                        MidiBuffer &midiBuffer) {
+    // FIXME: there is some glitch between how JUCE AudioBuffer assigns a channel for each buffer item
+    //  and how AAP expects them.
     int juceInputsAssigned = 0;
     auto aapDesc = this->native->getPluginInformation();
-	int n = aapDesc->getNumPorts();
+    int n = aapDesc->getNumPorts();
     for (int i = 0; i < n; i++) {
-    	auto port = aapDesc->getPort(i);
-    	if (port->getPortDirection() != AAP_PORT_DIRECTION_INPUT)
-    		continue;
-    	if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO && juceInputsAssigned < audioBuffer.getNumChannels())
-	        memcpy(buffer->buffers[i], (void *) audioBuffer.getReadPointer(juceInputsAssigned++), (size_t) audioBuffer.getNumSamples() * sizeof(float));
-		else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI) {
-			int di = 8; // fill length later
-			MidiMessage msg{};
-			int pos{0};
-			// FIXME: time unit must be configurable.
-			double oneTick = 1 / 480.0; // sec
-			double secondsPerFrame = 1.0 / sample_rate; // sec
-			MidiBuffer::Iterator iter{midiBuffer};
+        auto port = aapDesc->getPort(i);
+        if (port->getPortDirection() != AAP_PORT_DIRECTION_INPUT)
+            continue;
+        if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO && juceInputsAssigned < audioBuffer.getNumChannels())
+            memcpy(buffer->buffers[i], (void *) audioBuffer.getReadPointer(juceInputsAssigned++), (size_t) audioBuffer.getNumSamples() * sizeof(float));
+        else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI) {
+            int di = 8; // fill length later
+            MidiMessage msg{};
+            int pos{0};
+            // FIXME: time unit must be configurable.
+            double oneTick = 1 / 480.0; // sec
+            double secondsPerFrame = 1.0 / sample_rate; // sec
+            MidiBuffer::Iterator iter{midiBuffer};
             *((int32_t*) buffer->buffers[i]) = 480; // time division
-			*((int32_t*) buffer->buffers[i] + 2) = 0; // reset to ensure that there is no message by default
-			while (iter.getNextEvent(msg, pos)) {
-				double timestamp = msg.getTimeStamp();
-				double timestampSeconds = timestamp * secondsPerFrame;
-				int32_t timestampTicks = (int32_t) (timestampSeconds / oneTick);
-				do {
-					*((uint8_t*) buffer->buffers[i] + di++) = (uint8_t) timestampTicks % 0x80;
-					timestampTicks /= 0x80;
-				} while (timestampTicks > 0x80);
-				memcpy(((uint8_t*) buffer->buffers[i]) + di, msg.getRawData(), msg.getRawDataSize());
-				di += msg.getRawDataSize();
-			}
-			// AAP MIDI buffer is length-prefixed raw MIDI data.
-			*((int32_t*) buffer->buffers[i] + 1) = di - 8;
-		} else {
-			// control parameters should assigned when parameter is assigned.
-			// FIXME: at this state there is no callbacks for parameter changes, so
-			// any dynamic parameter changes are ignored at this state.
-		}
+            *((int32_t*) buffer->buffers[i] + 2) = 0; // reset to ensure that there is no message by default
+            while (iter.getNextEvent(msg, pos)) {
+                double timestamp = msg.getTimeStamp();
+                double timestampSeconds = timestamp * secondsPerFrame;
+                int32_t timestampTicks = (int32_t) (timestampSeconds / oneTick);
+                do {
+                    *((uint8_t*) buffer->buffers[i] + di++) = (uint8_t) timestampTicks % 0x80;
+                    timestampTicks /= 0x80;
+                } while (timestampTicks > 0x80);
+                memcpy(((uint8_t*) buffer->buffers[i]) + di, msg.getRawData(), msg.getRawDataSize());
+                di += msg.getRawDataSize();
+            }
+            // AAP MIDI buffer is length-prefixed raw MIDI data.
+            *((int32_t*) buffer->buffers[i] + 1) = di - 8;
+        } else {
+            // control parameters should assigned when parameter is assigned.
+            // FIXME: at this state there is no callbacks for parameter changes, so
+            // any dynamic parameter changes are ignored at this state.
+        }
     }
 }
 
 void AndroidAudioPluginInstance::fillNativeOutputBuffers(AudioBuffer<float> &audioBuffer) {
-	// FIXME: there is some glitch between how JUCE AudioBuffer assigns a channel for each buffer item
-	//  and how AAP expects them.
-	int juceOutputsAssigned = 0;
-	auto aapDesc = this->native->getPluginInformation();
-	int n = aapDesc->getNumPorts();
-	for (int i = 0; i < n; i++) {
-		auto port = aapDesc->getPort(i);
-		if (port->getPortDirection() != AAP_PORT_DIRECTION_OUTPUT)
-			continue;
-		if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO &&
-			juceOutputsAssigned < audioBuffer.getNumChannels())
-			memcpy((void *) audioBuffer.getWritePointer(juceOutputsAssigned++), buffer->buffers[i],
-				   buffer->num_frames * sizeof(float));
-	}
+    // FIXME: there is some glitch between how JUCE AudioBuffer assigns a channel for each buffer item
+    //  and how AAP expects them.
+    int juceOutputsAssigned = 0;
+    auto aapDesc = this->native->getPluginInformation();
+    int n = aapDesc->getNumPorts();
+    for (int i = 0; i < n; i++) {
+        auto port = aapDesc->getPort(i);
+        if (port->getPortDirection() != AAP_PORT_DIRECTION_OUTPUT)
+            continue;
+        if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO &&
+            juceOutputsAssigned < audioBuffer.getNumChannels())
+            memcpy((void *) audioBuffer.getWritePointer(juceOutputsAssigned++), buffer->buffers[i],
+                   buffer->num_frames * sizeof(float));
+    }
 }
 
 AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nativePlugin)
         : native(nativePlugin),
           sample_rate(-1) {
-	buffer.reset(new AndroidAudioPluginBuffer());
+    buffer.reset(new AndroidAudioPluginBuffer());
     // It is super awkward, but plugin parameter definition does not exist in juce::PluginInformation.
     // Only AudioProcessor.addParameter() works. So we handle them here.
     auto desc = nativePlugin->getPluginInformation();
     for (int i = 0; i < desc->getNumPorts(); i++) {
-    	auto port = desc->getPort(i);
-    	if (port->getPortDirection() != AAP_PORT_DIRECTION_INPUT || port->getContentType() != AAP_CONTENT_TYPE_UNDEFINED)
-    		continue;
-		portMapAapToJuce[i] = getNumParameters();
+        auto port = desc->getPort(i);
+        if (port->getPortDirection() != AAP_PORT_DIRECTION_INPUT || port->getContentType() != AAP_CONTENT_TYPE_UNDEFINED)
+            continue;
+        portMapAapToJuce[i] = getNumParameters();
         addParameter(new AndroidAudioPluginParameter(i, this, port));
-	}
+    }
 }
 
 void AndroidAudioPluginInstance::allocateSharedMemory(int bufferIndex, size_t size)
@@ -139,7 +139,7 @@ void AndroidAudioPluginInstance::allocateSharedMemory(int bufferIndex, size_t si
 #else
     buffer->buffers[bufferIndex] = mmap(nullptr, size,
                              PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-	//buffer->buffers[bufferIndex] = calloc(size, 1);
+    //buffer->buffers[bufferIndex] = calloc(size, 1);
     assert(buffer->buffers[bufferIndex]);
 #endif
 }
@@ -176,11 +176,11 @@ AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpected
 
     native->prepare(maximumExpectedSamplesPerBlock, buffer.get());
 
-	for (int i = 0; i < n; i++) {
-		auto port = native->getPluginInformation()->getPort(i);
-		if (port->getContentType() == AAP_CONTENT_TYPE_UNDEFINED && port->getPortDirection() == AAP_PORT_DIRECTION_INPUT)
-		    updateParameterValue(dynamic_cast<AndroidAudioPluginParameter*>(getParameters()[portMapAapToJuce[i]]));
-	}
+    for (int i = 0; i < n; i++) {
+        auto port = native->getPluginInformation()->getPort(i);
+        if (port->getContentType() == AAP_CONTENT_TYPE_UNDEFINED && port->getPortDirection() == AAP_PORT_DIRECTION_INPUT)
+            updateParameterValue(dynamic_cast<AndroidAudioPluginParameter*>(getParameters()[portMapAapToJuce[i]]));
+    }
     native->activate();
 }
 
@@ -197,9 +197,9 @@ void AndroidAudioPluginInstance::destroyResources() {
             munmap(buffer->buffers[i], buffer->num_frames * sizeof(float));
             auto& fds = native->getSharedMemoryExtension()->getPortBufferFDs();
             if (fds[(size_t) i] != 0)
-	            close(fds[(size_t) i]);
+                close(fds[(size_t) i]);
 #else
-			munmap(buffer->buffers[i], buffer->num_frames * sizeof(float));
+            munmap(buffer->buffers[i], buffer->num_frames * sizeof(float));
             //free(buffer->buffers[i]);
 #endif
         }
@@ -209,9 +209,9 @@ void AndroidAudioPluginInstance::destroyResources() {
 
 void AndroidAudioPluginInstance::processBlock(AudioBuffer<float> &audioBuffer,
                                               MidiBuffer &midiMessages) {
-	fillNativeInputBuffers(audioBuffer, midiMessages);
+    fillNativeInputBuffers(audioBuffer, midiMessages);
     native->process(buffer.get(), 0);
-	fillNativeOutputBuffers(audioBuffer);
+    fillNativeOutputBuffers(audioBuffer);
 }
 
 bool AndroidAudioPluginInstance::hasMidiPort(bool isInput) const {
@@ -237,10 +237,10 @@ void AndroidAudioPluginInstance::fillInPluginDescription(PluginDescription &desc
 
 const aap::PluginInformation *
 AndroidAudioPluginFormat::findPluginInformationFrom(const PluginDescription &desc) {
-	for (auto p : getPluginHostPAL()->getInstalledPlugins())
-		if (strcmp(p->getPluginID().c_str(), desc.fileOrIdentifier.toRawUTF8()) == 0)
-			return p;
-	return nullptr;
+    for (auto p : getPluginHostPAL()->getInstalledPlugins())
+        if (strcmp(p->getPluginID().c_str(), desc.fileOrIdentifier.toRawUTF8()) == 0)
+            return p;
+    return nullptr;
 }
 
 AndroidAudioPluginFormat::AndroidAudioPluginFormat()
@@ -259,30 +259,30 @@ AndroidAudioPluginFormat::~AndroidAudioPluginFormat() {}
 
 void AndroidAudioPluginFormat::findAllTypesForFile(OwnedArray <PluginDescription> &results,
                                                    const String &fileOrIdentifier) {
-	// For Android `fileOrIdentifier` is a service name, and for desktop it is a specific `aap_metadata.xml` file.
+    // For Android `fileOrIdentifier` is a service name, and for desktop it is a specific `aap_metadata.xml` file.
 #if ANDROID
     auto id = fileOrIdentifier.toRawUTF8();
     // So far there is no way to perform query (without Java help) it is retrieved from cached list.
     for (aap::PluginInformation* p : getPluginHostPAL()->getPluginListCache()) {
         if (strcmp(p->getPluginPackageName().c_str(), id) == 0) {
             auto d = new PluginDescription();
-			juce_plugin_descs.add(d);
+            juce_plugin_descs.add(d);
             fillPluginDescriptionFromNative(*d, *p);
             results.add(d);
         }
     }
 #else
-	auto metadataPath = fileOrIdentifier.toRawUTF8();
-	std::vector<PluginInformation*> plugins{};
-	aap::aap_parse_plugin_descriptor_into(nullptr, nullptr, metadataPath, plugins);
-	for (auto p : plugins) {
-		auto dst = new PluginDescription();
-		juce_plugin_descs.add(dst); // to automatically free when disposing `this`.
-		fillPluginDescriptionFromNative(*dst, *p);
-		results.add(dst);
-		// FIXME: not sure if we should add it here. There is no ther timing to do this at desktop.
-		cached_descs.set(p, dst);
-	}
+    auto metadataPath = fileOrIdentifier.toRawUTF8();
+    std::vector<PluginInformation*> plugins{};
+    aap::aap_parse_plugin_descriptor_into(nullptr, nullptr, metadataPath, plugins);
+    for (auto p : plugins) {
+        auto dst = new PluginDescription();
+        juce_plugin_descs.add(dst); // to automatically free when disposing `this`.
+        fillPluginDescriptionFromNative(*dst, *p);
+        results.add(dst);
+        // FIXME: not sure if we should add it here. There is no ther timing to do this at desktop.
+        cached_descs.set(p, dst);
+    }
 #endif
 }
 
@@ -306,39 +306,39 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
 }
 
 StringArray AndroidAudioPluginFormat::searchPathsForPlugins(const FileSearchPath &directoriesToSearch,
-								  bool recursive,
-								  bool allowPluginsWhichRequireAsynchronousInstantiation) {
-	std::vector<std::string> paths{};
+                                  bool recursive,
+                                  bool allowPluginsWhichRequireAsynchronousInstantiation) {
+    std::vector<std::string> paths{};
     StringArray ret{};
 #if ANDROID
     for (auto path : getPluginHostPAL()->getPluginPaths())
         ret.add(path);
 #else
-	for (int i = 0; i < directoriesToSearch.getNumPaths(); i++)
-		getPluginHostPAL()->getAAPMetadataPaths(directoriesToSearch[i].getFullPathName().toRawUTF8(), paths);
-	for (auto p : paths)
-		ret.add(p);
+    for (int i = 0; i < directoriesToSearch.getNumPaths(); i++)
+        getPluginHostPAL()->getAAPMetadataPaths(directoriesToSearch[i].getFullPathName().toRawUTF8(), paths);
+    for (auto p : paths)
+        ret.add(p);
 #endif
-	return ret;
+    return ret;
 }
 
 FileSearchPath AndroidAudioPluginFormat::getDefaultLocationsToSearch() {
-	FileSearchPath ret{};
+    FileSearchPath ret{};
 #if ANDROID
     // JUCE crashes if invalid path is returned here, so we have to resort to dummy path.
     //  JUCE design is lame on file systems in general.
     File dir{"/"};
     ret.add(dir);
 #else
-	for (auto path : getPluginHostPAL()->getPluginPaths()) {
-	    if(!File::isAbsolutePath(path)) // invalid path
-	        continue;
-		File dir{path};
-		if (dir.exists())
-			ret.add(dir);
-	}
+    for (auto path : getPluginHostPAL()->getPluginPaths()) {
+        if(!File::isAbsolutePath(path)) // invalid path
+            continue;
+        File dir{path};
+        if (dir.exists())
+            ret.add(dir);
+    }
 #endif
-	return ret;
+    return ret;
 }
 
 } // namespace
