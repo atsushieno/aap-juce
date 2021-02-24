@@ -12,6 +12,9 @@ PATCH_DEPTH=$5	# patch depth, used as a -p argument to patch(exe)
 		#  e.g. 6
 OVERRIDE_JUCER=$6	# e.g. samples/override.AudioPluginHost.jucer
 
+APP_BUILD_DIR=$7 # if it is not $DST_PATH ...
+                 #  e.g. DST_PATH=apps/vital APP_BUILD_DIR=apps/vital/standalone
+
 INITIAL_DIR=`pwd`
 
 if ! [ $OVERRIDE_JUCER ]; then
@@ -39,11 +42,16 @@ else
 fi
 cd $INITIAL_DIR
 
+if ! [ $APP_BUILD_DIR ]; then
+	APP_BUILD_DIR=$DST_PATH
+fi
+echo "APP_BUILD_DIR: $APP_BUILD_DIR"
+
 if [ -f $OVERRIDE_JUCER ]; then
-	cp $OVERRIDE_JUCER $DST_PATH/$APP_NAME.jucer ;
+	cp $OVERRIDE_JUCER $APP_BUILD_DIR/$APP_NAME.jucer ;
 else
 	echo "override JUCER file $OVERRIDE_JUCER does not exist. Skipping." ;
 fi
 
-touch $DST_PATH/.stamp
+touch $APP_BUILD_DIR/.stamp
 
