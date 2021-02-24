@@ -55,8 +55,12 @@ public:
         JNIEnv *env;
         jvm->AttachCurrentThread(&env, nullptr);
         auto looperClass = env->FindClass("android/os/Looper");
+        auto myLooperMethod = env->GetStaticMethodID(looperClass, "myLooper",
+                                                     "()Landroid/os/Looper;");
         auto prepareMethod = env->GetStaticMethodID(looperClass, "prepare", "()V");
-        env->CallStaticVoidMethod(looperClass, prepareMethod);
+        auto existingLooper = env->CallStaticObjectMethod(looperClass, myLooperMethod);
+        if (!existingLooper)
+            env->CallStaticVoidMethod(looperClass, prepareMethod);
 #endif
         plugin_unique_id = pluginUniqueId == nullptr ? nullptr : strdup(pluginUniqueId);
 
