@@ -296,7 +296,7 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         error << "Android Audio Plugin " << description.name << "was not found.";
         callback(nullptr, error);
     } else {
-        int32_t instanceID = android_host.createInstance(pluginInfo->getPluginID().c_str(), (int) initialSampleRate);
+        int32_t instanceID = android_host.createInstance(pluginInfo->getPluginID(), (int) initialSampleRate);
         auto androidInstance = android_host.getInstance(instanceID);
         androidInstance->completeInstantiation();
         std::unique_ptr <AndroidAudioPluginInstance> instance{

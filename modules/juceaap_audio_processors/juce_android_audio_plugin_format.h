@@ -75,7 +75,7 @@ public:
     }
 
     inline void changeProgramName(int index, const String &newName) override {
-        native->changeProgramName(index, newName.toUTF8());
+        native->changeProgramName(index, newName.toStdString());
     }
 
     inline void getStateInformation(juce::MemoryBlock &destData) override {
