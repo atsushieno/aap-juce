@@ -1,0 +1,6 @@
+<devices>
+    <device name="@@@APPNAME@@@" manufacturer="androidaudioplugin.org" product="@@@APPNAME@@@">
+        <input-port name="input" />
+    </device>
+</devices>
+
