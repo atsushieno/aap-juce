@@ -10,7 +10,6 @@ if [ -z "$MACAPPNAME" ] ; then
 MACAPPNAME=$APPNAME
 fi
 
-
 if ! [ -f $1 ] ; then
     echo "usage: APPNAME=xyz PROJUCER=/path/to/JUCE/Projucer projuce-app.sh [.jucer file]"
     echo "Missing .jucer file (or it does not exist)."
@@ -55,12 +54,21 @@ mkdir -p Builds/Android/app/src/release/res/xml ;
 cp $AAP_METADATA_XML_SOURCE Builds/Android/app/src/release/res/xml/aap_metadata.xml || exit 1 ;
 fi
 
+if [ ! -z "$ENABLE_MIDI_DEVICE_SERVICE" ] ; then
+MANIFEST_TEMPLATE=$CURDIR/template.AndroidManifest-midi-enabled.xml
+sed -e "s/@@@APPNAME@@@/$APPNAME/g" $CURDIR/template.midi_device_info.xml > midi_device_info.xml || exit 1
+cp midi_device_info.xml Builds/Android/app/src/debug/res/xml
+cp midi_device_info.xml Builds/Android/app/src/release/res/xml
+else
+MANIFEST_TEMPLATE=$CURDIR/template.AndroidManifest.xml
+fi
+
 APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:]`
 
 # Projucer is too inflexible to generate required content.
 ## AndroidManifest.xml (only for plugins)
 if [ -f Builds/Android/app/src/debug/res/xml/aap_metadata.xml ] ; then
-sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.juceports.$APPNAMELOWER/" $CURDIR/template.AndroidManifest.xml > Builds/Android/app/src/main/AndroidManifest.xml || exit 1
+sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.juceports.$APPNAMELOWER/" $MANIFEST_TEMPLATE > Builds/Android/app/src/main/AndroidManifest.xml || exit 1
 fi
 
 echo "-------- Post-projucer file list for $APPNAME: --------"
