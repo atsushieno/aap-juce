@@ -1,0 +1,2 @@
+-keep org.androidaudioplugin.AudioPluginService
+-keep org.androidaudioplugin.AudioPluginMidiDeviceService

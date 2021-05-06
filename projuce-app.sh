@@ -35,11 +35,15 @@ else
 fi
 
 # Fixup Android project
-cp $CURDIR/sample-project.settings.gradle Builds/Android/settings.gradle
+echo "rootProject.name='$APPNAME'" > Builds/Android/settings.gradle
+echo "include ':app'" >> Builds/Android/settings.gradle
 cp $CURDIR/sample-project.gradle.properties Builds/Android/gradle.properties
 cp $CURDIR/sample-project.gradle-wrapper.properties Builds/Android/gradle/wrapper/gradle-wrapper.properties
+cp $CURDIR/sample-project.proguard-rules.pro Builds/Android/app/proguard-rules.pro
 # Projucer is too inflexible to generate required content for top-level file.
 cp $CURDIR/sample-project.build.gradle Builds/Android/build.gradle
+# app/build.gradle needs furter tweaks.
+sed -i "s/defaultConfig {/defaultConfig {\n        proguardFiles \"proguard-rules.pro\"/" Builds/Android/app/build.gradle
 
 # copy aap_metadata.xml once Builds/Android is created.
 # Projucer behavior is awkward. It generates "debug" and "release" directories, and any other common resources are ignored.
