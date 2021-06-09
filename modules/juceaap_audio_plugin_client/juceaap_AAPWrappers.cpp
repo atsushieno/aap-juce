@@ -446,7 +446,7 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
     pluginsElement->setAttribute("xmlns:pp", "urn:org.androidaudioplugin.port");
     auto pluginElement = pluginsElement->createNewChildElement("plugin");
     pluginElement->setAttribute("name", JucePlugin_Name);
-    pluginElement->setAttribute("category", JucePlugin_IsSynth ? "Synth" : "Effect");
+    pluginElement->setAttribute("category", JucePlugin_IsSynth ? "Instrument" : "Effect");
     pluginElement->setAttribute("author", JucePlugin_Manufacturer);
     pluginElement->setAttribute("manufacturer", JucePlugin_ManufacturerWebsite);
     pluginElement->setAttribute("unique-id",
