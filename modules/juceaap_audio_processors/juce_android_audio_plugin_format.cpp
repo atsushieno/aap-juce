@@ -3,6 +3,7 @@
 #include <sys/mman.h>
 #include <libgen.h>
 #include <unistd.h>
+#include "cmidi2.h"
 #if ANDROID
 #include <android/sharedmem.h>
 #else
@@ -88,6 +89,48 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
             }
             // AAP MIDI buffer is length-prefixed raw MIDI data.
             *((int32_t*) buffer->buffers[i] + 1) = di - 8;
+        } else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI2) {
+            // FIXME: enable this block by removing MIDI2 condition from the former block.
+
+            // Convert MidiBuffer into MIDI 2.0 UMP stream on the AAP port
+            int dstIntIndex = 4; // fill length later
+            MidiMessage msg{};
+            int pos{0};
+            // FIXME: time unit must be configurable.
+            double oneTick = 1 / 31250.0; // sec
+            double secondsPerFrameJUCE = 1.0 / sample_rate; // sec
+            MidiBuffer::Iterator iter{midiBuffer};
+            int *dstI = (int32_t *) buffer->buffers[i];
+            *(dstI + 2) = 0; // reset to ensure that there is no message by default
+            while (iter.getNextEvent(msg, pos)) {
+                // generate UMP Timestamps only when message has non-zero timestamp.
+                double timestamp = msg.getTimeStamp();
+                if (timestamp != 0) {
+                    double timestampSeconds = timestamp * secondsPerFrameJUCE;
+                    int32_t timestampTicks = (int32_t) (timestampSeconds / oneTick);
+                    do {
+                        *(dstI + dstIntIndex) = (int32_t) cmidi2_ump_jr_timestamp_direct(
+                                0, (uint32_t)(timestampTicks) % 62500); // 2 sec.
+                        timestampTicks -= 62500;
+                        dstIntIndex++;
+                    } while (timestampTicks > 0);
+                }
+                // then generate UMP for the status byte
+                if (msg.isSysEx()) {
+                    int sysexSize = msg.getSysExDataSize();
+                    int32_t numPackets = cmidi2_ump_sysex7_get_num_packets(sysexSize);
+                    // FIXME; implement rest
+                } else if (msg.isMetaEvent()) {
+                    // FIXME: should we transmit META events in some wrapped manner like what we do for ktmidi MIDI 2.0 support?
+                } else {
+                    auto data = msg.getRawData();
+                    *(dstI + dstIntIndex) = cmidi2_ump_midi1_message(0, data[0], (uint8_t) msg.getChannel(), data[1], data[2]);
+                    dstIntIndex++;
+                }
+            }
+            *dstI = dstIntIndex; // UMP length
+            // FIXME: use some constant for MIDI 2.0 Protocol (and Version 1)
+            *(dstI + 2) = 2; // MIDI CI Protocol in AAP
         } else {
             // control parameters should assigned when parameter is assigned.
             // FIXME: at this state there is no callbacks for parameter changes, so
