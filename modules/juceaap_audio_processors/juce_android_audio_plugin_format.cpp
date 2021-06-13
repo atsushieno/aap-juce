@@ -131,11 +131,10 @@ AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nati
 void AndroidAudioPluginInstance::allocateSharedMemory(int bufferIndex, size_t size)
 {
 #if ANDROID
-        int32_t fd = ASharedMemory_create(nullptr, size);
-        auto &fds = native->getSharedMemoryExtension()->getPortBufferFDs();
-        fds[(size_t) bufferIndex] = fd;
-        buffer->buffers[(size_t) bufferIndex] = mmap(nullptr, buffer->num_frames * sizeof(float),
-                PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    int32_t fd = ASharedMemory_create(nullptr, size);
+    auto shmExt = native->getSharedMemoryExtension();
+    shmExt->setPortBufferFD((size_t) bufferIndex, fd);
+    buffer->buffers[(size_t) bufferIndex] = mmap(nullptr, buffer->num_frames * sizeof(float), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 #else
     buffer->buffers[bufferIndex] = mmap(nullptr, size,
                              PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -165,8 +164,8 @@ AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpected
 
     // minimum setup, as the pointers are not passed by JUCE framework side.
     int n = native->getPluginInformation()->getNumPorts();
-    auto &fds = native->getSharedMemoryExtension()->getPortBufferFDs();
-    fds.resize((size_t) n);
+    auto shmExt = native->getSharedMemoryExtension();
+    shmExt->resizePortBuffer((size_t) n);
     buffer->num_buffers = (size_t) n;
     buffer->buffers = (void**) calloc((size_t) n, sizeof(void*));
     buffer->num_frames = (size_t) maximumExpectedSamplesPerBlock;
@@ -194,10 +193,13 @@ void AndroidAudioPluginInstance::destroyResources() {
     if (buffer->buffers) {
         for (size_t i = 0; i < buffer->num_buffers; i++) {
 #if ANDROID
+            auto shmExt = native->getSharedMemoryExtension();
             munmap(buffer->buffers[i], buffer->num_frames * sizeof(float));
-            auto& fds = native->getSharedMemoryExtension()->getPortBufferFDs();
-            if (fds[(size_t) i] != 0)
-                close(fds[(size_t) i]);
+            for (size_t p = 0; p < buffer->num_buffers; p++) {
+                auto fd = shmExt->getPortBufferFD(p);
+                if (fd != 0)
+                    close(fd);
+            }
 #else
             munmap(buffer->buffers[i], buffer->num_frames * sizeof(float));
             //free(buffer->buffers[i]);

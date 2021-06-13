@@ -12,6 +12,8 @@ class AndroidAudioPluginInstance : public juce::AudioPluginInstance {
 
     aap::PluginInstance *native;
     int sample_rate;
+    // FIXME: do not directly use AndroidAudioPluginBuffer as it brings in memory management ambiguity.
+    //  There should be a C++ wrapper type around it that automatically collects memory when disposed.
     std::unique_ptr<AndroidAudioPluginBuffer> buffer{nullptr};
     std::map<int32_t,int32_t> portMapAapToJuce{};
 
@@ -157,17 +159,17 @@ public:
     }
 
     inline String getNameOfPluginFromIdentifier(const String &fileOrIdentifier) override {
-        auto pluginInfo = android_host_manager.getPluginInformation(fileOrIdentifier.toRawUTF8());
+        auto pluginInfo = android_host_manager.getPluginInformation(fileOrIdentifier.toStdString());
         return pluginInfo != nullptr ? String(pluginInfo->getDisplayName()) : String();
     }
 
     inline bool pluginNeedsRescanning(const PluginDescription &description) override {
-        return android_host_manager.isPluginUpToDate(description.fileOrIdentifier.toRawUTF8(),
+        return android_host_manager.isPluginUpToDate(description.fileOrIdentifier.toStdString(),
                                              description.lastInfoUpdateTime.toMilliseconds());
     }
 
     inline bool doesPluginStillExist(const PluginDescription &description) override {
-        return android_host_manager.isPluginAlive(description.fileOrIdentifier.toRawUTF8());
+        return android_host_manager.isPluginAlive(description.fileOrIdentifier.toStdString());
     }
 
     inline bool canScanForPlugins() const override {
