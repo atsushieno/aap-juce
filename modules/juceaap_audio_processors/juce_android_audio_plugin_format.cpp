@@ -64,19 +64,20 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
             continue;
         if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO && juceInputsAssigned < audioBuffer.getNumChannels())
             memcpy(buffer->buffers[i], (void *) audioBuffer.getReadPointer(juceInputsAssigned++), (size_t) audioBuffer.getNumSamples() * sizeof(float));
-        else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI) {
+        else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI || port->getContentType() == AAP_CONTENT_TYPE_MIDI2) {
+            // Convert MidiBuffer into MIDI 1.0 message stream on the AAP port
             int di = 8; // fill length later
             MidiMessage msg{};
             int pos{0};
             // FIXME: time unit must be configurable.
             double oneTick = 1 / 480.0; // sec
-            double secondsPerFrame = 1.0 / sample_rate; // sec
+            double secondsPerFrameJUCE = 1.0 / sample_rate; // sec
             MidiBuffer::Iterator iter{midiBuffer};
             *((int32_t*) buffer->buffers[i]) = 480; // time division
             *((int32_t*) buffer->buffers[i] + 2) = 0; // reset to ensure that there is no message by default
             while (iter.getNextEvent(msg, pos)) {
                 double timestamp = msg.getTimeStamp();
-                double timestampSeconds = timestamp * secondsPerFrame;
+                double timestampSeconds = timestamp * secondsPerFrameJUCE;
                 int32_t timestampTicks = (int32_t) (timestampSeconds / oneTick);
                 do {
                     *((uint8_t*) buffer->buffers[i] + di++) = (uint8_t) timestampTicks % 0x80;
@@ -131,6 +132,8 @@ AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nati
 void AndroidAudioPluginInstance::allocateSharedMemory(int bufferIndex, size_t size)
 {
 #if ANDROID
+    // FIXME: aap::SharedMemoryExtension should provide self-managed ASharedMemory feature (create/close).
+    //  It should be quite common/
     int32_t fd = ASharedMemory_create(nullptr, size);
     auto shmExt = native->getSharedMemoryExtension();
     shmExt->setPortBufferFD((size_t) bufferIndex, fd);
@@ -222,7 +225,7 @@ bool AndroidAudioPluginInstance::hasMidiPort(bool isInput) const {
         auto p = d->getPort(i);
         if (p->getPortDirection() ==
             (isInput ? AAP_PORT_DIRECTION_INPUT : AAP_PORT_DIRECTION_OUTPUT) &&
-            p->getContentType() == AAP_CONTENT_TYPE_MIDI)
+                (p->getContentType() == AAP_CONTENT_TYPE_MIDI || p->getContentType() == AAP_CONTENT_TYPE_MIDI2))
             return true;
     }
     return false;
