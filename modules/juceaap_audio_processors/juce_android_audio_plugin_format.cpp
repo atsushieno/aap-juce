@@ -1,4 +1,4 @@
-
+#define ENABLE_MIDI2 1
 #include "juce_android_audio_plugin_format.h"
 #include <sys/mman.h>
 
@@ -52,9 +52,12 @@ static void fillPluginDescriptionFromNative(PluginDescription &description,
     description.hasSharedContainer = src.hasSharedContainer();
 }
 
+int processIncrementalCount{0};
 
 void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audioBuffer,
                                                         MidiBuffer &midiBuffer) {
+    processIncrementalCount++;
+
     // FIXME: there is some glitch between how JUCE AudioBuffer assigns a channel for each buffer item
     //  and how AAP expects them.
     int juceInputsAssigned = 0;
@@ -73,7 +76,7 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
         else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI || port->getContentType() == AAP_CONTENT_TYPE_MIDI2) {
 #endif
             // Convert MidiBuffer into MIDI 1.0 message stream on the AAP port
-            int di = 8; // fill length later
+            int dstIndex = 8; // fill length later
             MidiMessage msg{};
             int pos{0};
             // FIXME: time unit must be configurable.
@@ -87,24 +90,23 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
                 double timestampSeconds = timestamp * secondsPerFrameJUCE;
                 int32_t timestampTicks = (int32_t) (timestampSeconds / oneTick);
                 do {
-                    *((uint8_t*) portBuffer + di++) = (uint8_t) timestampTicks % 0x80;
+                    *((uint8_t*) portBuffer + dstIndex++) = (uint8_t) timestampTicks % 0x80;
                     timestampTicks /= 0x80;
                 } while (timestampTicks > 0x80);
-                memcpy(((uint8_t*) portBuffer) + di, msg.getRawData(), msg.getRawDataSize());
-                di += msg.getRawDataSize();
+                memcpy(((uint8_t*) portBuffer) + dstIndex, msg.getRawData(), msg.getRawDataSize());
+                dstIndex += msg.getRawDataSize();
             }
             // AAP MIDI buffer is length-prefixed raw MIDI data.
-            *((int32_t*) portBuffer + 1) = di - 8;
+            *((int32_t*) portBuffer + 1) = dstIndex - 8;
         } else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI2) {
             // Convert MidiBuffer into MIDI 2.0 UMP stream on the AAP port
             int dstIntIndex = 8; // fill length later
             MidiMessage msg{};
             int pos{0};
-            // FIXME: time unit must be configurable.
             double oneTick = 1 / 31250.0; // sec
             double secondsPerFrameJUCE = 1.0 / sample_rate; // sec
             MidiBuffer::Iterator iter{midiBuffer};
-            int *dstI = (int32_t *) portBuffer;
+            int32_t *dstI = (int32_t *) portBuffer;
             *(dstI + 2) = 0; // reset to ensure that there is no message by default
             while (iter.getNextEvent(msg, pos)) {
                 // generate UMP Timestamps only when message has non-zero timestamp.
@@ -113,7 +115,7 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
                     double timestampSeconds = timestamp * secondsPerFrameJUCE;
                     int32_t timestampTicks = (int32_t) (timestampSeconds / oneTick);
                     do {
-                        *(dstI + dstIntIndex) = (int32_t) cmidi2_ump_jr_timestamp_direct(
+                        *(dstI + dstIntIndex) = cmidi2_ump_jr_timestamp_direct(
                                 0, (uint32_t)(timestampTicks) % 62500); // 2 sec.
                         timestampTicks -= 62500;
                         dstIntIndex++;
@@ -132,7 +134,7 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
                     dstIntIndex++;
                 }
             }
-            *dstI = dstIntIndex; // UMP length
+            *dstI = (dstIntIndex - 8) * sizeof(uint32_t); // UMP length
             *(dstI + 1) = 0; // reserved
             // FIXME: use some constant for MIDI 2.0 Protocol (and Version 1)
             *(dstI + 2) = 2; // MIDI CI Protocol in AAP
