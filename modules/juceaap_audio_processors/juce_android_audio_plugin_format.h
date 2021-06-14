@@ -1,5 +1,6 @@
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "aap/audio-plugin-host.h"
+#include <aap/audio-plugin-host.h>
+#include <aap/aap-midi2.h>
 
 using namespace juce;
 
@@ -138,6 +139,7 @@ class AndroidAudioPluginFormat : public juce::AudioPluginFormat {
     aap::PluginHost android_host;
     OwnedArray<PluginDescription> juce_plugin_descs;
     HashMap<const aap::PluginInformation *, PluginDescription *> cached_descs;
+    aap::MidiCIExtension midi_ci_extension;
 
     const aap::PluginInformation *findPluginInformationFrom(const PluginDescription &desc);
 

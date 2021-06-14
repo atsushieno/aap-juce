@@ -1,6 +1,7 @@
 
 #include "juce_android_audio_plugin_format.h"
 #include <sys/mman.h>
+
 #include <libgen.h>
 #include <unistd.h>
 #include "cmidi2.h"
@@ -58,14 +59,19 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
     //  and how AAP expects them.
     int juceInputsAssigned = 0;
     auto aapDesc = this->native->getPluginInformation();
-    int n = aapDesc->getNumPorts();
-    for (int i = 0; i < n; i++) {
-        auto port = aapDesc->getPort(i);
+    int numPorts = aapDesc->getNumPorts();
+    for (int portIndex = 0; portIndex < numPorts; portIndex++) {
+        auto port = aapDesc->getPort(portIndex);
+        auto portBuffer = buffer->buffers[portIndex];
         if (port->getPortDirection() != AAP_PORT_DIRECTION_INPUT)
             continue;
         if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO && juceInputsAssigned < audioBuffer.getNumChannels())
-            memcpy(buffer->buffers[i], (void *) audioBuffer.getReadPointer(juceInputsAssigned++), (size_t) audioBuffer.getNumSamples() * sizeof(float));
+            memcpy(portBuffer, (void *) audioBuffer.getReadPointer(juceInputsAssigned++), (size_t) audioBuffer.getNumSamples() * sizeof(float));
+#if ENABLE_MIDI2
+        else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI) { // MIDI2 is handled below
+#else
         else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI || port->getContentType() == AAP_CONTENT_TYPE_MIDI2) {
+#endif
             // Convert MidiBuffer into MIDI 1.0 message stream on the AAP port
             int di = 8; // fill length later
             MidiMessage msg{};
@@ -74,33 +80,31 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
             double oneTick = 1 / 480.0; // sec
             double secondsPerFrameJUCE = 1.0 / sample_rate; // sec
             MidiBuffer::Iterator iter{midiBuffer};
-            *((int32_t*) buffer->buffers[i]) = 480; // time division
-            *((int32_t*) buffer->buffers[i] + 2) = 0; // reset to ensure that there is no message by default
+            *((int32_t*) portBuffer) = 480; // time division
+            *((int32_t*) portBuffer + 2) = 0; // reset to ensure that there is no message by default
             while (iter.getNextEvent(msg, pos)) {
                 double timestamp = msg.getTimeStamp();
                 double timestampSeconds = timestamp * secondsPerFrameJUCE;
                 int32_t timestampTicks = (int32_t) (timestampSeconds / oneTick);
                 do {
-                    *((uint8_t*) buffer->buffers[i] + di++) = (uint8_t) timestampTicks % 0x80;
+                    *((uint8_t*) portBuffer + di++) = (uint8_t) timestampTicks % 0x80;
                     timestampTicks /= 0x80;
                 } while (timestampTicks > 0x80);
-                memcpy(((uint8_t*) buffer->buffers[i]) + di, msg.getRawData(), msg.getRawDataSize());
+                memcpy(((uint8_t*) portBuffer) + di, msg.getRawData(), msg.getRawDataSize());
                 di += msg.getRawDataSize();
             }
             // AAP MIDI buffer is length-prefixed raw MIDI data.
-            *((int32_t*) buffer->buffers[i] + 1) = di - 8;
+            *((int32_t*) portBuffer + 1) = di - 8;
         } else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI2) {
-            // FIXME: enable this block by removing MIDI2 condition from the former block.
-
             // Convert MidiBuffer into MIDI 2.0 UMP stream on the AAP port
-            int dstIntIndex = 4; // fill length later
+            int dstIntIndex = 8; // fill length later
             MidiMessage msg{};
             int pos{0};
             // FIXME: time unit must be configurable.
             double oneTick = 1 / 31250.0; // sec
             double secondsPerFrameJUCE = 1.0 / sample_rate; // sec
             MidiBuffer::Iterator iter{midiBuffer};
-            int *dstI = (int32_t *) buffer->buffers[i];
+            int *dstI = (int32_t *) portBuffer;
             *(dstI + 2) = 0; // reset to ensure that there is no message by default
             while (iter.getNextEvent(msg, pos)) {
                 // generate UMP Timestamps only when message has non-zero timestamp.
@@ -129,8 +133,11 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
                 }
             }
             *dstI = dstIntIndex; // UMP length
+            *(dstI + 1) = 0; // reserved
             // FIXME: use some constant for MIDI 2.0 Protocol (and Version 1)
             *(dstI + 2) = 2; // MIDI CI Protocol in AAP
+            for (int i = 3; i < 8; i++)
+                *(dstI + i) = 0; // reserved
         } else {
             // control parameters should assigned when parameter is assigned.
             // FIXME: at this state there is no callbacks for parameter changes, so
@@ -346,9 +353,24 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
     } else {
         int32_t instanceID = android_host.createInstance(pluginInfo->getPluginID(), (int) initialSampleRate);
         auto androidInstance = android_host.getInstance(instanceID);
+
+#if ENABLE_MIDI2
+        // add MidiCIExtension
+        if (pluginInfo->hasMidi2Ports()) {
+            midi_ci_extension.protocol = 2;
+            midi_ci_extension.protocolVersion = 0;
+            AndroidAudioPluginExtension ext;
+            ext.uri = AAP_MIDI_CI_EXTENSION_URI;
+            ext.data = &midi_ci_extension;
+            ext.transmit_size = sizeof(aap::MidiCIExtension);
+            androidInstance->addExtension(ext);
+        }
+#endif
+
         androidInstance->completeInstantiation();
         std::unique_ptr <AndroidAudioPluginInstance> instance{
                 new AndroidAudioPluginInstance(androidInstance)};
+
         callback(std::move(instance), error);
     }
 }
