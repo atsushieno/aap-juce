@@ -1,5 +1,6 @@
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "aap/audio-plugin-host.h"
+#include <aap/audio-plugin-host.h>
+#include <aap/aap-midi2.h>
 
 using namespace juce;
 
@@ -12,6 +13,8 @@ class AndroidAudioPluginInstance : public juce::AudioPluginInstance {
 
     aap::PluginInstance *native;
     int sample_rate;
+    // FIXME: do not directly use AndroidAudioPluginBuffer as it brings in memory management ambiguity.
+    //  There should be a C++ wrapper type around it that automatically collects memory when disposed.
     std::unique_ptr<AndroidAudioPluginBuffer> buffer{nullptr};
     std::map<int32_t,int32_t> portMapAapToJuce{};
 
@@ -136,6 +139,7 @@ class AndroidAudioPluginFormat : public juce::AudioPluginFormat {
     aap::PluginHost android_host;
     OwnedArray<PluginDescription> juce_plugin_descs;
     HashMap<const aap::PluginInformation *, PluginDescription *> cached_descs;
+    aap::MidiCIExtension midi_ci_extension;
 
     const aap::PluginInformation *findPluginInformationFrom(const PluginDescription &desc);
 
@@ -157,17 +161,17 @@ public:
     }
 
     inline String getNameOfPluginFromIdentifier(const String &fileOrIdentifier) override {
-        auto pluginInfo = android_host_manager.getPluginInformation(fileOrIdentifier.toRawUTF8());
+        auto pluginInfo = android_host_manager.getPluginInformation(fileOrIdentifier.toStdString());
         return pluginInfo != nullptr ? String(pluginInfo->getDisplayName()) : String();
     }
 
     inline bool pluginNeedsRescanning(const PluginDescription &description) override {
-        return android_host_manager.isPluginUpToDate(description.fileOrIdentifier.toRawUTF8(),
+        return android_host_manager.isPluginUpToDate(description.fileOrIdentifier.toStdString(),
                                              description.lastInfoUpdateTime.toMilliseconds());
     }
 
     inline bool doesPluginStillExist(const PluginDescription &description) override {
-        return android_host_manager.isPluginAlive(description.fileOrIdentifier.toRawUTF8());
+        return android_host_manager.isPluginAlive(description.fileOrIdentifier.toStdString());
     }
 
     inline bool canScanForPlugins() const override {
