@@ -1,2 +1,4 @@
 -keep org.androidaudioplugin.AudioPluginService
--keep org.androidaudioplugin.AudioPluginMidiDeviceService
+-keep org.androidaudioplugin.midideviceservice.StandaloneAudioPluginMidiDeviceService
+-keep com.rmsl.juce.JuceActivity
+
