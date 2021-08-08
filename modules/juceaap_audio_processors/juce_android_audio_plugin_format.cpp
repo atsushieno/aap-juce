@@ -364,7 +364,7 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
             AndroidAudioPluginExtension ext;
             ext.uri = AAP_MIDI_CI_EXTENSION_URI;
             ext.data = &midi_ci_extension;
-            ext.transmit_size = sizeof(aap::MidiCIExtension);
+            ext.transmit_size = sizeof(MidiCIExtension);
             androidInstance->addExtension(ext);
         }
 #endif
