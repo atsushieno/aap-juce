@@ -54,6 +54,7 @@ mkdir -p Builds/Android/app/src/release/res/xml ;
 cp $AAP_METADATA_XML_SOURCE Builds/Android/app/src/release/res/xml/aap_metadata.xml || exit 1 ;
 fi
 
+if [ -f Builds/Android/app/src/debug/res/xml/aap_metadata.xml ] ; then
 if [ ! -z "$ENABLE_MIDI_DEVICE_SERVICE" ] ; then
 MANIFEST_TEMPLATE=$CURDIR/template.AndroidManifest-midi-enabled.xml
 sed -e "s/@@@APPNAME@@@/$APPNAME/g" $CURDIR/template.midi_device_info.xml > midi_device_info.xml || exit 1
@@ -62,14 +63,15 @@ cp midi_device_info.xml Builds/Android/app/src/release/res/xml
 else
 MANIFEST_TEMPLATE=$CURDIR/template.AndroidManifest.xml
 fi
+else
+MANIFEST_TEMPLATE=$CURDIR/template.AndroidManifest-host.xml
+fi
 
 APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:]`
 
 # Projucer is too inflexible to generate required content.
 ## AndroidManifest.xml (only for plugins)
-if [ -f Builds/Android/app/src/debug/res/xml/aap_metadata.xml ] ; then
 sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.juceports.$APPNAMELOWER/" $MANIFEST_TEMPLATE > Builds/Android/app/src/main/AndroidManifest.xml || exit 1
-fi
 
 echo "-------- Post-projucer file list for $APPNAME: --------"
 find .
