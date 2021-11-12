@@ -33,7 +33,7 @@ $PLAT_COMPILER -g $CURDIR/tools/aap-metadata-generator.cpp \
         -o $CURDIR/tools/aap-metadata-generator  || exit 1;
 $CURDIR/tools/aap-metadata-generator `pwd`/aap_metadata.xml $LIBRARY $ENTRYPOINT;
 
-if [ $EXTRA_OUTDIR ] ; then
+if [ -d "$EXTRA_OUTDIR" ] ; then
 mkdir -p $EXTRA_OUTDIR/app/src/main/res/xml/ ;
 cp `pwd`/aap_metadata.xml $EXTRA_OUTDIR/app/src/main/res/xml/ ;
 fi

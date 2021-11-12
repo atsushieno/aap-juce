@@ -93,7 +93,7 @@ update-aap-metadata-cmake:
 		make && cd $(CURDIR)
 	cd $(APP_SRC_DIR)/build-desktop && \
 		APPNAME=$(APP_NAME) \
-		EXTRA_OUTDIR=. \
+		EXTRA_OUTDIR=$(CURDIR) \
 		LIBRARY=lib$(APP_NAME)_Standalone.so \
 		ENTRYPOINT=GetJuceAAPFactoryStandalone \
 		LIBFILES=$(APP_SHARED_CODE_LIBS) \
