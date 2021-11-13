@@ -154,8 +154,10 @@ public:
         for (int i = 0; i < nPara; i++) {
             float v = ((float *) audioBuffer->buffers[i])[0];
             if (cached_parameter_values[i] != v) {
-                juce_processor->getParameters()[i]->setValue(v);
+                auto param = juce_processor->getParameterTree().getParameters(true)[i];
+                param->setValue(v);
                 cached_parameter_values[i] = v;
+                param->sendValueChangedMessageToListeners (v);
             }
         }
 
