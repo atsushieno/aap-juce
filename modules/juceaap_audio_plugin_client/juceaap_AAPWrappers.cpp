@@ -443,6 +443,8 @@ void generate_xml_parameter_node(XmlElement *parent,
                 childXml->setAttribute("pp:minimum", range.start);
             if (std::isnormal(range.end))
                 childXml->setAttribute("pp:maximum", range.end);
+            if (std::isnormal(ranged->getDefaultValue()))
+                childXml->setAttribute("pp:default", ranged->getDefaultValue());
         }
         childXml->setAttribute("content", "other");
     }
