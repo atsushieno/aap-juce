@@ -20,6 +20,7 @@ extern "C" int juce_aap_wrapper_last_error_code{0};
 #define JUCEAAP_SUCCESS 0
 #define JUCEAAP_ERROR_INVALID_BUFFER -1
 #define JUCEAAP_ERROR_PROCESS_BUFFER_ALTERED -2
+#define JUCEAAP_ERROR_CHANNEL_IN_OUT_NUM_MISMATCH -3
 #define JUCEAAP_LOG_PERF 0
 
 // JUCE-AAP port mappings:
@@ -38,7 +39,7 @@ class JuceAAPWrapper : juce::AudioPlayHead {
     AndroidAudioPluginBuffer *buffer;
     AndroidAudioPluginState state{0, nullptr};
     juce::AudioProcessor *juce_processor;
-    juce::AudioBuffer<float> juce_buffer;
+    HeapBlock<float*> juce_channels;
     juce::MidiBuffer juce_midi_messages;
 
     juce::AudioPlayHead::CurrentPositionInfo play_head_position;
@@ -89,12 +90,16 @@ public:
         }
         // allocates juce_buffer. No need to interpret content.
         this->buffer = buffer;
-        if (juce_processor->getBusCount(true) > 0)
+        if (juce_processor->getBusCount(true) > 0) {
+            if (juce_processor->getMainBusNumInputChannels() != juce_processor->getMainBusNumOutputChannels()) {
+                errno = juce_aap_wrapper_last_error_code = JUCEAAP_ERROR_CHANNEL_IN_OUT_NUM_MISMATCH;
+                return;
+            }
             juce_processor->getBus(true, 0)->enable();
+        }
         if (juce_processor->getBusCount(false) > 0)
             juce_processor->getBus(false, 0)->enable();
-        juce_buffer.setSize(juce_processor->getMainBusNumInputChannels() +
-                            juce_processor->getMainBusNumOutputChannels(), buffer->num_frames);
+        //juce_buffer.setSize(juce_processor->getMainBusNumOutputChannels(), buffer->num_frames);
         juce_midi_messages.clear();
         cached_parameter_values.resize(juce_processor->getParameters().size());
         for (int i = 0; i < cached_parameter_values.size(); i++)
@@ -123,11 +128,13 @@ public:
     }
 
     void activate() {
+        juce_channels.calloc(juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels());
         play_head_position.isPlaying = true;
     }
 
     void deactivate() {
         play_head_position.isPlaying = false;
+        juce_channels.free();
     }
 
     int32_t current_bpm = 120; // FIXME: provide way to adjust it
@@ -147,20 +154,32 @@ public:
         for (int i = 0; i < nPara; i++) {
             float v = ((float *) audioBuffer->buffers[i])[0];
             if (cached_parameter_values[i] != v) {
-                juce_processor->getParameters()[i]->setValue(v);
+                auto param = juce_processor->getParameterTree().getParameters(true)[i];
+                param->setValue(v);
                 cached_parameter_values[i] = v;
+                param->sendValueChangedMessageToListeners (v);
             }
         }
 
         int nOut = juce_processor->getMainBusNumOutputChannels();
         int nBuf = juce_processor->getMainBusNumInputChannels() +
                    juce_processor->getMainBusNumOutputChannels();
+
+        // FIXME: replace them with fixed pointers at prepare()
+        for (int i = 0; i < nOut; i++)
+            juce_channels[i] = (float*) audioBuffer->buffers[i + nPara];
+        for (int i = nOut; i < nBuf; i++)
+            juce_channels[i] = (float*) audioBuffer->buffers[i + nPara];
+
+        /*
         for (int i = 0; i < nOut; i++)
             memset((void *) juce_buffer.getWritePointer(i), 0,
                    sizeof(float) * audioBuffer->num_frames);
         for (int i = nOut; i < nBuf; i++)
-            memcpy((void *) juce_buffer.getWritePointer(i), audioBuffer->buffers[i + nPara],
+            memcpy((void *) juce_buffer.getWritePointer(i - nOut), audioBuffer->buffers[i + nPara],
                    sizeof(float) * audioBuffer->num_frames);
+        */
+
         int rawTimeDivision = default_time_division;
 
         if (juce_processor->acceptsMidi()) {
@@ -258,7 +277,14 @@ public:
 #if JUCEAAP_LOG_PERF
         clock_gettime(CLOCK_REALTIME, &procTimeSpecBegin);
 #endif
-        juce_processor->processBlock(juce_buffer, juce_midi_messages);
+        juce::AudioSampleBuffer juceAudioBuffer(juce_channels, jmax(nBuf - nOut, nOut), audioBuffer->num_frames);
+
+        // Should this be required? I thought juceAudioBuffer is assigned all those input pointers...
+        for (int i = nOut; i < nBuf; i++)
+            memcpy((void *) juceAudioBuffer.getWritePointer(i - nOut), audioBuffer->buffers[i + nPara],
+                   sizeof(float) * audioBuffer->num_frames);
+
+        juce_processor->processBlock(juceAudioBuffer, juce_midi_messages);
 #if JUCEAAP_LOG_PERF
         clock_gettime(CLOCK_REALTIME, &procTimeSpecEnd);
         long procTimeDiff = (procTimeSpecEnd.tv_sec - procTimeSpecBegin.tv_sec) * 1000000000 + procTimeSpecEnd.tv_nsec - procTimeSpecBegin.tv_nsec;
@@ -268,9 +294,11 @@ public:
         play_head_position.timeInSeconds += thisTimeInSeconds;
         play_head_position.ppqPosition += play_head_position.bpm / 60 * 4 * thisTimeInSeconds;
 
+        /*
         for (int i = 0; i < nOut; i++)
             memcpy(audioBuffer->buffers[i + nPara], (void *) juce_buffer.getReadPointer(i),
                    sizeof(float) * audioBuffer->num_frames);
+        */
 
         if (juce_processor->producesMidi()) {
             int32_t bufIndex = nPara + nBuf + (juce_processor->acceptsMidi() ? 1 : 0);
@@ -415,6 +443,8 @@ void generate_xml_parameter_node(XmlElement *parent,
                 childXml->setAttribute("pp:minimum", range.start);
             if (std::isnormal(range.end))
                 childXml->setAttribute("pp:maximum", range.end);
+            if (std::isnormal(ranged->getDefaultValue()))
+                childXml->setAttribute("pp:default", ranged->getDefaultValue());
         }
         childXml->setAttribute("content", "other");
     }
