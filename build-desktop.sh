@@ -9,6 +9,13 @@ fi
 if [ -z "$MACAPPNAME" ] ; then
 MACAPPNAME=$APPNAME
 fi
+if [ -z "$PLAT_BUILD_DIR" ] ; then
+if [ `uname` == 'Darwin' ] ; then
+PLAT_BUILD_DIR=MacOSX
+else
+PLAT_BUILD_DIR=LinuxMakefile
+fi
+fi
 
 if ! [ -f $1 ] ; then
     echo "usage: APPNAME=xyz PROJUCER=/path/to/JUCE/Projucer build-desktop.sh [.jucer file]"
@@ -16,7 +23,10 @@ if ! [ -f $1 ] ; then
     exit 2
 fi
 
-echo "build-desktop.sh: APPNAME: $APPNAME / MAPAPPNAME: $MACAPPNAME"
+echo "build-desktop.sh:"
+echo "    APPNAME: $APPNAME"
+echo "    MAPAPPNAME: $MACAPPNAME"
+echo "    PLAT_BUILD_DIR: $PLAT_BUILD_DIR"
 
 SRCFILE=`$READLINK -f $1` >/dev/null
 SRCDIR=`dirname $SRCFILE` >/dev/null
@@ -28,12 +38,12 @@ $PROJUCER --resave `basename $1` || exit 1
 
 if [ `uname` == 'Darwin' ] ; then
 if [ $APPNAME == 'AudioPluginHost' ] ; then
-	pushd . && cd Builds/MacOSX && xcodebuild -project "$APPNAME.xcodeproj" && popd || exit 4
+	pushd . && cd Builds/$PLAT_BUILD_DIR && xcodebuild -project "$APPNAME.xcodeproj" && popd || exit 4
 else
-	pushd . && cd Builds/MacOSX && xcodebuild -project "$MACAPPNAME.xcodeproj" -target "$MACAPPNAME - Shared Code" && popd || exit 4
+	pushd . && cd Builds/$PLAT_BUILD_DIR && xcodebuild -project "$MACAPPNAME.xcodeproj" -target "$MACAPPNAME - Shared Code" && popd || exit 4
 fi
 else
-	make -C Builds/LinuxMakefile || exit 4
+	make -C Builds/$PLAT_BUILD_DIR || exit 4
 fi
 
 echo "exiting $CURDIR..."
