@@ -39,7 +39,11 @@ static void fillPluginDescriptionFromNative(PluginDescription &description,
     // So far this is as hacky as AudioUnit implementation.
     description.lastFileModTime = Time();
     description.lastInfoUpdateTime = Time(src.getLastInfoUpdateTime());
+#if JUCEAAP_USE_UNIQUE_ID
     description.uniqueId = String(src.getPluginID()).hashCode();
+#else
+    description.uid = String(src.getPluginID()).hashCode();
+#endif
     description.isInstrument = src.isInstrument();
     for (int i = 0; i < src.getNumPorts(); i++) {
         auto port = src.getPort(i);
