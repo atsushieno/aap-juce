@@ -444,8 +444,10 @@ void generate_xml_parameter_node(XmlElement *parent,
             if (std::isnormal(range.end))
                 childXml->setAttribute("pp:maximum", range.end);
             if (std::isnormal(ranged->getDefaultValue()))
-                childXml->setAttribute("pp:default", ranged->getDefaultValue());
+                childXml->setAttribute("pp:default", range.convertTo0to1(ranged->getDefaultValue()));
         }
+        else
+            childXml->setAttribute("pp:default", para->getDefaultValue());
         childXml->setAttribute("content", "other");
     }
 }

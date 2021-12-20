@@ -3,7 +3,7 @@
 # Options:
 ## - APPNAME
 ## - LIBRARY (so filename that host attempts to dlopen())
-## - ENTRYPOINT (entrypoint function that hots attempts to dlsym())
+## - ENTRYPOINT (entrypoint function that host attempts to dlsym())
 ## - LIBFILES (lib files to link, unquoted, separate by spaces)
 ## - EXTRA_LDFLAGS (passed to gcc e.g. -lGL)
 ## - EXTRA_OUTDIR (copy destination Android app topdir e.g. `Builds/Android`)
