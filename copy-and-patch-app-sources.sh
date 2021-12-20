@@ -30,6 +30,12 @@ fi
 #	mv $DST_PATH $DST_PATH-AutoBackup ;
 #fi
 
+echo "copy-and-patch-app-sources"
+echo "  from: `pwd` ..."
+echo "  DST_PATH: $DST_PATH"
+echo "  APP_BUILD_DIR: $APP_BUILD_DIR"
+echo "  INITIAL_DIR: $INITIAL_DIR"
+
 mkdir -p $DST_PATH
 cp -R $SRC_PATH/* $DST_PATH/
 rm -rf $DST_PATH/.git
@@ -45,7 +51,6 @@ cd $INITIAL_DIR
 if ! [ $APP_BUILD_DIR ]; then
 	APP_BUILD_DIR=$DST_PATH
 fi
-echo "APP_BUILD_DIR: $APP_BUILD_DIR"
 
 if [ -f $OVERRIDE_JUCER ]; then
 	cp $OVERRIDE_JUCER $APP_BUILD_DIR/$APP_NAME.jucer ;
