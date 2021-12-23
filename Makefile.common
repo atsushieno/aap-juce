@@ -136,7 +136,7 @@ $(APP_COPY_DIR)/.stamp: \
 	fi
 
 .PHONY:
-projuce-app: do-projuce-app $(EXTERNAL_POST_PROJUCE_TASKS)
+projuce-app: $(EXTERNAL_PRE_PROJUCE_TASKS) do-projuce-app $(EXTERNAL_POST_PROJUCE_TASKS)
 
 .PHONY:
 do-projuce-app:
