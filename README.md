@@ -19,6 +19,7 @@ This repository used to contain a handful of sample projects, but to avoid bloat
   - [aap-juce-obxd](https://github.com/atsushieno/aap-juce-obxd) from [reales/OB-Xd](https://github.com/reales/OB-Xd)
   - [aap-juce-frequalizer](https://github.com/atsushieno/aap-juce-frequalizer) from [ffAudio/Frequalizer](https://github.com/ffAudio/Frequalizer)
   - [aap-juce-odin2](https://github.com/atsushieno/aap-juce-odin2) from [TheWaveWarden/odin2](https://github.com/TheWaveWarden/odin2)
+  - [aap-juce-vital](https://github.com/atsushieno/aap-juce-vital) from [mtytel/vital](https://github.com/mtytel/vital)
   - [aap-juce-ports](https://github.com/atsushieno/aap-juce-ports) contains other various ports from...
     - [artfwo/andes](https://github.com/artfwo/andes/)
     - [getdunne/SARAH](https://github.com/getdunne/SARAH/)
