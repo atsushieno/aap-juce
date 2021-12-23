@@ -136,7 +136,10 @@ $(APP_COPY_DIR)/.stamp: \
 	fi
 
 .PHONY:
-projuce-app:
+projuce-app: do-projuce-app $(EXTERNAL_POST_PROJUCE_TASKS)
+
+.PHONY:
+do-projuce-app:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
 	cd $(APP_BUILD_DIR) && \
 		NDK_VERSION=$(NDK_VERSION) \
