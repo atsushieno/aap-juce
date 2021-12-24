@@ -97,4 +97,7 @@ update-aap-metadata-cmake:
 		LIBRARY=lib$(APP_NAME)_Standalone.so \
 		ENTRYPOINT=GetJuceAAPFactoryStandalone \
 		LIBFILES=$(APP_SHARED_CODE_LIBS) \
+		EXTRA_LDFLAGS=$(METADATA_GENERATOR_EXTRA_LDFLAGS) \
+		BUILDS_DIR=$(BUILDS_DIR) \
+		PLAT_BUILD_DIR=$(PLAT_BUILD_DIR) \
 		$(AAP_JUCE_DIR)/generate-metadata.sh 

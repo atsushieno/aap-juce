@@ -31,7 +31,7 @@ LIBDEFAULTS=$BUILDS_DIR/$PLAT_BUILD_DIR/build/$APPNAME.a
 PLAT_LDFLAGS=`pkg-config --libs alsa x11 xinerama xext freetype2 libcurl webkit2gtk-4.0`
 PLAT_COMPILER=gcc
 fi
-if [ ! $LIBFILES ] ; then
+if [ -z "$LIBFILES" ] ; then
 LIBFILES=$LIBDEFAULTS
 fi
 
