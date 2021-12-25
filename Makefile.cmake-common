@@ -67,9 +67,15 @@ $(APP_SRC_DIR)/.stamp-app:
 	fi
 
 build-aap-core:
+	if [ ! -f $(AAP_DIR)/java/local.properties ] ; then \
+		echo "sdk.dir=$(HOME)/Android/Sdk" > $(AAP_DIR)/java/local.properties ; \
+	fi
 	cd $(AAP_DIR)/java && ./gradlew publishToMavenLocal
 
 build-app-cmake:
+	if [ ! -f local.properties ] ; then \
+		echo "sdk.dir=$(HOME)/Android/Sdk" > local.properties ; \
+	fi
 	./gradlew build
 	mkdir -p release-builds
 	if [ $(MINIMIZE_INTERMEDIATES) ] ; then \
