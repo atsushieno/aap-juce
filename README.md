@@ -17,18 +17,18 @@ This repository used to contain a handful of sample projects, but to avoid bloat
   - [aap-juce-dexed](https://github.com/atsushieno/aap-juce-dexed) from [asb2m10/dexed](https://github.com/asb2m10/dexed/) (we use private fork)
   - [aap-juce-adlplug](https://github.com/atsushieno/aap-juce-adlplug) from [jpcima/ADLplug](https://github.com/jpcima/ADLplug)
   - [aap-juce-obxd](https://github.com/atsushieno/aap-juce-obxd) from [reales/OB-Xd](https://github.com/reales/OB-Xd)
-  - [aap-juce-frequalizer](https://github.com/atsushieno/aap-juce-frequalizer) from [ffAudio/Frequalizer](https://github.com/ffAudio/Frequalizer)
   - [aap-juce-odin2](https://github.com/atsushieno/aap-juce-odin2) from [TheWaveWarden/odin2](https://github.com/TheWaveWarden/odin2)
   - [aap-juce-vital](https://github.com/atsushieno/aap-juce-vital) from [mtytel/vital](https://github.com/mtytel/vital)
   - [aap-juce-ports](https://github.com/atsushieno/aap-juce-ports) contains other various ports from...
     - [artfwo/andes](https://github.com/artfwo/andes/)
     - [getdunne/SARAH](https://github.com/getdunne/SARAH/)
     - [yokemura/Magical8bitPlug2](https://github.com/yokemura/Magical8bitPlug2/)
-  - There are some experimental ports from CMake based projects as well, namely:
+  - There are some ports from CMake based projects as well, namely:
     - [aap-juce-witte-eq](https://github.com/atsushieno/aap-juce-witte-eq) from [witte/Eq](https://github.com/witte/Eq)
     - [aap-juce-chow-phaser](https://github.com/atsushieno/aap-juce-chow-phaser) from [jatinchowdhury18/ChowPhaser](https://github.com/jatinchowdhury18/ChowPhaser/)
     - [aap-juce-simple-reverb](https://github.com/atsushieno/aap-juce-simple-reverb) from [szkkng/SimpleReverb](https://github.com/szkkng/SimpleReverb)
     - [aap-juce-hera](https://github.com/atsushieno/aap-juce-hera) from [jpcima/Hera](https://github.com/jpcima/Hera)
+    - [aap-juce-frequalizer](https://github.com/atsushieno/aap-juce-frequalizer) from [ffAudio/Frequalizer](https://github.com/ffAudio/Frequalizer)
 
 It builds on Android. aap-juce AudioPluginHost can enumerate the installed AAP plugins on the system (not limited to aap-juce ones), and instantiate each plugin.
 
@@ -45,6 +45,7 @@ While JUCE itself is useful to develop frameworks like AAP, it is designed to be
 
 Their API is stable-ish, while AAP API is not. So if anyone wants to get audio plugins portable without fear of API breakage, JUCE can be your good friend.
 
+Note that JUCE plugins are usually designed for desktop and not meant to be usable on mobiles.
 
 ## How to try it out?
 
