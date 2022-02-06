@@ -26,6 +26,10 @@ cd $SRCDIR
 
 $PROJUCER --resave `basename $1` || exit 1
 
+# We can skip this for update-aap-metadata (which rarely happens in the build structures though, mostly for vital)
+if [ -d Builds/Android ] ; then
+
+
 # If a top-level `local.properties` exists, then copy it into the generated Android project.
 if [ -f ../../local.properties ] ; then
 	cp ../../local.properties Builds/Android/ || exit 1
@@ -75,3 +79,6 @@ sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.juceports.$APPNAMELOWER/" 
 
 echo "-------- Post-projucer file list for $APPNAME: --------"
 find .
+
+
+fi # -d Builds/Android

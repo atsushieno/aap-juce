@@ -104,13 +104,16 @@ dist:
 
 .PHONY:
 build-target-app: copy-and-patch-app-sources projuce-app do-build-target-android
+build-target-desktop: copy-and-patch-app-sources projuce-app do-build-target-desktop
 
 .PHONY:
-build-target-desktop:
+do-build-target-desktop:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
 	cd $(APP_BUILD_DIR) && \
 		APPNAME=$(APP_NAME) \
 		PROJUCER=$(PROJUCER_BIN) \
+		BUILDS_DIR=$(BUILDS_DIR) \
+		PLAT_BUILD_DIR=$(PLAT_BUILD_DIR) \
 		$(AAP_JUCE_DIR)/build-desktop.sh $(APP_DST_JUCER)
 
 .PHONY:
@@ -133,7 +136,10 @@ $(APP_COPY_DIR)/.stamp: \
 	fi
 
 .PHONY:
-projuce-app:
+projuce-app: $(EXTERNAL_PRE_PROJUCE_TASKS) do-projuce-app $(EXTERNAL_POST_PROJUCE_TASKS)
+
+.PHONY:
+do-projuce-app:
 	echo "PROJUCER is at $(PROJUCER_BIN)"
 	cd $(APP_BUILD_DIR) && \
 		NDK_VERSION=$(NDK_VERSION) \
@@ -158,7 +164,14 @@ update-aap-metadata: build-target-desktop
 	#if [ '`uname`' = 'Darwin' ] ; then \
 	#	cd $(APP_BUILD_DIR) && APPNAME=$(MACAPPNAME) EXTRA_OUTDIR=Builds/Android $(THISDIR)/generate-metadata.sh || exit 1 ; \
 	#else \
-		cd $(APP_BUILD_DIR) && APPNAME=$(APP_NAME) EXTRA_OUTDIR=Builds/Android $(THISDIR)/generate-metadata.sh || exit 1 ; \
+		cd $(APP_BUILD_DIR) && \
+		APPNAME=$(APP_NAME) \
+		EXTRA_OUTDIR=Builds/Android \
+		BUILDS_DIR=$(BUILDS_DIR) \
+		PLAT_BUILD_DIR=$(PLAT_BUILD_DIR) \
+		LIBFILES=$(LIBFILES) \
+		EXTRA_LDFLAGS=$(METADATA_GENERATOR_EXTRA_LDFLAGS) \
+		$(THISDIR)/generate-metadata.sh || exit 1 ; \
 	#fi
 
 .PHONY:
@@ -170,4 +183,7 @@ update-aap-metadata-cmake:
 	LIBRARY=lib$(APP_NAME)_Standalone.so \
 	ENTRYPOINT=GetJuceAAPFactoryStandalone \
 	LIBFILES="$(APP_SRC_DIR)/build-desktop/$(APP_NAME)_artefacts/lib$(APP_NAME)_SharedCode.a external/$(APP_NAME)/build-desktop/lib$(APP_NAME)Data.a" \
+	EXTRA_LDFLAGS=$(METADATA_GENERATOR_EXTRA_LDFLAGS) \
+	BUILDS_DIR=$(BUILDS_DIR) \
+	PLAT_BUILD_DIR=$(PLAT_BUILD_DIR) \
 	$(AAP_JUCE_DIR)/generate-metadata.sh 
