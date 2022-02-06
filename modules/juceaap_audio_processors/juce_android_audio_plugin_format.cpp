@@ -182,7 +182,11 @@ AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nati
         if (port->getPortDirection() != AAP_PORT_DIRECTION_INPUT || port->getContentType() != AAP_CONTENT_TYPE_UNDEFINED)
             continue;
         portMapAapToJuce[i] = getNumParameters();
+#if JUCEAAP_HOSTED_PARAMETER
+        addHostedParameter(std::unique_ptr<AndroidAudioPluginParameter>(new AndroidAudioPluginParameter(i, this, port)));
+#else
         addParameter(new AndroidAudioPluginParameter(i, this, port));
+#endif
     }
 }
 

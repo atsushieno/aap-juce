@@ -90,7 +90,11 @@ public:
     void fillInPluginDescription(PluginDescription &description) const override;
 };
 
+#if JUCEAAP_HOSTED_PARAMETER
+class AndroidAudioPluginParameter : public juce::AudioPluginInstance::HostedParameter {
+#else
 class AndroidAudioPluginParameter : public juce::AudioProcessorParameter {
+#endif
     friend class AndroidAudioPluginInstance;
 
     int aap_parameter_index;
@@ -107,7 +111,10 @@ class AndroidAudioPluginParameter : public juce::AudioProcessorParameter {
     float value{0.0f};
 
 public:
-    int getAAPParameterIndex() { return aap_parameter_index; }
+#if JUCEAAP_HOSTED_PARAMETER
+    String getParameterID() const override { return String::formatted("%d", getAAPParameterIndex()); }
+#endif
+    int getAAPParameterIndex() const { return aap_parameter_index; }
 
     float getValue() const override { return value; }
 
