@@ -13,9 +13,6 @@ class AndroidAudioPluginInstance : public juce::AudioPluginInstance {
 
     aap::PluginInstance *native;
     int sample_rate;
-    // FIXME: do not directly use AndroidAudioPluginBuffer as it brings in memory management ambiguity.
-    //  There should be a C++ wrapper type around it that automatically collects memory when disposed.
-    std::unique_ptr<AndroidAudioPluginBuffer> buffer{nullptr};
     std::map<int32_t,int32_t> portMapAapToJuce{};
 
     void fillNativeInputBuffers(AudioBuffer<float> &audioBuffer, MidiBuffer &midiBuffer);
@@ -29,7 +26,6 @@ public:
 
     AndroidAudioPluginInstance(aap::PluginInstance *nativePlugin);
     ~AndroidAudioPluginInstance() override {
-        delete buffer->buffers;
     }
     void destroyResources();
 

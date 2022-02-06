@@ -67,6 +67,7 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
     int juceInputsAssigned = 0;
     auto aapDesc = this->native->getPluginInformation();
     int numPorts = aapDesc->getNumPorts();
+    auto *buffer = native->getAudioPluginBuffer(audioBuffer.getNumChannels(), audioBuffer.getNumSamples());
     for (int portIndex = 0; portIndex < numPorts; portIndex++) {
         auto port = aapDesc->getPort(portIndex);
         auto portBuffer = buffer->buffers[portIndex];
@@ -158,6 +159,7 @@ void AndroidAudioPluginInstance::fillNativeOutputBuffers(AudioBuffer<float> &aud
     int juceOutputsAssigned = 0;
     auto aapDesc = this->native->getPluginInformation();
     int n = aapDesc->getNumPorts();
+    auto *buffer = native->getAudioPluginBuffer(audioBuffer.getNumChannels(), audioBuffer.getNumSamples());
     for (int i = 0; i < n; i++) {
         auto port = aapDesc->getPort(i);
         if (port->getPortDirection() != AAP_PORT_DIRECTION_OUTPUT)
@@ -172,7 +174,6 @@ void AndroidAudioPluginInstance::fillNativeOutputBuffers(AudioBuffer<float> &aud
 AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nativePlugin)
         : native(nativePlugin),
           sample_rate(-1) {
-    buffer.reset(new AndroidAudioPluginBuffer());
     // It is super awkward, but plugin parameter definition does not exist in juce::PluginInformation.
     // Only AudioProcessor.addParameter() works. So we handle them here.
     auto desc = nativePlugin->getPluginInformation();
@@ -185,23 +186,6 @@ AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nati
     }
 }
 
-void AndroidAudioPluginInstance::allocateSharedMemory(int bufferIndex, size_t size)
-{
-#if ANDROID
-    // FIXME: aap::SharedMemoryExtension should provide self-managed ASharedMemory feature (create/close).
-    //  It should be quite common/
-    int32_t fd = ASharedMemory_create(nullptr, size);
-    auto shmExt = native->getSharedMemoryExtension();
-    shmExt->setPortBufferFD((size_t) bufferIndex, fd);
-    buffer->buffers[(size_t) bufferIndex] = mmap(nullptr, buffer->num_frames * sizeof(float), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-#else
-    buffer->buffers[bufferIndex] = mmap(nullptr, size,
-                             PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    //buffer->buffers[bufferIndex] = calloc(size, 1);
-    assert(buffer->buffers[bufferIndex]);
-#endif
-}
-
 void AndroidAudioPluginInstance::updateParameterValue(AndroidAudioPluginParameter* parameter)
 {
     int i = parameter->getAAPParameterIndex();
@@ -209,10 +193,14 @@ void AndroidAudioPluginInstance::updateParameterValue(AndroidAudioPluginParamete
     if(getNumParameters() <= i) return; // too early to reach here.
 
     // In JUCE, control parameters are passed as a single value, while LV2 (in general?) takes values as a buffer.
-    // It is inefficient to fill buffer every time, so we juse set a value here.
-    // FIXME: it is actually argurable which is more efficient, as it is possible that JUCE control parameters are
+    // It is inefficient to fill buffer every time, so we just set a value here.
+    // FIXME: it is actually arguable which is more efficient, as it is possible that JUCE control parameters are
     //  more often assigned. Maybe we should have something like port properties that describes more characteristics
     //  like LV2 "expensive" port property (if that really is for it), and make use of them.
+    //  related: https://github.com/atsushieno/android-audio-plugin-framework/issues/80
+    //
+    // This should not be the most likely case, but IF it is called *before* prepareToPlay() the audio buffer might be unallocated yet.
+    auto *buffer = native->getAudioPluginBuffer(i, sizeof(float));
     float v = this->getParameters()[portMapAapToJuce[i]]->getValue();
     std::fill_n((float *) buffer->buffers[i], buffer->num_frames, v);
 }
@@ -223,16 +211,8 @@ AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpected
 
     // minimum setup, as the pointers are not passed by JUCE framework side.
     int n = native->getPluginInformation()->getNumPorts();
-    auto shmExt = native->getSharedMemoryExtension();
-    shmExt->resizePortBuffer((size_t) n);
-    buffer->num_buffers = (size_t) n;
-    buffer->buffers = (void**) calloc((size_t) n, sizeof(void*));
-    buffer->num_frames = (size_t) maximumExpectedSamplesPerBlock;
-    for (int i = 0; i < n; i++)
-        allocateSharedMemory(i, buffer->num_frames * sizeof(float));
-    buffer->buffers[n] = nullptr;
-
-    native->prepare(maximumExpectedSamplesPerBlock, buffer.get());
+    auto *buf = native->getAudioPluginBuffer(n, maximumExpectedSamplesPerBlock);
+    native->prepare(maximumExpectedSamplesPerBlock, buf);
 
     for (int i = 0; i < n; i++) {
         auto port = native->getPluginInformation()->getPort(i);
@@ -248,30 +228,12 @@ void AndroidAudioPluginInstance::releaseResources() {
 
 void AndroidAudioPluginInstance::destroyResources() {
     native->dispose();
-
-    if (buffer->buffers) {
-        for (size_t i = 0; i < buffer->num_buffers; i++) {
-#if ANDROID
-            auto shmExt = native->getSharedMemoryExtension();
-            munmap(buffer->buffers[i], buffer->num_frames * sizeof(float));
-            for (size_t p = 0; p < buffer->num_buffers; p++) {
-                auto fd = shmExt->getPortBufferFD(p);
-                if (fd != 0)
-                    close(fd);
-            }
-#else
-            munmap(buffer->buffers[i], buffer->num_frames * sizeof(float));
-            //free(buffer->buffers[i]);
-#endif
-        }
-        buffer->buffers = nullptr;
-    }
 }
 
 void AndroidAudioPluginInstance::processBlock(AudioBuffer<float> &audioBuffer,
                                               MidiBuffer &midiMessages) {
     fillNativeInputBuffers(audioBuffer, midiMessages);
-    native->process(buffer.get(), 0);
+    native->process(native->getAudioPluginBuffer(audioBuffer.getNumChannels(), audioBuffer.getNumSamples()), 0);
     fillNativeOutputBuffers(audioBuffer);
 }
 
