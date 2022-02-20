@@ -51,6 +51,10 @@ DIST_DIR=$(shell pwd)/release-builds
 THISFILE=$(abspath $(lastword $(MAKEFILE_LIST)))
 THISDIR=$(dir $(THISFILE))
 
+ifeq ('$(ANDROID_SDK_ROOT)', '')
+ANDROID_SDK_ROOT=~/Android/Sdk
+endif
+
 PROJUCER_BIN_LINUX=$(JUCE_DIR)/extras/Projucer/Builds/LinuxMakefile/build/Projucer
 PROJUCER_BIN_DARWIN=$(JUCE_DIR)/extras/Projucer/Builds/MacOSX/build/Debug/Projucer.app/Contents/MacOS/Projucer
 

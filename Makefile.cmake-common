@@ -45,6 +45,10 @@ DIST_DIR=$(shell pwd)/release-builds
 THISFILE=$(abspath $(lastword $(MAKEFILE_LIST)))
 THISDIR=$(dir $(THISFILE))
 
+ifeq ('$(ANDROID_SDK_ROOT)', '')
+ANDROID_SDK_ROOT=~/Android/Sdk
+endif
+
 # for CMake, it is the same as $(APP_BUILD_DIR)
 ANDROID_DIR=$(APP_BUILD_DIR)
 
