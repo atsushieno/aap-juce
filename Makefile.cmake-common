@@ -74,7 +74,7 @@ build-aap-core:
 	if [ ! -f $(AAP_DIR)/java/local.properties ] ; then \
 		echo "sdk.dir=$(HOME)/Android/Sdk" > $(AAP_DIR)/java/local.properties ; \
 	fi
-	cd $(AAP_DIR)/java && ./gradlew publishToMavenLocal
+	cd $(AAP_DIR) && ./gradlew publishToMavenLocal
 
 build-app-cmake:
 	if [ ! -f local.properties ] ; then \
