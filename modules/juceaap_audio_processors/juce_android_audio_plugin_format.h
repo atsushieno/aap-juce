@@ -1,6 +1,6 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <aap/audio-plugin-host.h>
-#include <aap/aap-midi2.h>
+#include <aap/unstable/aap-midi2.h>
 
 using namespace juce;
 

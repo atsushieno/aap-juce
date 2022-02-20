@@ -2,7 +2,7 @@
 #include <ctime>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "aap/android-audio-plugin.h"
-#include "aap/logging.h"
+#include "aap/unstable/logging.h"
 
 #if ANDROID
 #include <dlfcn.h>
