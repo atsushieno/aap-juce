@@ -98,8 +98,8 @@ $(PROJUCER_BIN_DARWIN):
 
 .PHONY:
 build-aap:
-	if [ ! -f $(AAP_DIR)/java/local.properties ] ; then \
-		echo "sdk.dir=$(HOME)/Android/Sdk" > $(AAP_DIR)/java/local.properties ; \
+	if [ ! -f $(AAP_DIR)/local.properties ] ; then \
+		echo "sdk.dir=$(HOME)/Android/Sdk" > $(AAP_DIR)/local.properties ; \
 	fi
 	cd $(AAP_DIR) && ./gradlew build
 
