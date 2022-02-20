@@ -94,7 +94,7 @@ $(PROJUCER_BIN_DARWIN):
 
 .PHONY:
 build-aap:
-	cd $(AAP_DIR) && make MINIMIZE_INTERMEDIATES=$(MINIMIZE_INTERMEDIATES)
+	cd $(AAP_DIR) && ./gradlew build
 
 .PHONY:
 dist:
