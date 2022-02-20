@@ -31,7 +31,7 @@ AAP_DIR=$(shell pwd)/external/android-audio-plugin-framework
 MINIMIZE_INTERMEDIATES=0
 
 ## Specify arbitrary NDK version. No guarantee on that your version works.
-NDK_VERSION=21.3.6528147
+NDK_VERSION=21.4.7075529
 
 ## Specify whatever gradle task you want to run.
 GRADLE_TASK=build
