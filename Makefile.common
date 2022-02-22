@@ -158,6 +158,10 @@ do-projuce-app:
 
 .PHONY:
 do-build-target-android:
+	# generate a debug key if it does not exist.
+	if [ ! -f $(HOME)/.android/debug.keystore ] ; then \
+		keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 37564 -noprompt -dname "CN=Android Debug,O=Android,C=US" ; \
+	fi
 	cd $(ANDROID_DIR) && ./gradlew $(GRADLE_TASK) && cd ../.. || exit 1
 	if [ $(MINIMIZE_INTERMEDIATES) ] ; then \
 		rm -rf $(ANDROID_DIR)/app/build/intermediates/ ; \
