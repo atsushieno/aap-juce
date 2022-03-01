@@ -265,11 +265,11 @@ For `<LINUX_MAKE>` for desktop (`Builds/LinuxMakefile`, not to be confused with 
 
 ```
         <CONFIGURATION name="Debug" isDebug="1"
-            headerPath="../../android-audio-plugin-framework/native/plugin-api/include;../../android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            headerPath="../../android-audio-plugin-framework/include"
             libraryPath="/usr/X11R6/lib/;../../android-audio-plugin-framework/build/native/androidaudioplugin"
             />
         <CONFIGURATION name="Release" isDebug="0" optimisation="2"
-            headerPath="../../android-audio-plugin-framework/native/plugin-api/include;../../android-audio-plugin-framework/native/androidaudioplugin/core/include"
+            headerPath="../../android-audio-plugin-framework/include"
             libraryPath="/usr/X11R6/lib/;../../android-audio-plugin-framework/build/native/androidaudioplugin"
             />
 ```
@@ -278,12 +278,12 @@ For `<ANDROIDSTUDIO>`:
 
 ```
         <CONFIGURATION name="Debug" isDebug="1" 
-                       headerPath="../../android-audio-plugin-framework/include;"
+                       headerPath="../../android-audio-plugin-framework/include"
                        libraryPath="../../android-audio-plugin-framework/androidaudioplugin/build/intermediates/cmake/debug/obj/${ANDROID_ABI}"
                        optimisation="1" linkTimeOptimisation="0"
                        recommendedWarnings="LLVM"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" linkTimeOptimisation="1"
-                       headerPath="../../android-audio-plugin-framework/include;"
+                       headerPath="../../android-audio-plugin-framework/include"
                        libraryPath="../../android-audio-plugin-framework/androidaudioplugin/build/intermediates/cmake/release/obj/${ANDROID_ABI}"
                        recommendedWarnings="LLVM"/>
 ```

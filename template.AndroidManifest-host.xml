@@ -28,7 +28,7 @@
       </intent-filter>
     </activity>
 
-    <provider android:authorities="${applicationId}" android:name="org.androidaudioplugin.AudioPluginNativeHostContentProvider" />
+    <provider android:authorities="${applicationId}" android:name="org.androidaudioplugin.hosting.AudioPluginNativeHostContentProvider" />
   </application>
 
   <supports-screens
