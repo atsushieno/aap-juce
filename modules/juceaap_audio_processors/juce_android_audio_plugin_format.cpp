@@ -264,17 +264,18 @@ void AndroidAudioPluginInstance::fillInPluginDescription(PluginDescription &desc
 
 const aap::PluginInformation *
 AndroidAudioPluginFormat::findPluginInformationFrom(const PluginDescription &desc) {
-    for (auto p : getPluginHostPAL()->getInstalledPlugins())
-        if (strcmp(p->getPluginID().c_str(), desc.fileOrIdentifier.toRawUTF8()) == 0)
-            return p;
-    return nullptr;
+    auto list = aap::PluginListSnapshot::queryServices();
+    return list.getPluginInformation(desc.fileOrIdentifier.toRawUTF8());
 }
 
-AndroidAudioPluginFormat::AndroidAudioPluginFormat()
-        : android_host_manager(aap::PluginHostManager()), android_host(aap::PluginHost(&android_host_manager)) {
+AndroidAudioPluginFormat::AndroidAudioPluginFormat() {
+    auto snapshot = aap::PluginListSnapshot::queryServices();
+    // FIXME: retrieve serviceConnectorInstanceId, not 0
+    android_host = std::make_unique<aap::PluginClient>(getPluginConnectionListFromJni(0, true), &snapshot);
 #if ANDROID
-    for (int i = 0; i < android_host_manager.getNumPluginInformation(); i++) {
-        auto d = android_host_manager.getPluginInformation(i);
+    auto list = aap::PluginListSnapshot::queryServices();
+    for (int i = 0; i < list.getNumPluginInformation(); i++) {
+        auto d = list.getPluginInformation(i);
         auto dst = new PluginDescription();
         fillPluginDescriptionFromNative(*dst, *d);
         cached_descs.set(d, dst);
@@ -290,7 +291,9 @@ void AndroidAudioPluginFormat::findAllTypesForFile(OwnedArray <PluginDescription
 #if ANDROID
     auto id = fileOrIdentifier.toRawUTF8();
     // So far there is no way to perform query (without Java help) it is retrieved from cached list.
-    for (aap::PluginInformation* p : getPluginHostPAL()->getPluginListCache()) {
+    auto snapshot = aap::PluginListSnapshot::queryServices();
+    for (int i = 0; i < snapshot.getNumPluginInformation(); i++) {
+        auto p = snapshot.getPluginInformation(i);
         if (strcmp(p->getPluginPackageName().c_str(), id) == 0) {
             auto d = new PluginDescription();
             juce_plugin_descs.add(d);
@@ -323,8 +326,8 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         error << "Android Audio Plugin " << description.name << "was not found.";
         callback(nullptr, error);
     } else {
-        int32_t instanceID = android_host.createInstance(pluginInfo->getPluginID(), (int) initialSampleRate);
-        auto androidInstance = android_host.getInstance(instanceID);
+        int32_t instanceID = android_host->createInstance(pluginInfo->getPluginID(), (int) initialSampleRate);
+        auto androidInstance = android_host->getInstance(instanceID);
 
 #if ENABLE_MIDI2
         // add MidiCIExtension
@@ -353,8 +356,12 @@ StringArray AndroidAudioPluginFormat::searchPathsForPlugins(const FileSearchPath
     std::vector<std::string> paths{};
     StringArray ret{};
 #if ANDROID
-    for (auto path : getPluginHostPAL()->getPluginPaths())
-        ret.add(path);
+    auto list = aap::PluginListSnapshot::queryServices();
+    for (int i = 0; i < list.getNumPluginInformation(); i++) {
+        auto package = list.getPluginInformation(i)->getPluginPackageName();
+        if (!std::binary_search(paths.begin(), paths.end(), package))
+            paths.emplace_back(package);
+    }
 #else
     for (int i = 0; i < directoriesToSearch.getNumPaths(); i++)
         getPluginHostPAL()->getAAPMetadataPaths(directoriesToSearch[i].getFullPathName().toRawUTF8(), paths);

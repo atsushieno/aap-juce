@@ -1,5 +1,6 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <aap/core/host/audio-plugin-host.h>
+#include <aap/core/host/android/audio-plugin-host-android.h>
 #include <aap/unstable/aap-midi2.h>
 
 using namespace juce;
@@ -138,8 +139,7 @@ public:
 };
 
 class AndroidAudioPluginFormat : public juce::AudioPluginFormat {
-    aap::PluginHostManager android_host_manager;
-    aap::PluginHost android_host;
+    std::unique_ptr<aap::PluginClient> android_host;
     OwnedArray<PluginDescription> juce_plugin_descs;
     HashMap<const aap::PluginInformation *, PluginDescription *> cached_descs;
     MidiCIExtension midi_ci_extension;
@@ -164,17 +164,18 @@ public:
     }
 
     inline String getNameOfPluginFromIdentifier(const String &fileOrIdentifier) override {
-        auto pluginInfo = android_host_manager.getPluginInformation(fileOrIdentifier.toStdString());
+        auto pluginInfo = aap::PluginListSnapshot::queryServices().getPluginInformation(fileOrIdentifier.toStdString());
         return pluginInfo != nullptr ? String(pluginInfo->getDisplayName()) : String();
     }
 
     inline bool pluginNeedsRescanning(const PluginDescription &description) override {
-        return android_host_manager.isPluginUpToDate(description.fileOrIdentifier.toStdString(),
-                                             description.lastInfoUpdateTime.toMilliseconds());
+        // This is not a concept for AAP. Android service information cannot be retrieved without querying.
+        return true;
     }
 
     inline bool doesPluginStillExist(const PluginDescription &description) override {
-        return android_host_manager.isPluginAlive(description.fileOrIdentifier.toStdString());
+        auto list = aap::PluginListSnapshot::queryServices();
+        return list.getPluginInformation(description.fileOrIdentifier.toRawUTF8()) != nullptr;
     }
 
     inline bool canScanForPlugins() const override {
