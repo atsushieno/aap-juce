@@ -1,5 +1,5 @@
 #define ENABLE_MIDI2 1
-#include "juce_android_audio_plugin_format.h"
+#include "juceaap_audio_plugin_format.h"
 #include <sys/mman.h>
 
 #include <libgen.h>
