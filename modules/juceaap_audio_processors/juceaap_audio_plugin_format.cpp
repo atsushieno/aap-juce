@@ -365,9 +365,9 @@ StringArray AndroidAudioPluginFormat::searchPathsForPlugins(const FileSearchPath
 #else
     for (int i = 0; i < directoriesToSearch.getNumPaths(); i++)
         getPluginHostPAL()->getAAPMetadataPaths(directoriesToSearch[i].getFullPathName().toRawUTF8(), paths);
+#endif
     for (auto p : paths)
         ret.add(p);
-#endif
     return ret;
 }
 
