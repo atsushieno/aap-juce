@@ -110,8 +110,8 @@ dist:
 
 
 .PHONY:
-build-target-app: copy-and-patch-app-sources projuce-app do-build-target-android
-build-target-desktop: copy-and-patch-app-sources projuce-app do-build-target-desktop
+build-target-app: patch-juce-sources copy-and-patch-app-sources projuce-app do-build-target-android
+build-target-desktop: patch-juce-sources copy-and-patch-app-sources projuce-app do-build-target-desktop
 
 .PHONY:
 do-build-target-desktop:
@@ -122,6 +122,19 @@ do-build-target-desktop:
 		BUILDS_DIR=$(BUILDS_DIR) \
 		PLAT_BUILD_DIR=$(PLAT_BUILD_DIR) \
 		$(AAP_JUCE_DIR)/build-desktop.sh $(APP_DST_JUCER)
+
+.PHONY:
+patch-juce-sources: $(JUCE_DIR)/.stamp-juce
+
+$(JUCE_DIR)/.stamp-juce:
+	echo "JUCE patches: $(JUCE_PATCHES)"
+	for patch in $(JUCE_PATCHES) ; do \
+		echo "JUCE patch: $${patch}" ; \
+		if [ '$${patch}' != '' ] ; then \
+			cd $(JUCE_DIR) && patch -i $${patch} -p $(JUCE_PATCH_DEPTH) ; \
+		fi ; \
+	done
+	touch $(JUCE_DIR)/.stamp-juce
 
 .PHONY:
 copy-and-patch-app-sources: $(APP_COPY_DIR)/.stamp 
