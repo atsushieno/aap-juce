@@ -139,6 +139,8 @@ public:
 };
 
 class AndroidAudioPluginFormat : public juce::AudioPluginFormat {
+    aap::PluginListSnapshot plugin_list_snapshot;
+    aap::PluginClientConnectionList* plugin_client_connections;
     std::unique_ptr<aap::PluginClient> android_host;
     OwnedArray<PluginDescription> juce_plugin_descs;
     HashMap<const aap::PluginInformation *, PluginDescription *> cached_descs;
@@ -202,8 +204,8 @@ public:
 protected:
     inline bool requiresUnblockedMessageThreadDuringCreation(
             const PluginDescription &description) const noexcept override {
-        // FIXME: implement correctly(?)
-        return false;
+        // Android bindService() callback needs main thread, thus it must not be blocking.
+        return true;
     }
 };
 

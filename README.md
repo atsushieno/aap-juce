@@ -307,6 +307,18 @@ UPDATE: after some investigation, it turned out that current Chrome (and inheren
 We keep using juce_emscripten so far though; it may become usable at some stage.
 
 
+## Using AddressSanitizer on aap-juce apps
+
+It is tricky to set up ASAN for aap-juce apps, especially for those projects that use Projucer (as it regenerates the projects every time you re-save .jucer).
+
+The easiest way would be to copy `setup-asan-for-debugging.sh` to `(app)/Builds/Android/` directory, modify the script to have `ALL_APPS` variable to point to `app` directory, and run it there. For CMake-based projects, it can be just the top directory (and point to the source as well).
+
+Then you have to make some changes to the build scripts (`build.gradle(.kts)` and `CMakeLists.txt`) to take those options. You can track how `enable_asan` variable in `android-audio-plugin-framework` repository is used.
+
+There is one more change needed: Projucer generates CMake arguments to contain `-DANDROID_STL_c++_static`. It has to be changed to `-DANDROID_STL=c++_shared`.
+
+Note that if you are on Projucer based project, Projucer will clean up all your efforts every time it resaves the project.
+
 ## Hacking JUCEAAP modules
 
 The easiest way to hack AAP JUCE integration itself would be still via sample app projects on Android Studio.

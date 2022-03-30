@@ -269,9 +269,10 @@ AndroidAudioPluginFormat::findPluginInformationFrom(const PluginDescription &des
 }
 
 AndroidAudioPluginFormat::AndroidAudioPluginFormat() {
-    auto snapshot = aap::PluginListSnapshot::queryServices();
+    plugin_list_snapshot = aap::PluginListSnapshot::queryServices();
     // FIXME: retrieve serviceConnectorInstanceId, not 0
-    android_host = std::make_unique<aap::PluginClient>(getPluginConnectionListFromJni(0, true), &snapshot);
+    plugin_client_connections = getPluginConnectionListFromJni(0, true);
+    android_host = std::make_unique<aap::PluginClient>(plugin_client_connections, &plugin_list_snapshot);
 #if ANDROID
     auto list = aap::PluginListSnapshot::queryServices();
     for (int i = 0; i < list.getNumPluginInformation(); i++) {
@@ -321,32 +322,43 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
                                                     int initialBufferSize,
                                                     PluginCreationCallback callback) {
     auto pluginInfo = findPluginInformationFrom(description);
-    String error("");
     if (pluginInfo == nullptr) {
+        String error("");
         error << "Android Audio Plugin " << description.name << "was not found.";
         callback(nullptr, error);
     } else {
-        int32_t instanceID = android_host->createInstance(pluginInfo->getPluginID(), (int) initialSampleRate);
-        auto androidInstance = android_host->getInstance(instanceID);
+        // Once plugin service is bound, then continue connection.
+        auto aapCallback = [&, pluginInfo](int32_t instanceID, std::string error) {
+            auto androidInstance = android_host->getInstance(instanceID);
 
 #if ENABLE_MIDI2
-        // add MidiCIExtension
-        if (pluginInfo->hasMidi2Ports()) {
-            midi_ci_extension.protocol = 2;
-            midi_ci_extension.protocolVersion = 0;
-            AndroidAudioPluginExtension ext;
-            ext.uri = AAP_MIDI_CI_EXTENSION_URI;
-            ext.data = &midi_ci_extension;
-            ext.transmit_size = sizeof(MidiCIExtension);
-            androidInstance->addExtension(ext);
-        }
+            // add MidiCIExtension
+            if (pluginInfo->hasMidi2Ports()) {
+                midi_ci_extension.protocol = 2;
+                midi_ci_extension.protocolVersion = 0;
+                AndroidAudioPluginExtension ext;
+                ext.uri = AAP_MIDI_CI_EXTENSION_URI;
+                ext.data = &midi_ci_extension;
+                ext.transmit_size = sizeof(MidiCIExtension);
+                androidInstance->addExtension(ext);
+            }
 #endif
 
-        androidInstance->completeInstantiation();
-        std::unique_ptr <AndroidAudioPluginInstance> instance{
-                new AndroidAudioPluginInstance(androidInstance)};
+            auto connections = android_host->getConnections();
+            auto dMem = (uint64_t) connections;
+            AndroidAudioPluginExtension binderExt{};
+            binderExt.data = &dMem;
+            binderExt.uri = AAP_BINDER_EXTENSION_URI;
+            binderExt.transmit_size = sizeof(uint64_t);
+            androidInstance->addExtension(binderExt);
 
-        callback(std::move(instance), error);
+            androidInstance->completeInstantiation();
+            std::unique_ptr <AndroidAudioPluginInstance> instance{
+                    new AndroidAudioPluginInstance(androidInstance)};
+
+            callback(std::move(instance), error);
+        };
+        android_host->createInstanceAsync(pluginInfo->getPluginID(), (int) initialSampleRate, false, aapCallback);
     }
 }
 
