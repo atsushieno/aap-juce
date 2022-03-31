@@ -328,7 +328,7 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         callback(nullptr, error);
     } else {
         // Once plugin service is bound, then continue connection.
-        auto aapCallback = [&, pluginInfo](int32_t instanceID, std::string error) {
+        auto aapCallback = [=](int32_t instanceID, std::string error) {
             auto androidInstance = android_host->getInstance(instanceID);
 
 #if ENABLE_MIDI2
@@ -353,10 +353,12 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
             androidInstance->addExtension(binderExt);
 
             androidInstance->completeInstantiation();
-            std::unique_ptr <AndroidAudioPluginInstance> instance{
-                    new AndroidAudioPluginInstance(androidInstance)};
 
-            callback(std::move(instance), error);
+            MessageManager::callAsync([=] {
+                std::unique_ptr <AndroidAudioPluginInstance> instance{
+                        new AndroidAudioPluginInstance(androidInstance)};
+                callback(std::move(instance), error);
+            });
         };
         android_host->createInstanceAsync(pluginInfo->getPluginID(), (int) initialSampleRate, false, aapCallback);
     }
