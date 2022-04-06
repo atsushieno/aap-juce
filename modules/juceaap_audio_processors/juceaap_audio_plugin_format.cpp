@@ -346,11 +346,6 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
 
             auto connections = android_host->getConnections();
             auto dMem = (uint64_t) connections;
-            AndroidAudioPluginExtension binderExt{};
-            binderExt.data = &dMem;
-            binderExt.uri = AAP_BINDER_EXTENSION_URI;
-            binderExt.transmit_size = sizeof(uint64_t);
-            androidInstance->addExtension(binderExt);
 
             androidInstance->completeInstantiation();
 
