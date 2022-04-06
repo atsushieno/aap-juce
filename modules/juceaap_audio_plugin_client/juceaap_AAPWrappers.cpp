@@ -35,7 +35,7 @@ class JuceAAPWrapper : juce::AudioPlayHead {
     AndroidAudioPlugin *aap;
     const char *plugin_unique_id;
     int sample_rate;
-    const AndroidAudioPluginExtension *const *extensions;
+    AndroidAudioPluginHost *host;
     AndroidAudioPluginBuffer *buffer;
     AndroidAudioPluginState state{0, nullptr};
     juce::AudioProcessor *juce_processor;
@@ -46,8 +46,8 @@ class JuceAAPWrapper : juce::AudioPlayHead {
 
 public:
     JuceAAPWrapper(AndroidAudioPlugin *plugin, const char *pluginUniqueId, int sampleRate,
-                   const AndroidAudioPluginExtension *const *extensions)
-            : aap(plugin), sample_rate(sampleRate), extensions(extensions) {
+                   AndroidAudioPluginHost *host)
+            : aap(plugin), sample_rate(sampleRate), host(host) {
 #if ANDROID
         typedef JavaVM*(*getJVMFunc)();
         auto libaap = dlopen("libandroidaudioplugin.so", RTLD_NOW);
@@ -379,9 +379,9 @@ AndroidAudioPlugin *juceaap_instantiate(
         AndroidAudioPluginFactory *pluginFactory,
         const char *pluginUniqueId,
         int sampleRate,
-        AndroidAudioPluginExtension **extensions) {
+        AndroidAudioPluginHost *host) {
     auto *ret = new AndroidAudioPlugin();
-    auto *ctx = new JuceAAPWrapper(ret, pluginUniqueId, sampleRate, extensions);
+    auto *ctx = new JuceAAPWrapper(ret, pluginUniqueId, sampleRate, host);
 
     ret->plugin_specific = ctx;
 
@@ -408,7 +408,8 @@ void juceaap_release(
 
 struct AndroidAudioPluginFactory juceaap_factory{
         juceaap_instantiate,
-        juceaap_release
+        juceaap_release,
+        nullptr
 };
 
 extern "C" AndroidAudioPluginFactory *GetJuceAAPFactory() {
