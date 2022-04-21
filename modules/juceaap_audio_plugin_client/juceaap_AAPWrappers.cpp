@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "aap/android-audio-plugin.h"
 #include "aap/unstable/logging.h"
+#include "aap/unstable/presets.h"
 
 #if ANDROID
 #include <dlfcn.h>
@@ -488,6 +489,10 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
     pluginElement->setAttribute("library", library);
     pluginElement->setAttribute("entrypoint", entrypoint);
     pluginElement->setAttribute("assets", "");
+
+    auto topLevelExtensionsElement = pluginElement->createNewChildElement("extensions");
+    auto extensionElement = topLevelExtensionsElement->createNewChildElement("extension");
+    extensionElement->setAttribute("uri", AAP_PRESETS_EXTENSION_URI);
 
     auto &tree = filter->getParameterTree();
     auto topLevelPortsElement = pluginElement->createNewChildElement("ports");

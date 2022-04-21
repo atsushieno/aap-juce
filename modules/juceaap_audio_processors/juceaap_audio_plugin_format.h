@@ -59,23 +59,26 @@ public:
     }
 
     inline int getNumPrograms() override {
-        return native->getNumPrograms();
+        return native->getPresetCount();
     }
 
     inline int getCurrentProgram() override {
-        return native->getCurrentProgram();
+        return native->getCurrentPresetIndex();
     }
 
     inline void setCurrentProgram(int index) override {
-        native->setCurrentProgram(index);
+        native->setCurrentPresetIndex(index);
     }
 
     inline const String getProgramName(int index) override {
-        return native->getProgramName(index);
+        return native->getCurrentPresetName(index);
     }
 
     inline void changeProgramName(int index, const String &newName) override {
-        native->changeProgramName(index, newName.toStdString());
+        // LAMESPEC: this shoud not exist.
+        // AudioUnit implementation causes assertion failure (not implemented).
+        // JUCE VST3 implementation ignores it.
+        // We would just follow JUCE VST3 way.
     }
 
     inline void getStateInformation(juce::MemoryBlock &destData) override {

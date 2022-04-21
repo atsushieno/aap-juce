@@ -47,6 +47,7 @@ cp $CURDIR/sample-project.proguard-rules.pro Builds/Android/app/proguard-rules.p
 cp $CURDIR/sample-project.build.gradle Builds/Android/build.gradle
 # app/build.gradle needs furter tweaks.
 sed -i "s/defaultConfig {/defaultConfig {\n        proguardFiles \"proguard-rules.pro\"/" Builds/Android/app/build.gradle
+sed -i "s/ANDROID_ARM_MODE/INVALIDATED_ANDROID_ARM_MODE/" Builds/Android/app/build.gradle
 
 # copy aap_metadata.xml once Builds/Android is created.
 # Projucer behavior is awkward. It generates "debug" and "release" directories, and any other common resources are ignored.
