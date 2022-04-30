@@ -327,22 +327,22 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         error << "Android Audio Plugin " << description.name << "was not found.";
         callback(nullptr, error);
     } else {
+#if ENABLE_MIDI2
+        // add MidiCIExtension
+        if (pluginInfo->hasMidi2Ports()) {
+            midi_ci_extension->protocol = 2;
+            midi_ci_extension->protocolVersion = 0;
+            AndroidAudioPluginExtension ext;
+            ext.uri = AAP_MIDI_CI_EXTENSION_URI;
+            ext.data = &midi_ci_extension;
+            ext.transmit_size = sizeof(MidiCIExtension);
+            android_host->addCommonHostExtension(AAP_MIDI_CI_EXTENSION_URI, sizeof(MidiCIExtension));
+        }
+#endif
+
         // Once plugin service is bound, then continue connection.
         auto aapCallback = [=](int32_t instanceID, std::string error) {
             auto androidInstance = android_host->getInstance(instanceID);
-
-#if ENABLE_MIDI2
-            // add MidiCIExtension
-            if (pluginInfo->hasMidi2Ports()) {
-                midi_ci_extension.protocol = 2;
-                midi_ci_extension.protocolVersion = 0;
-                AndroidAudioPluginExtension ext;
-                ext.uri = AAP_MIDI_CI_EXTENSION_URI;
-                ext.data = &midi_ci_extension;
-                ext.transmit_size = sizeof(MidiCIExtension);
-                androidInstance->addExtension(ext);
-            }
-#endif
 
             auto connections = android_host->getConnections();
             auto dMem = (uint64_t) connections;
