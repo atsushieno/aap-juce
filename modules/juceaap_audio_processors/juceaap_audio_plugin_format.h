@@ -147,7 +147,7 @@ class AndroidAudioPluginFormat : public juce::AudioPluginFormat {
     std::unique_ptr<aap::PluginClient> android_host;
     OwnedArray<PluginDescription> juce_plugin_descs;
     HashMap<const aap::PluginInformation *, PluginDescription *> cached_descs;
-    MidiCIExtension *midi_ci_extension;
+    aap_midi2_extension_t *midi2_extension;
 
     const aap::PluginInformation *findPluginInformationFrom(const PluginDescription &desc);
 
