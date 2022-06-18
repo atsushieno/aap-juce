@@ -325,7 +325,7 @@ public:
 #endif
     }
 
-    int32_t getStateSize() {
+    size_t getStateSize() {
         MemoryBlock mb;
         mb.reset();
         juce_processor->getStateInformation(mb);
@@ -416,7 +416,7 @@ void juceaap_process(
     getWrapper(plugin)->process(audioBuffer, timeoutInNanoseconds);
 }
 
-int32_t juceaap_get_state_size(AndroidAudioPluginExtensionTarget target) {
+size_t juceaap_get_state_size(AndroidAudioPluginExtensionTarget target) {
     getWrapper(target.plugin)->getStateSize();
 }
 
