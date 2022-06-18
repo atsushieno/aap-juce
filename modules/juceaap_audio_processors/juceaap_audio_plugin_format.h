@@ -59,19 +59,19 @@ public:
     }
 
     inline int getNumPrograms() override {
-        return native->getPresetCount();
+        return native->getStandardExtensions().getPresetCount();
     }
 
     inline int getCurrentProgram() override {
-        return native->getCurrentPresetIndex();
+        return native->getStandardExtensions().getCurrentPresetIndex();
     }
 
     inline void setCurrentProgram(int index) override {
-        native->setCurrentPresetIndex(index);
+        native->getStandardExtensions().setCurrentPresetIndex(index);
     }
 
     inline const String getProgramName(int index) override {
-        return native->getCurrentPresetName(index);
+        return native->getStandardExtensions().getCurrentPresetName(index);
     }
 
     inline void changeProgramName(int index, const String &newName) override {
@@ -82,13 +82,13 @@ public:
     }
 
     inline void getStateInformation(juce::MemoryBlock &destData) override {
-        auto state = native->getState();
-        destData.setSize(state.data_size);
-        destData.copyFrom(state.raw_data, 0, state.data_size);
+        auto state = native->getStandardExtensions().getState();
+        destData.setSize((size_t) state.data_size);
+        destData.copyFrom(state.data, 0, (size_t) state.data_size);
     }
 
     inline void setStateInformation(const void *data, int sizeInBytes) override {
-        native->setState(data, (size_t) sizeInBytes);
+        native->getStandardExtensions().setState(data, (size_t) sizeInBytes);
     }
 
     void fillInPluginDescription(PluginDescription &description) const override;
