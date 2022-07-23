@@ -1,7 +1,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <aap/core/host/audio-plugin-host.h>
 #include <aap/core/host/android/audio-plugin-host-android.h>
-#include <aap/unstable/aap-midi2.h>
+#include <aap/ext/aap-midi2.h>
 
 using namespace juce;
 

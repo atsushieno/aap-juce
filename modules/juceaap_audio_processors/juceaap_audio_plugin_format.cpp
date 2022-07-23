@@ -53,7 +53,7 @@ static void fillPluginDescriptionFromNative(PluginDescription &description,
         else if (dir == AAP_PORT_DIRECTION_OUTPUT)
             description.numOutputChannels++;
     }
-    description.hasSharedContainer = src.hasSharedContainer();
+    description.hasSharedContainer = false; //src.hasSharedContainer();
 }
 
 int processIncrementalCount{0};
