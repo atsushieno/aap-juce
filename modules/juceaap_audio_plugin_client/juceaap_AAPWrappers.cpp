@@ -3,8 +3,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "aap/android-audio-plugin.h"
 #include "aap/unstable/logging.h"
-#include "aap/unstable/presets.h"
-#include "aap/unstable/state.h"
+#include "aap/ext/presets.h"
+#include "aap/ext/state.h"
 
 #if ANDROID
 #include <dlfcn.h>
