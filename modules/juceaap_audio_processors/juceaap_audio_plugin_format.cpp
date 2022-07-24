@@ -204,9 +204,9 @@ void AndroidAudioPluginInstance::updateParameterValue(AndroidAudioPluginParamete
     //  related: https://github.com/atsushieno/android-audio-plugin-framework/issues/80
     //
     // This should not be the most likely case, but IF it is called *before* prepareToPlay() the audio buffer might be unallocated yet.
-    auto *buffer = native->getAudioPluginBuffer(i, sizeof(float));
+    auto *buffer = native->getAudioPluginBuffer();
     float v = this->getParameters()[portMapAapToJuce[i]]->getValue();
-    std::fill_n((float *) buffer->buffers[i], buffer->num_frames, v);
+    std::fill_n((float *) buffer->buffers[i], 1, v);
 }
 
 void
