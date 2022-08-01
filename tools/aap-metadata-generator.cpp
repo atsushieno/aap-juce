@@ -12,4 +12,5 @@ int main(int argc, const char** argv)
 	const char *library = argc < 3 ? "libjuce_jni.so" : argv[2];
 	const char *entrypoint = argc < 4 ? "GetJuceAAPFactory" : argv[3];
 	generate_aap_metadata(argv[1], library, entrypoint);
+	printf("Done.\n");
 }
