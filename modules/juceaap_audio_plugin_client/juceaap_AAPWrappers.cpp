@@ -417,7 +417,7 @@ void juceaap_process(
 }
 
 size_t juceaap_get_state_size(AndroidAudioPluginExtensionTarget target) {
-    getWrapper(target.plugin)->getStateSize();
+    return getWrapper(target.plugin)->getStateSize();
 }
 
 void juceaap_get_state(AndroidAudioPluginExtensionTarget target, aap_state_t *result) {
