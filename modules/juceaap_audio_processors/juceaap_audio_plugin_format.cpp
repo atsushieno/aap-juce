@@ -270,10 +270,10 @@ AndroidAudioPluginFormat::findPluginInformationFrom(const PluginDescription &des
 
 AndroidAudioPluginFormat::AndroidAudioPluginFormat() {
     plugin_list_snapshot = aap::PluginListSnapshot::queryServices();
+#if ANDROID
     // FIXME: retrieve serviceConnectorInstanceId, not 0
     plugin_client_connections = getPluginConnectionListFromJni(0, true);
     android_host = std::make_unique<aap::PluginClient>(plugin_client_connections, &plugin_list_snapshot);
-#if ANDROID
     auto list = aap::PluginListSnapshot::queryServices();
     for (int i = 0; i < list.getNumPluginInformation(); i++) {
         auto d = list.getPluginInformation(i);
@@ -281,6 +281,8 @@ AndroidAudioPluginFormat::AndroidAudioPluginFormat() {
         fillPluginDescriptionFromNative(*dst, *d);
         cached_descs.set(d, dst);
     }
+#else
+    // FIXME: desktop implementation is missing
 #endif
 }
 
@@ -351,17 +353,12 @@ StringArray AndroidAudioPluginFormat::searchPathsForPlugins(const FileSearchPath
                                   bool allowPluginsWhichRequireAsynchronousInstantiation) {
     std::vector<std::string> paths{};
     StringArray ret{};
-#if ANDROID
     auto list = aap::PluginListSnapshot::queryServices();
     for (int i = 0; i < list.getNumPluginInformation(); i++) {
         auto package = list.getPluginInformation(i)->getPluginPackageName();
         if (!std::binary_search(paths.begin(), paths.end(), package))
             paths.emplace_back(package);
     }
-#else
-    for (int i = 0; i < directoriesToSearch.getNumPaths(); i++)
-        getPluginHostPAL()->getAAPMetadataPaths(directoriesToSearch[i].getFullPathName().toRawUTF8(), paths);
-#endif
     for (auto p : paths)
         ret.add(p);
     return ret;
@@ -375,7 +372,7 @@ FileSearchPath AndroidAudioPluginFormat::getDefaultLocationsToSearch() {
     File dir{"/"};
     ret.add(dir);
 #else
-    for (auto path : getPluginHostPAL()->getPluginPaths()) {
+    for (auto path : PluginClientSystem::getInstance()->getPluginPaths()) {
         if(!File::isAbsolutePath(path)) // invalid path
             continue;
         File dir{path};
