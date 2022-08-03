@@ -17,7 +17,7 @@ using namespace juce;
 extern juce::AudioProcessor *
 createPluginFilter(); // it is defined in each Audio plugin project (by Projucer).
 
-extern "C" int juce_aap_wrapper_last_error_code{0};
+extern "C" { int juce_aap_wrapper_last_error_code{0}; }
 
 #define JUCEAAP_SUCCESS 0
 #define JUCEAAP_ERROR_INVALID_BUFFER -1
