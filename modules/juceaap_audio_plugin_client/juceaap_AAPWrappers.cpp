@@ -44,7 +44,11 @@ class JuceAAPWrapper : juce::AudioPlayHead {
     HeapBlock<float*> juce_channels;
     juce::MidiBuffer juce_midi_messages;
 
+#if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
+    juce::AudioPlayHead::PositionInfo play_head_position;
+#else
     juce::AudioPlayHead::CurrentPositionInfo play_head_position;
+#endif
 
 public:
     JuceAAPWrapper(AndroidAudioPlugin *plugin, const char *pluginUniqueId, int sampleRate,
@@ -80,10 +84,16 @@ public:
             free((void *) plugin_unique_id);
     }
 
+#if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
+    Optional<PositionInfo> getPosition() const override {
+        return play_head_position;
+    }
+#else
     bool getCurrentPosition(juce::AudioPlayHead::CurrentPositionInfo &result) override {
         result = play_head_position;
         return true;
     }
+#endif
 
     void allocateBuffer(AndroidAudioPluginBuffer *buffer) {
         if (!buffer) {
@@ -117,8 +127,12 @@ public:
         if (juce_aap_wrapper_last_error_code != JUCEAAP_SUCCESS)
             return;
 
+#if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
+        play_head_position.setBpm(120);
+#else
         play_head_position.resetToDefault();
         play_head_position.bpm = 120;
+#endif
 
         juce_processor->setPlayConfigDetails(
                 getNumberOfChannelsOfBus(juce_processor->getBus(true, 0)),
@@ -131,11 +145,19 @@ public:
 
     void activate() {
         juce_channels.calloc(juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels());
+#if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
+        play_head_position.setIsPlaying(true);
+#else
         play_head_position.isPlaying = true;
+#endif
     }
 
     void deactivate() {
+#if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
+        play_head_position.setIsPlaying(false);
+#else
         play_head_position.isPlaying = false;
+#endif
         juce_channels.free();
     }
 
@@ -291,10 +313,16 @@ public:
         clock_gettime(CLOCK_REALTIME, &procTimeSpecEnd);
         long procTimeDiff = (procTimeSpecEnd.tv_sec - procTimeSpecBegin.tv_sec) * 1000000000 + procTimeSpecEnd.tv_nsec - procTimeSpecBegin.tv_nsec;
 #endif
+#if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
+        play_head_position.setTimeInSamples(*play_head_position.getTimeInSamples() + audioBuffer->num_frames);
+        auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames / sample_rate;
+        play_head_position.setPpqPosition(*play_head_position.getPpqPosition() + *play_head_position.getBpm() / 60 * 4 * thisTimeInSeconds);
+#else
         play_head_position.timeInSamples += audioBuffer->num_frames;
         auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames / sample_rate;
         play_head_position.timeInSeconds += thisTimeInSeconds;
         play_head_position.ppqPosition += play_head_position.bpm / 60 * 4 * thisTimeInSeconds;
+#endif
 
         /*
         for (int i = 0; i < nOut; i++)
