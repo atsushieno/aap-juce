@@ -9,28 +9,28 @@ Everything is subject to change. Contributions are welcome but please bear in mi
 
 This repository used to contain a handful of sample projects, but to avoid bloat core library repository, they are split from here and have their own repositories.
 
-- ~There is [aap-juce-world](https://github.com/atsushieno/aap-juce-world) repository that builds "everything" that at least build. It is rarely updated as it takes 5 hours with 700MB for build artifacts on GitHub Actions.~ We ended up to stop doing this so far, at least under the current approach of literally building everything.
 - Host:
   - [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) from JUCE [AudioPluginHost](https://github.com/WeAreROLI/JUCE/tree/master/extras/AudioPluginHost/)
   - [aap-juce-helio](https://github.com/atsushieno/aap-juce-helio) from [helio-fm/helio-workstation](https://github.com/helio-fm/helio-workstation)
 - Plugins:
-  - [aap-juce-dexed](https://github.com/atsushieno/aap-juce-dexed) from [asb2m10/dexed](https://github.com/asb2m10/dexed/) (we use private fork)
-  - [aap-juce-adlplug](https://github.com/atsushieno/aap-juce-adlplug) from [jpcima/ADLplug](https://github.com/jpcima/ADLplug)
-  - [aap-juce-obxd](https://github.com/atsushieno/aap-juce-obxd) from [reales/OB-Xd](https://github.com/reales/OB-Xd)
-  - [aap-juce-odin2](https://github.com/atsushieno/aap-juce-odin2) from [TheWaveWarden/odin2](https://github.com/TheWaveWarden/odin2)
-  - [aap-juce-vital](https://github.com/atsushieno/aap-juce-vital) from [mtytel/vital](https://github.com/mtytel/vital)
-  - [aap-juce-ports](https://github.com/atsushieno/aap-juce-ports) contains other various ports from...
-    - [artfwo/andes](https://github.com/artfwo/andes/)
-    - [getdunne/SARAH](https://github.com/getdunne/SARAH/)
-    - [yokemura/Magical8bitPlug2](https://github.com/yokemura/Magical8bitPlug2/)
-  - There are some ports from CMake based projects as well, namely:
+  - These are projects based on traditional Projucer stuff. Not recommended to follow them to start a new AAP project.
+    - [aap-juce-adlplug](https://github.com/atsushieno/aap-juce-adlplug) from [jpcima/ADLplug](https://github.com/jpcima/ADLplug)
+    - [aap-juce-obxd](https://github.com/atsushieno/aap-juce-obxd) from [reales/OB-Xd](https://github.com/reales/OB-Xd)
+    - [aap-juce-vital](https://github.com/atsushieno/aap-juce-vital) from [mtytel/vital](https://github.com/mtytel/vital)
+    - [aap-juce-ports](https://github.com/atsushieno/aap-juce-ports) contains other various ports from...
+      - [artfwo/andes](https://github.com/artfwo/andes/)
+      - [getdunne/SARAH](https://github.com/getdunne/SARAH/)
+      - [yokemura/Magical8bitPlug2](https://github.com/yokemura/Magical8bitPlug2/)
+  - There are some ports from CMake based projects as well (better to follow):
+    - [aap-juce-dexed](https://github.com/atsushieno/aap-juce-dexed) from [asb2m10/dexed](https://github.com/asb2m10/dexed/)
+    - [aap-juce-odin2](https://github.com/atsushieno/aap-juce-odin2) from [TheWaveWarden/odin2](https://github.com/TheWaveWarden/odin2)
     - [aap-juce-witte-eq](https://github.com/atsushieno/aap-juce-witte-eq) from [witte/Eq](https://github.com/witte/Eq)
     - [aap-juce-chow-phaser](https://github.com/atsushieno/aap-juce-chow-phaser) from [jatinchowdhury18/ChowPhaser](https://github.com/jatinchowdhury18/ChowPhaser/)
     - [aap-juce-simple-reverb](https://github.com/atsushieno/aap-juce-simple-reverb) from [szkkng/SimpleReverb](https://github.com/szkkng/SimpleReverb)
     - [aap-juce-hera](https://github.com/atsushieno/aap-juce-hera) from [jpcima/Hera](https://github.com/jpcima/Hera)
     - [aap-juce-frequalizer](https://github.com/atsushieno/aap-juce-frequalizer) from [ffAudio/Frequalizer](https://github.com/ffAudio/Frequalizer)
 
-It builds on Android. aap-juce AudioPluginHost can enumerate the installed AAP plugins on the system (not limited to aap-juce ones), and instantiate each plugin.
+aap-juce-plugin-host can enumerate the installed AAP plugins on the system (not limited to aap-juce ones), and instantiate each plugin.
 
 At this state, this repository itself is almost only about a set of build scripts that lets you bring in your own JUCE based audio plugins into AAP world. And probably more importantly, this README.
 
@@ -45,7 +45,7 @@ While JUCE itself is useful to develop frameworks like AAP, it is designed to be
 
 Their API is stable-ish, while AAP API is not. So if anyone wants to get audio plugins portable without fear of API breakage, JUCE can be your good friend.
 
-Note that JUCE plugins are usually designed for desktop and not meant to be usable on mobiles.
+Note that JUCE plugins are usually designed for desktop and not meant to be usable on mobiles. In particular, their UIs are usually useless on mobile.
 
 ## How to try it out?
 
@@ -72,7 +72,7 @@ There is a GitHub Actions workflow setup, which is an official build instruction
 We used to require Linux desktop for complete builds, but now that we skip desktop builds of those plugins, there are much less requirements. Yet, we need a working "Projucer" as well as bash-baked Makefiles, so you'd still need a Unix-y environment. It may change again once we support UI integration, but until then it would be quite portable.
 
 You need Android SDK. If you install it via Android Studio it is usually placed under `~/Android/Sdk`.
-You also need Android NDK, most likely 21.x (no verification with other versions). It would be installed under `~/Android/Sdk/ndk/21.*`.
+You also need Android NDK, most likely 23.x (no verification with other versions). It would be installed under `~/Android/Sdk/ndk/23.*`.
 
 Depending on the NDK setup you might also have to rewrite `Makefile` and `Builds/Android/local.properties` to point to the right NDK location. Then run `cd Builds/Android && ./gradlew build` instead of `./projuce-app.sh`.
 It would be much easier to place Android SDK and NDK to the standard location though. Symbolic links would suffice.
@@ -81,21 +81,19 @@ It would be much easier to place Android SDK and NDK to the standard location th
 ## Porting a plugin or a host to AAP
 
 To port existing plugins, or even with a new project, you will either follow the CMake way, or the Projucer way.
-You would normally have no choice, the original project would be either of those already.
-In either approach, you end up with an Android Studio (Gradle) project that you can open on Android Studio (or stick to Gradle to build and adb to install).
+You would normally have no choice, the original project would be either of those already, but CMake is much easier and much more intuitive to deal with. With Projucer, you will have to generate project every time you make changes to the project.
+In either approach, you end up with an Android Studio (Gradle) project that you can open on Android Studio (or stick to Gradle to build and adb to install, like we do on CI).
 
 ### Find reference projects from existing ports
 
-There are not a few example ports of existing open source JUCE plugins, and some of them are deliverately picked up to fill this matrix:
+There is not a few example ports of existing open source JUCE plugins, and some of them are deliverately picked up to fill this matrix:
 
 | Project kind | Instruments | Effects | Hosts |
 |-|-|-|-|
-| Projucer | Dexed, Obxd, ... | Frequalizer | AudioPluginHost, Helio Workstation |
-| CMake | Hera | witte/Eq, ChowPhaser | - |
+| Projucer | Obxd, ... | - | AudioPluginHost, Helio Workstation |
+| CMake | Dexed, Odin2, Hera | witte/Eq, ChowPhaser, Frequalizer | - |
 
-(AudioPluginHost builds with CMake too, but our since CMake support came later it is still based on Projucer. This may change in the near future.)
-
-(Frequalizer has moved to CMake model. We just haven't followed it yet.)
+(AudioPluginHost builds with CMake too, but our since CMake support came later it is still based on Projucer. Also since it's part of the entire JUCE source, importing only AudioPluginHost looks complicated. This may change in the near future.)
 
 ### Making application itself build for Android
 
@@ -187,7 +185,8 @@ Projucer is not capable of supporting arbitrary plugin format and it's quite cou
 Thus we simply replace various parts of the generated Android Gradle project.
 It is mostly taken care by `projuce-app.sh`.
 
-CMake is preferred, but it is not officially supported by JUCE so far either, but the impact of the changes is small so that they can be manually fixed.
+CMake is preferred, but it is not officially supported by JUCE so far either.
+However the impact of the changes is small so that they can be manually fixed.
 
 We plan to juce_emscripten for future integration with wasm UI builds.
 
@@ -321,7 +320,7 @@ Note that if you are on Projucer based project, Projucer will clean up all your 
 
 ## Hacking JUCEAAP modules
 
-The easiest way to hack AAP JUCE integration itself would be still via sample app projects on Android Studio.
+The easiest way to hack AAP JUCE integration itself would be still via soem ported app project on Android Studio.
 
 Although on the other hand, JUCE integration on desktop is significantly easy as JUCE is primarily developed for desktop, if code to hack is not Android specific.
 JUCE exporter for CLion may be useful for debugging (especially that Android Studio native builds are also for CMake either way). On CLion (verified with 2019.3) setting the project root with `Tools` -> `CMake` -> `Change Project Root` command would make it possible to diagnose issues with breakpoints on the sources from AAP itself (also LV2 dependencies and prebuilt LV2 plugins e.g. mda-lv2, but it is out of scope of this repo).
