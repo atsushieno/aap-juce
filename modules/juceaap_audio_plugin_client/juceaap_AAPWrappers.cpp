@@ -245,6 +245,8 @@ public:
                         break;
                     case CMIDI2_MESSAGE_TYPE_MIDI_2_CHANNEL: {
                         switch (statusCode) {
+                            /* We don't treat them here, as they are used for the parameter changes.
+                               FIXME: does this actually make sense? I'm afraid not...
                             case CMIDI2_STATUS_RPN: {
                                 auto data = cmidi2_ump_get_midi2_rpn_data(ump);
                                 juce_midi_messages.addEvent(
@@ -291,6 +293,7 @@ public:
                                                     (uint8_t) (data >> 18) & 0x7F},
                                         sampleNumber);
                             } break;
+                            */
                             case CMIDI2_STATUS_NOTE_OFF:
                             case CMIDI2_STATUS_NOTE_ON:
                                 juce_midi_messages.addEvent(
@@ -683,6 +686,7 @@ void generate_xml_parameter_node(XmlElement *parent,
     } else {
         auto para = node->getParameter();
         auto childXml = parent->createNewChildElement("parameter");
+        childXml->setAttribute("id", para->getParameterIndex());
         childXml->setAttribute("name", para->getName(1024));
         childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
         if (!std::isnormal(para->getDefaultValue()))
@@ -743,11 +747,13 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
     extensionElement->setAttribute("uri", AAP_PRESETS_EXTENSION_URI);
 
     auto &tree = filter->getParameterTree();
-    auto topLevelPortsElement = pluginElement->createNewChildElement("ports");
+    auto topLevelParametersElement = pluginElement->createNewChildElement("parameters");
+    topLevelParametersElement->setAttribute("xmlns", "urn://androidaudioplugin.org/extensions/parameters");
     for (auto node : tree) {
-        generate_xml_parameter_node(topLevelPortsElement, node);
+        generate_xml_parameter_node(topLevelParametersElement, node);
     }
 
+    auto topLevelPortsElement = pluginElement->createNewChildElement("ports");
     auto outChannels = filter->getBusesLayout().getMainOutputChannelSet();
     for (int i = 0; i < outChannels.size(); i++) {
         auto portXml = topLevelPortsElement->createNewChildElement("port");
