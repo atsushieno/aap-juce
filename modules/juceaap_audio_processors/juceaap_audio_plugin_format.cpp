@@ -45,8 +45,8 @@ static void fillPluginDescriptionFromNative(PluginDescription &description,
     description.uid = String(src.getPluginID()).hashCode();
 #endif
     description.isInstrument = src.isInstrument();
-    for (int i = 0; i < src.getNumPorts(); i++) {
-        auto port = src.getPort(i);
+    for (int i = 0; i < src.getNumDeclaredPorts(); i++) {
+        auto port = src.getDeclaredPort(i);
         auto dir = port->getPortDirection();
         if (dir == AAP_PORT_DIRECTION_INPUT)
             description.numInputChannels++;
@@ -66,17 +66,17 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
     //  and how AAP expects them.
     int juceInputsAssigned = 0;
     auto aapDesc = this->native->getPluginInformation();
-    int numPorts = aapDesc->getNumPorts();
+    int numPorts = native->getNumPorts();
     auto *buffer = native->getAudioPluginBuffer(audioBuffer.getNumChannels(), audioBuffer.getNumSamples());
     for (int portIndex = 0; portIndex < numPorts; portIndex++) {
-        auto port = aapDesc->getPort(portIndex);
+        auto port = native->getPort(portIndex);
         auto portBuffer = buffer->buffers[portIndex];
         if (port->getPortDirection() != AAP_PORT_DIRECTION_INPUT)
             continue;
         if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO && juceInputsAssigned < audioBuffer.getNumChannels())
             memcpy(portBuffer, (void *) audioBuffer.getReadPointer(juceInputsAssigned++), (size_t) audioBuffer.getNumSamples() * sizeof(float));
 #if ENABLE_MIDI2
-        else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI) { // MIDI2 is handled below
+        else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI2) { // MIDI2 is handled below
 #else
         else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI || port->getContentType() == AAP_CONTENT_TYPE_MIDI2) {
 #endif
@@ -157,11 +157,11 @@ void AndroidAudioPluginInstance::fillNativeOutputBuffers(AudioBuffer<float> &aud
     // FIXME: there is some glitch between how JUCE AudioBuffer assigns a channel for each buffer item
     //  and how AAP expects them.
     int juceOutputsAssigned = 0;
-    auto aapDesc = this->native->getPluginInformation();
-    int n = aapDesc->getNumPorts();
+    auto aapDesc = native->getPluginInformation();
+    int n = native->getNumPorts();
     auto *buffer = native->getAudioPluginBuffer(audioBuffer.getNumChannels(), audioBuffer.getNumSamples());
     for (int i = 0; i < n; i++) {
-        auto port = aapDesc->getPort(i);
+        auto port = native->getPort(i);
         if (port->getPortDirection() != AAP_PORT_DIRECTION_OUTPUT)
             continue;
         if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO &&
@@ -177,15 +177,13 @@ AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nati
     // It is super awkward, but plugin parameter definition does not exist in juce::PluginInformation.
     // Only AudioProcessor.addParameter() works. So we handle them here.
     auto desc = nativePlugin->getPluginInformation();
-    for (int i = 0; i < desc->getNumPorts(); i++) {
-        auto port = desc->getPort(i);
-        if (port->getPortDirection() != AAP_PORT_DIRECTION_INPUT || port->getContentType() != AAP_CONTENT_TYPE_UNDEFINED)
-            continue;
+    for (int i = 0; i < nativePlugin->getNumParameters(); i++) {
+        auto para = nativePlugin->getParameter(i);
         portMapAapToJuce[i] = getNumParameters();
 #if JUCEAAP_HOSTED_PARAMETER
-        addHostedParameter(std::unique_ptr<AndroidAudioPluginParameter>(new AndroidAudioPluginParameter(i, this, port)));
+        addHostedParameter(std::unique_ptr<AndroidAudioPluginParameter>(new AndroidAudioPluginParameter(i, this, para)));
 #else
-        addParameter(new AndroidAudioPluginParameter(i, this, port));
+        addParameter(new AndroidAudioPluginParameter(i, this, para));
 #endif
     }
 }
@@ -214,12 +212,12 @@ AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpected
     sample_rate = (int) sampleRate;
 
     // minimum setup, as the pointers are not passed by JUCE framework side.
-    int n = native->getPluginInformation()->getNumPorts();
+    int n = native->getNumPorts();
     auto *buf = native->getAudioPluginBuffer(n, maximumExpectedSamplesPerBlock);
     native->prepare(maximumExpectedSamplesPerBlock, buf);
 
     for (int i = 0; i < n; i++) {
-        auto port = native->getPluginInformation()->getPort(i);
+        auto port = native->getPort(i);
         if (port->getContentType() == AAP_CONTENT_TYPE_UNDEFINED && port->getPortDirection() == AAP_PORT_DIRECTION_INPUT)
             updateParameterValue(dynamic_cast<AndroidAudioPluginParameter*>(getParameters()[portMapAapToJuce[i]]));
     }
@@ -242,9 +240,8 @@ void AndroidAudioPluginInstance::processBlock(AudioBuffer<float> &audioBuffer,
 }
 
 bool AndroidAudioPluginInstance::hasMidiPort(bool isInput) const {
-    auto d = native->getPluginInformation();
-    for (int i = 0; i < d->getNumPorts(); i++) {
-        auto p = d->getPort(i);
+    for (int i = 0; i < native->getNumPorts(); i++) {
+        auto p = native->getPort(i);
         if (p->getPortDirection() ==
             (isInput ? AAP_PORT_DIRECTION_INPUT : AAP_PORT_DIRECTION_OUTPUT) &&
                 (p->getContentType() == AAP_CONTENT_TYPE_MIDI || p->getContentType() == AAP_CONTENT_TYPE_MIDI2))

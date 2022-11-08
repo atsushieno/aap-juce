@@ -5,6 +5,8 @@
 #include "aap/unstable/logging.h"
 #include "aap/ext/presets.h"
 #include "aap/ext/state.h"
+#include "aap/ext/aap-midi2.h"
+#include "cmidi2.h"
 
 #if ANDROID
 #include <dlfcn.h>
@@ -27,10 +29,9 @@ extern "C" { int juce_aap_wrapper_last_error_code{0}; }
 
 // JUCE-AAP port mappings:
 //
-//  JUCE parameters (flattened) 0..p-1 -> AAP ports 0..p-1
-// 	JUCE AudioBuffer 0..nOut-1 -> AAP output ports p..p+nOut-1
-//  JUCE AudioBuffer nOut..nIn+nOut-1 -> AAP input ports p+nOut..p+nIn+nOut-1
-//  IF exists JUCE MIDI input buffer -> AAP MIDI input port p+nIn+nOut
+// 	JUCE AudioBuffer 0..nOut-1 -> AAP output ports 0..nOut-1
+//  JUCE AudioBuffer nOut..nIn+nOut-1 -> AAP input ports nOut..nIn+nOut-1
+//  IF exists JUCE MIDI input buffer -> AAP MIDI input port nIn+nOut
 //  IF exists JUCE MIDI output buffer -> AAP MIDI output port last
 
 class JuceAAPWrapper : juce::AudioPlayHead {
@@ -165,6 +166,8 @@ public:
     int32_t default_time_division = 192;
 
     std::vector<float> cached_parameter_values;
+    uint8_t sysex_buffer[4096];
+    int32_t sysex_offset{0};
 
     void process(AndroidAudioPluginBuffer *audioBuffer, long timeoutInNanoseconds) {
 #if JUCEAAP_LOG_PERF
@@ -173,36 +176,14 @@ public:
         clock_gettime(CLOCK_REALTIME, &timeSpecBegin);
 #endif
 
-        int nPara = juce_processor->getParameters().size();
-        // For JUCE plugins, we can take at best one parameter value to be processed.
-        for (int i = 0; i < nPara; i++) {
-            float v = ((float *) audioBuffer->buffers[i])[0];
-            if (cached_parameter_values[i] != v) {
-                auto param = juce_processor->getParameterTree().getParameters(true)[i];
-                param->setValue(v);
-                cached_parameter_values[i] = v;
-                param->sendValueChangedMessageToListeners (v);
-            }
-        }
-
         int nOut = juce_processor->getMainBusNumOutputChannels();
         int nBuf = juce_processor->getMainBusNumInputChannels() +
                    juce_processor->getMainBusNumOutputChannels();
 
-        // FIXME: replace them with fixed pointers at prepare()
         for (int i = 0; i < nOut; i++)
-            juce_channels[i] = (float*) audioBuffer->buffers[i + nPara];
+            juce_channels[i] = (float*) audioBuffer->buffers[i];
         for (int i = nOut; i < nBuf; i++)
-            juce_channels[i] = (float*) audioBuffer->buffers[i + nPara];
-
-        /*
-        for (int i = 0; i < nOut; i++)
-            memset((void *) juce_buffer.getWritePointer(i), 0,
-                   sizeof(float) * audioBuffer->num_frames);
-        for (int i = nOut; i < nBuf; i++)
-            memcpy((void *) juce_buffer.getWritePointer(i - nOut), audioBuffer->buffers[i + nPara],
-                   sizeof(float) * audioBuffer->num_frames);
-        */
+            juce_channels[i] = (float*) audioBuffer->buffers[i];
 
         int rawTimeDivision = default_time_division;
 
@@ -211,89 +192,198 @@ public:
             //   have to store bpm and timeSignature, based on MIDI messages.
 
             juce_midi_messages.clear();
-            void *src = audioBuffer->buffers[nPara + nBuf];
-            uint8_t *csrc = (uint8_t *) src;
-            int *isrc = (int *) src;
-            int32_t timeDivision = rawTimeDivision = isrc[0];
-            timeDivision = timeDivision < 0 ? -timeDivision : timeDivision & 0xFF;
-            int32_t srcEnd = isrc[1] + 8;
-            int32_t srcN = 8;
-            uint8_t running_status = 0;
-            uint64_t ticks = 0;
-            while (srcN < srcEnd) {
-                long timecode = 0;
-                int digits = 0;
-                while (csrc[srcN] >= 0x80 && srcN < srcEnd) // variable length
-                    timecode += ((csrc[srcN++] - 0x80) << (7 * digits++));
-                if (srcN == srcEnd)
-                    break; // invalid data
-                timecode += (csrc[srcN++] << (7 * digits));
+            sysex_offset = 0;
+            int32_t midiBufferPortId = nBuf;
+            auto midiInBuf = (AAPMidiBufferHeader*) audioBuffer->buffers[midiBufferPortId];
+            auto umpStart = ((uint8_t*) midiInBuf) + sizeof(AAPMidiBufferHeader);
+            int32_t positionInJRTimestamp = 0;
 
-                int32_t srcEventStart = srcN;
-                uint8_t statusByte = csrc[srcN] >= 0x80 ? csrc[srcN] : running_status;
-                running_status = statusByte;
-                uint8_t eventType = statusByte & 0xF0;
-                uint32_t midiEventSize = 3;
-                int sysexPos = srcN;
-                double timestamp;
-                switch (eventType) {
-                    case 0xF0:
-                        midiEventSize = 2; // F0 + F7
-                        while (csrc[sysexPos++] != 0xF7 && sysexPos < srcEnd)
-                            midiEventSize++;
-                        break;
-                    case 0xC0:
-                    case 0xD0:
-                    case 0xF1:
-                    case 0xF3:
-                    case 0xF9:
-                        midiEventSize = 2;
-                        break;
-                    case 0xF6:
-                    case 0xF7:
-                        midiEventSize = 1;
-                        break;
-                    default:
-                        if (eventType > 0xF8)
-                            midiEventSize = 1;
-                        break;
+            CMIDI2_UMP_SEQUENCE_FOREACH(umpStart, midiInBuf->length, iter) {
+                auto ump = (cmidi2_ump*) iter;
+                auto messageType = cmidi2_ump_get_message_type(ump);
+                auto statusCode = cmidi2_ump_get_status_code(ump);
+
+                if (messageType == CMIDI2_MESSAGE_TYPE_MIDI_2_CHANNEL && statusCode == CMIDI2_STATUS_NRPN) {
+                    uint32_t index = cmidi2_ump_get_midi2_nrpn_msb(ump) * 0x80 +
+                            cmidi2_ump_get_midi2_nrpn_lsb(ump);
+                    uint32_t iv = cmidi2_ump_get_midi2_nrpn_data(ump);
+                    float v = *(float*) (void*) &iv;
+                    if (cached_parameter_values[index] != v) {
+                        auto param = juce_processor->getParameterTree().getParameters(true)[index];
+                        param->setValue(v);
+                        cached_parameter_values[index] = v;
+                        param->sendValueChangedMessageToListeners (v);
+                    }
+                    continue;
+                }
+            }
+
+            // We could use cmidi2_convert_ump_to_midi1, but afterward we have to iterate midi1 bytes again...
+            CMIDI2_UMP_SEQUENCE_FOREACH(umpStart, midiInBuf->length, iter) {
+                auto ump = (cmidi2_ump*) iter;
+                auto messageType = cmidi2_ump_get_message_type(ump);
+                auto statusCode = cmidi2_ump_get_status_code(ump);
+                if (messageType == CMIDI2_MESSAGE_TYPE_UTILITY) {
+                    // Should we also cover JR Clock? how?
+                    if (statusCode == CMIDI2_JR_TIMESTAMP)
+                        positionInJRTimestamp += cmidi2_ump_get_jr_timestamp_timestamp(ump);
+                    continue;
                 }
 
-                // JUCE does not have appropriate semantics on how time code is passed.
-                // We consume AAP MIDI message timestamps accordingly, convert them into position in current frame,
-                // and for MIDI output we just pass them through.
-                if (rawTimeDivision < 0) {
-                    // Hour:Min:Sec:Frame. 1sec = `timeDivision` * frames.
-                    ticks += (
-                            (((timecode & 0xFF000000) >> 24) * 60 + ((timecode & 0xFF0000) >> 16)) *
-                            60 + ((timecode & 0xFF00) >> 8) * timeDivision + (timecode & 0xFF));
-                    timestamp = 1.0 * ticks / timeDivision * sample_rate;
-                } else {
-                    ticks += timecode;
-                    timestamp += 60.0f / current_bpm * ticks / timeDivision;
-                }
+                auto channel = cmidi2_ump_get_channel(ump);
+                auto statusByte = statusCode | channel;
                 MidiMessage m;
-                bool skip = false;
-                switch (midiEventSize) {
-                    case 1:
-                        skip = true; // there is no way to create MidiMessage for F6 (tune request) and F7 (end of sysex)
+                int32_t sampleNumber = (positionInJRTimestamp * 1.0 / 31250.0) / sample_rate;
+
+                switch (messageType) {
+                    case CMIDI2_MESSAGE_TYPE_MIDI_1_CHANNEL:
+                        juce_midi_messages.addEvent(
+                                MidiMessage{statusByte,
+                                            cmidi2_ump_get_midi1_byte2(ump),
+                                            cmidi2_ump_get_midi1_byte3(ump)},
+                                            sampleNumber);
                         break;
-                    case 2:
-                        m = MidiMessage{csrc[srcEventStart], csrc[srcEventStart + 1]};
+                    case CMIDI2_MESSAGE_TYPE_MIDI_2_CHANNEL: {
+                        switch (statusCode) {
+                            case CMIDI2_STATUS_RPN: {
+                                auto data = cmidi2_ump_get_midi2_rpn_data(ump);
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                                    CMIDI2_CC_RPN_MSB,
+                                                    cmidi2_ump_get_midi2_rpn_msb(ump)},
+                                        sampleNumber);
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                                    CMIDI2_CC_RPN_LSB,
+                                                    cmidi2_ump_get_midi2_rpn_lsb(ump)},
+                                        sampleNumber);
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                                    CMIDI2_CC_DTE_MSB,
+                                                    (uint8_t) (data >> 25) & 0x7F},
+                                        sampleNumber);
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                                    CMIDI2_CC_DTE_MSB,
+                                                    (uint8_t) (data >> 18) & 0x7F},
+                                        sampleNumber);
+                            } break;
+                            case CMIDI2_STATUS_NRPN: {
+                                auto data = cmidi2_ump_get_midi2_nrpn_data(ump);
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                                    CMIDI2_CC_NRPN_MSB,
+                                                    cmidi2_ump_get_midi2_nrpn_msb(ump)},
+                                        sampleNumber);
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                                    CMIDI2_CC_NRPN_LSB,
+                                                    cmidi2_ump_get_midi2_nrpn_lsb(ump)},
+                                        sampleNumber);
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                                    CMIDI2_CC_DTE_MSB,
+                                                    (uint8_t) (data >> 25) & 0x7F},
+                                        sampleNumber);
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                                    CMIDI2_CC_DTE_MSB,
+                                                    (uint8_t) (data >> 18) & 0x7F},
+                                        sampleNumber);
+                            } break;
+                            case CMIDI2_STATUS_NOTE_OFF:
+                            case CMIDI2_STATUS_NOTE_ON:
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{statusCode,
+                                                    cmidi2_ump_get_midi2_note_note(ump),
+                                                    cmidi2_ump_get_midi2_note_velocity(ump) /
+                                                    0x200},
+                                        sampleNumber);
+                                break;
+                            case CMIDI2_STATUS_PAF:
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{statusCode,
+                                                    cmidi2_ump_get_midi2_note_note(ump),
+                                                    (uint8_t) (cmidi2_ump_get_midi2_paf_data(ump) /
+                                                               0x2000000)},
+                                        sampleNumber);
+                                break;
+                            case CMIDI2_STATUS_CC:
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{statusCode,
+                                                    cmidi2_ump_get_midi2_cc_index(ump),
+                                                    (uint8_t) (cmidi2_ump_get_midi2_cc_data(ump) /
+                                                               0x2000000)},
+                                        sampleNumber);
+                                break;
+                            case CMIDI2_STATUS_PROGRAM:
+                                if (cmidi2_ump_get_midi2_program_options(ump) &
+                                    CMIDI2_PROGRAM_CHANGE_OPTION_BANK_VALID) {
+                                    juce_midi_messages.addEvent(
+                                            MidiMessage{CMIDI2_STATUS_CC + channel,
+                                                        CMIDI2_CC_BANK_SELECT,
+                                                        cmidi2_ump_get_midi2_program_bank_msb(ump)},
+                                            sampleNumber);
+                                    juce_midi_messages.addEvent(
+                                            MidiMessage{CMIDI2_STATUS_CC + channel,
+                                                        CMIDI2_CC_BANK_SELECT_LSB,
+                                                        cmidi2_ump_get_midi2_program_bank_lsb(ump)},
+                                            sampleNumber);
+                                }
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{statusByte,
+                                                    cmidi2_ump_get_midi2_program_program(ump),
+                                                    0},
+                                        sampleNumber);
+                                break;
+                            case CMIDI2_STATUS_CAF:
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{statusByte,
+                                                    (uint8_t) (cmidi2_ump_get_midi2_caf_data(ump) /
+                                                               0x2000000),
+                                                    0},
+                                        sampleNumber);
+                                break;
+                            case CMIDI2_STATUS_PITCH_BEND: {
+                                auto data = cmidi2_ump_get_midi2_pitch_bend_data(ump);
+                                juce_midi_messages.addEvent(
+                                        MidiMessage{statusByte,
+                                                    (uint8_t) (data >> 25) & 0x7F,
+                                                    (uint8_t) (data >> 18) & 0x7F},
+                                        sampleNumber);
+                            } break;
+                        }
+                    } break;
+                    case CMIDI2_MESSAGE_TYPE_SYSEX7: {
+                        switch (statusCode) {
+                            case CMIDI2_SYSEX_IN_ONE_UMP:
+                            case CMIDI2_SYSEX_START:
+                                sysex_buffer[0] = 0xF0;
+                                sysex_offset = 1;
+                                break;
+                        }
+
+                        auto sysex7U64 = cmidi2_ump_read_uint64_bytes(ump);
+                        auto sysex7NumBytesInUmp = cmidi2_ump_get_sysex7_num_bytes(ump);
+                        for (size_t i = 0; i < sysex7NumBytesInUmp; i++)
+                            if (sysex_offset < sizeof(sysex_buffer))
+                                sysex_buffer[sysex_offset++] = cmidi2_ump_get_byte_from_uint64(sysex7U64, 2 + i);
+
+                        switch (statusCode) {
+                            case CMIDI2_SYSEX_IN_ONE_UMP:
+                            case CMIDI2_SYSEX_END:
+                                if (sysex_offset < sizeof(sysex_buffer)) {
+                                    sysex_buffer[sysex_offset++] = 0xF7;
+                                    juce_midi_messages.addEvent(
+                                            MidiMessage(sysex_buffer, sysex_offset),
+                                            sampleNumber);
+                                }
+                                sysex_offset = 0;
+                                break;
+                        }
                         break;
-                    case 3:
-                        m = MidiMessage{csrc[srcEventStart], csrc[srcEventStart + 1],
-                                        csrc[srcEventStart + 2]};
-                        break;
-                    default: // sysex etc.
-                        m = MidiMessage{csrc + (int32_t) srcEventStart, (int32_t) midiEventSize};
-                        break;
+                    }
                 }
-                if (!skip) {
-                    m.setChannel((statusByte & 0x0F) + 1); // they accept 1..16, not 0..15...
-                    juce_midi_messages.addEvent(m, timestamp);
-                }
-                srcN += midiEventSize;
             }
         }
 
@@ -303,16 +393,13 @@ public:
 #endif
         juce::AudioSampleBuffer juceAudioBuffer(juce_channels, jmax(nBuf - nOut, nOut), audioBuffer->num_frames);
 
-        // Should this be required? I thought juceAudioBuffer is assigned all those input pointers...
-        for (int i = nOut; i < nBuf; i++)
-            memcpy((void *) juceAudioBuffer.getWritePointer(i - nOut), audioBuffer->buffers[i + nPara],
-                   sizeof(float) * audioBuffer->num_frames);
-
         juce_processor->processBlock(juceAudioBuffer, juce_midi_messages);
+
 #if JUCEAAP_LOG_PERF
         clock_gettime(CLOCK_REALTIME, &procTimeSpecEnd);
         long procTimeDiff = (procTimeSpecEnd.tv_sec - procTimeSpecBegin.tv_sec) * 1000000000 + procTimeSpecEnd.tv_nsec - procTimeSpecBegin.tv_nsec;
 #endif
+
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
         play_head_position.setTimeInSamples(*play_head_position.getTimeInSamples() + audioBuffer->num_frames);
         auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames / sample_rate;
@@ -324,27 +411,44 @@ public:
         play_head_position.ppqPosition += play_head_position.bpm / 60 * 4 * thisTimeInSeconds;
 #endif
 
-        /*
-        for (int i = 0; i < nOut; i++)
-            memcpy(audioBuffer->buffers[i + nPara], (void *) juce_buffer.getReadPointer(i),
-                   sizeof(float) * audioBuffer->num_frames);
-        */
-
         if (juce_processor->producesMidi()) {
-            int32_t bufIndex = nPara + nBuf + (juce_processor->acceptsMidi() ? 1 : 0);
-            void *dst = buffer->buffers[bufIndex];
-            uint8_t *cdst = (uint8_t *) dst;
-            int *idst = (int *) dst;
+            // This part is not really verified... we need some JUCE plugin that generates some outputs.
+            int32_t midiOutBufIndex = nBuf + (juce_processor->acceptsMidi() ? 1 : 0);
+            void *dst = buffer->buffers[midiOutBufIndex];
+            auto outMidiBuf = (AAPMidiBufferHeader*) dst;
+            auto umpDst = (cmidi2_ump*) ((uint8_t*) dst + sizeof(AAPMidiBufferHeader));
+
             MidiBuffer::Iterator iterator{juce_midi_messages};
             const uint8_t *data;
             int32_t eventSize, eventPos, dstBufSize = 0;
             while (iterator.getNextEvent(data, eventSize, eventPos)) {
-                memcpy(cdst + 8 + dstBufSize, data + eventPos, eventSize);
+                if (data[eventPos] == 0xF0) {
+                    // sysex
+                    memcpy(sysex_buffer, data + eventPos, eventSize);
+                    auto numPackets = cmidi2_ump_sysex7_get_num_packets(eventSize);
+                    for (int i = 0; i < numPackets; i++)
+                        cmidi2_ump_write64(umpDst, cmidi2_ump_sysex7_get_packet_of(
+                                0, i + 1 < numPackets ? 6 : eventSize % 6,
+                                (void *) (data + eventPos + i * 6), i));
+                    umpDst += 2;
+                } else if (data[eventPos] > 0xF0) {
+                    cmidi2_ump_write32(umpDst, cmidi2_ump_system_message(
+                            0, data[eventPos],
+                            eventSize > 1 ? data[eventPos + 1] : 0,
+                            eventSize > 2 ? data[eventPos + 2] : 0));
+                    umpDst++;
+                } else {
+                    cmidi2_ump_write32(umpDst, cmidi2_ump_midi1_message(
+                            0, data[eventPos] & 0xF0, data[eventPos] & 0xF,
+                            eventSize > 1 ? data[eventPos + 1] : 0,
+                            eventSize > 2 ? data[eventPos + 2] : 0));
+                    umpDst++;
+                }
                 dstBufSize += eventSize;
             }
-            idst[0] = rawTimeDivision;
-            idst[1] = dstBufSize;
+            outMidiBuf->length = dstBufSize;
         }
+
 #if JUCEAAP_LOG_PERF
         clock_gettime(CLOCK_REALTIME, &timeSpecEnd);
         long timeDiff = (timeSpecEnd.tv_sec - timeSpecBegin.tv_sec) * 1000000000 + timeSpecEnd.tv_nsec - timeSpecBegin.tv_nsec;
@@ -571,29 +675,30 @@ void generate_xml_parameter_node(XmlElement *parent,
                                  const AudioProcessorParameterGroup::AudioProcessorParameterNode *node) {
     auto group = node->getGroup();
     if (group != nullptr) {
-        auto childXml = parent->createNewChildElement("ports");
+        auto childXml = parent->createNewChildElement("parameters");
+        childXml->setAttribute("xmlns", "urn://androidaudioplugin.org/extensions/parameters");
         childXml->setAttribute("name", group->getName());
         for (auto childPara : *group)
             generate_xml_parameter_node(childXml, childPara);
     } else {
         auto para = node->getParameter();
-        auto childXml = parent->createNewChildElement("port");
+        auto childXml = parent->createNewChildElement("parameter");
         childXml->setAttribute("name", para->getName(1024));
         childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
         if (!std::isnormal(para->getDefaultValue()))
-            childXml->setAttribute("pp:default", para->getDefaultValue());
+            childXml->setAttribute("default", para->getDefaultValue());
         auto ranged = dynamic_cast<RangedAudioParameter *>(para);
         if (ranged) {
             auto range = ranged->getNormalisableRange();
             if (std::isnormal(range.start))
-                childXml->setAttribute("pp:minimum", range.start);
+                childXml->setAttribute("minimum", range.start);
             if (std::isnormal(range.end))
-                childXml->setAttribute("pp:maximum", range.end);
+                childXml->setAttribute("maximum", range.end);
             if (std::isnormal(ranged->getDefaultValue()))
-                childXml->setAttribute("pp:default", range.convertTo0to1(ranged->getDefaultValue()));
+                childXml->setAttribute("default", range.convertTo0to1(ranged->getDefaultValue()));
         }
         else
-            childXml->setAttribute("pp:default", para->getDefaultValue());
+            childXml->setAttribute("default", para->getDefaultValue());
         childXml->setAttribute("content", "other");
     }
 }
@@ -621,7 +726,6 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
     }
     std::unique_ptr <juce::XmlElement> pluginsElement{new XmlElement("plugins")};
     pluginsElement->setAttribute("xmlns", "urn:org.androidaudioplugin.core");
-    pluginsElement->setAttribute("xmlns:pp", "urn:org.androidaudioplugin.port");
     auto pluginElement = pluginsElement->createNewChildElement("plugin");
     pluginElement->setAttribute("name", JucePlugin_Name);
     pluginElement->setAttribute("category", JucePlugin_IsSynth ? "Instrument" : "Effect");
@@ -663,13 +767,13 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
     if (filter->acceptsMidi()) {
         auto portXml = topLevelPortsElement->createNewChildElement("port");
         portXml->setAttribute("direction", "input");
-        portXml->setAttribute("content", "midi");
+        portXml->setAttribute("content", "midi2");
         portXml->setAttribute("name", "MIDI input");
     }
     if (filter->producesMidi()) {
         auto portXml = topLevelPortsElement->createNewChildElement("port");
         portXml->setAttribute("direction", "output");
-        portXml->setAttribute("content", "midi");
+        portXml->setAttribute("content", "midi2");
         portXml->setAttribute("name", "MIDI output");
     }
 

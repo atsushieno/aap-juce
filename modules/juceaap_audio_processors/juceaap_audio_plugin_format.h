@@ -104,13 +104,12 @@ class AndroidAudioPluginParameter : public juce::AudioProcessorParameter {
 
     int aap_parameter_index;
     AndroidAudioPluginInstance *instance;
-    const aap::PortInformation *impl;
+    const aap::ParameterInformation* impl;
 
-    AndroidAudioPluginParameter(int aapParameterIndex, AndroidAudioPluginInstance* audioPluginInstance, const aap::PortInformation* portInfo)
-            : aap_parameter_index(aapParameterIndex), instance(audioPluginInstance), impl(portInfo)
+    AndroidAudioPluginParameter(int aapParameterIndex, AndroidAudioPluginInstance* audioPluginInstance, const aap::ParameterInformation* parameterInfo)
+            : aap_parameter_index(aapParameterIndex), instance(audioPluginInstance), impl(parameterInfo)
     {
-        if (portInfo->hasValueRange())
-            setValue(portInfo->getDefaultValue());
+        setValue(parameterInfo->getDefaultValue());
     }
 
     float value{0.0f};
