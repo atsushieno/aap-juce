@@ -682,6 +682,28 @@ extern "C" AndroidAudioPluginFactory *GetJuceAAPFactory() {
 #define JUCEAAP_EXPORT_AAP_METADATA_INVALID_DIRECTORY 1
 #define JUCEAAP_EXPORT_AAP_METADATA_INVALID_OUTPUT_FILE 2
 
+void generate_xml_parameter_node(XmlElement *parent, AudioProcessorParameter *para) {
+    auto childXml = parent->createNewChildElement("parameter");
+    childXml->setAttribute("id", para->getParameterIndex());
+    childXml->setAttribute("name", para->getName(1024));
+    childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
+    if (!std::isnormal(para->getDefaultValue()))
+        childXml->setAttribute("default", para->getDefaultValue());
+    auto ranged = dynamic_cast<RangedAudioParameter *>(para);
+    if (ranged) {
+        auto range = ranged->getNormalisableRange();
+        if (std::isnormal(range.start))
+            childXml->setAttribute("minimum", range.start);
+        if (std::isnormal(range.end))
+            childXml->setAttribute("maximum", range.end);
+        if (std::isnormal(ranged->getDefaultValue()))
+            childXml->setAttribute("default", range.convertTo0to1(ranged->getDefaultValue()));
+    }
+    else
+        childXml->setAttribute("default", para->getDefaultValue());
+    childXml->setAttribute("content", "other");
+}
+
 void generate_xml_parameter_node(XmlElement *parent,
                                  const AudioProcessorParameterGroup::AudioProcessorParameterNode *node) {
     auto group = node->getGroup();
@@ -693,25 +715,7 @@ void generate_xml_parameter_node(XmlElement *parent,
             generate_xml_parameter_node(childXml, childPara);
     } else {
         auto para = node->getParameter();
-        auto childXml = parent->createNewChildElement("parameter");
-        childXml->setAttribute("id", para->getParameterIndex());
-        childXml->setAttribute("name", para->getName(1024));
-        childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
-        if (!std::isnormal(para->getDefaultValue()))
-            childXml->setAttribute("default", para->getDefaultValue());
-        auto ranged = dynamic_cast<RangedAudioParameter *>(para);
-        if (ranged) {
-            auto range = ranged->getNormalisableRange();
-            if (std::isnormal(range.start))
-                childXml->setAttribute("minimum", range.start);
-            if (std::isnormal(range.end))
-                childXml->setAttribute("maximum", range.end);
-            if (std::isnormal(ranged->getDefaultValue()))
-                childXml->setAttribute("default", range.convertTo0to1(ranged->getDefaultValue()));
-        }
-        else
-            childXml->setAttribute("default", para->getDefaultValue());
-        childXml->setAttribute("content", "other");
+        generate_xml_parameter_node(parent, para);
     }
 }
 
@@ -757,8 +761,29 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
     auto &tree = filter->getParameterTree();
     auto topLevelParametersElement = pluginElement->createNewChildElement("parameters");
     topLevelParametersElement->setAttribute("xmlns", "urn://androidaudioplugin.org/extensions/parameters");
+    bool hadParams = false;
     for (auto node : tree) {
+        hadParams = true;
         generate_xml_parameter_node(topLevelParametersElement, node);
+    }
+    if (!hadParams) {
+        for (auto para : filter->getParameters()) {
+            hadParams = true;
+            generate_xml_parameter_node(topLevelParametersElement, para);
+        }
+    }
+    if (!hadParams) {
+        // Some classic plugins (such as OB-Xd) do not return parameter objects.
+        // They still return parameter names, so we can still generate AAP parameters.
+        for (int i = 0, n = filter->getNumParameters(); i < n; i++) {
+            auto childXml = topLevelParametersElement->createNewChildElement("parameter");
+            childXml->setAttribute("id", i);
+            childXml->setAttribute("name", filter->getParameterName(i));
+            childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
+            childXml->setAttribute("minimum", "0.0");
+            childXml->setAttribute("maximum", "1.0");
+            childXml->setAttribute("default", "0.0");
+        }
     }
 
     auto topLevelPortsElement = pluginElement->createNewChildElement("ports");

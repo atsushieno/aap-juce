@@ -195,7 +195,7 @@ update-aap-metadata: build-target-desktop
 		PLAT_BUILD_DIR=$(PLAT_BUILD_DIR) \
 		LIBFILES=$(LIBFILES) \
 		EXTRA_LDFLAGS=$(METADATA_GENERATOR_EXTRA_LDFLAGS) \
-		$(THISDIR)/generate-metadata.sh || exit 1 ; \
+		$(THISDIR)/generate-metadata.sh #|| exit 1 ; \
 	#fi
 
 .PHONY:
