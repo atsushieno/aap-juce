@@ -782,7 +782,7 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
             childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
             childXml->setAttribute("minimum", "0.0");
             childXml->setAttribute("maximum", "1.0");
-            childXml->setAttribute("default", "0.0");
+            childXml->setAttribute("default", filter->getParameter(i));
         }
     }
 
