@@ -6,6 +6,7 @@
 #include "aap/ext/presets.h"
 #include "aap/ext/state.h"
 #include "aap/ext/aap-midi2.h"
+#include "aap/ext/parameters.h"
 #include "cmidi2.h"
 
 #if ANDROID
@@ -169,6 +170,14 @@ public:
     uint8_t sysex_buffer[4096];
     int32_t sysex_offset{0};
 
+
+    bool readMidi2Parameter(uint8_t *group, uint8_t* channel, uint8_t* key, uint8_t* extra,
+                            uint16_t *index, float *value, cmidi2_ump* ump) {
+        auto raw = (uint32_t*) ump;
+        return aapReadMidi2ParameterSysex8(group, channel, key, extra, index, value,
+                                           *raw, *(raw + 1), *(raw + 2), *(raw + 3));
+    }
+
     void process(AndroidAudioPluginBuffer *audioBuffer, long timeoutInNanoseconds) {
 #if JUCEAAP_LOG_PERF
         struct timespec timeSpecBegin, timeSpecEnd;
@@ -203,16 +212,15 @@ public:
                 auto messageType = cmidi2_ump_get_message_type(ump);
                 auto statusCode = cmidi2_ump_get_status_code(ump);
 
-                if (messageType == CMIDI2_MESSAGE_TYPE_MIDI_2_CHANNEL && statusCode == CMIDI2_STATUS_NRPN) {
-                    uint32_t index = cmidi2_ump_get_midi2_nrpn_msb(ump) * 0x80 +
-                            cmidi2_ump_get_midi2_nrpn_lsb(ump);
-                    uint32_t iv = cmidi2_ump_get_midi2_nrpn_data(ump);
-                    float v = *(float*) (void*) &iv;
-                    if (cached_parameter_values[index] != v) {
-                        auto param = juce_processor->getParameterTree().getParameters(true)[index];
-                        param->setValue(v);
-                        cached_parameter_values[index] = v;
-                        param->sendValueChangedMessageToListeners (v);
+                uint8_t paramGroup, paramChannel, paramKey{0}, paramExtra{0};
+                uint16_t paramId;
+                float paramValue;
+                if (readMidi2Parameter(&paramGroup, &paramChannel, &paramKey, &paramExtra, &paramId, &paramValue, ump)) {
+                    if (cached_parameter_values[paramId] != paramValue) {
+                        auto param = juce_processor->getParameterTree().getParameters(true)[paramId];
+                        param->setValue(paramValue);
+                        cached_parameter_values[paramId] = paramValue;
+                        param->sendValueChangedMessageToListeners (paramValue);
                     }
                     continue;
                 }
