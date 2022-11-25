@@ -687,11 +687,11 @@ void generate_xml_parameter_node(XmlElement *parent, AudioProcessorParameter *pa
     auto ranged = dynamic_cast<RangedAudioParameter *>(para);
     if (ranged) {
         auto range = ranged->getNormalisableRange();
-        if (std::isnormal(range.start))
+        if (std::isnormal(range.start) || range.start == 0.0)
             childXml->setAttribute("minimum", range.start);
-        if (std::isnormal(range.end))
+        if (std::isnormal(range.end) || range.end == 0.0)
             childXml->setAttribute("maximum", range.end);
-        if (std::isnormal(ranged->getDefaultValue()))
+        if (std::isnormal(ranged->getDefaultValue()) || ranged->getDefaultValue() == 0.0)
             childXml->setAttribute("default", range.convertTo0to1(ranged->getDefaultValue()));
     }
     else
