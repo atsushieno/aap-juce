@@ -96,49 +96,29 @@ public:
 };
 
 #if JUCEAAP_HOSTED_PARAMETER
-class AndroidAudioPluginParameter : public juce::AudioPluginInstance::HostedParameter {
+class AndroidAudioPluginParameter : public juce::AudioParameterFloat {
 #else
 class AndroidAudioPluginParameter : public juce::AudioProcessorParameter {
 #endif
     friend class AndroidAudioPluginInstance;
 
-    int aap_parameter_index;
+    int aap_parameter_id;
     AndroidAudioPluginInstance *instance;
     const aap::ParameterInformation* impl;
 
-    AndroidAudioPluginParameter(int aapParameterIndex, AndroidAudioPluginInstance* audioPluginInstance, const aap::ParameterInformation* parameterInfo)
-            : aap_parameter_index(aapParameterIndex), instance(audioPluginInstance), impl(parameterInfo)
+    AndroidAudioPluginParameter(int aapParameterId, AndroidAudioPluginInstance* audioPluginInstance, const aap::ParameterInformation* parameterInfo)
+            :  juce::AudioParameterFloat(parameterInfo->getId(), parameterInfo->getName(),
+                                         static_cast<float>(parameterInfo->getMinimumValue()),
+                                         static_cast<float>(parameterInfo->getMaximumValue()),
+                                         static_cast<float>(parameterInfo->getDefaultValue())),
+               aap_parameter_id(aapParameterId), instance(audioPluginInstance), impl(parameterInfo)
     {
-        setValue(parameterInfo->getDefaultValue());
     }
 
     float value{0.0f};
 
 public:
-#if JUCEAAP_HOSTED_PARAMETER
-    String getParameterID() const override { return String::formatted("%d", getAAPParameterIndex()); }
-#endif
-    int getAAPParameterIndex() const { return aap_parameter_index; }
-
-    float getValue() const override { return value; }
-
-    void setValue(float newValue) override {
-        value = newValue;
-        instance->updateParameterValue(this);
-    }
-
-    float getDefaultValue() const override {
-        return impl->getDefaultValue();
-    }
-
-    String getName(int maximumStringLength) const override {
-        String name{impl->getName()};
-        return (name.length() <= maximumStringLength) ? name : name.substring(0, maximumStringLength);
-    }
-
-    String getLabel() const override { return impl->getName(); }
-
-    float getValueForText(const String &text) const override { return (float) atof(text.toRawUTF8()); }
+    int getAAPParameterId() const { return aap_parameter_id; }
 };
 
 class AndroidAudioPluginFormat : public juce::AudioPluginFormat {
@@ -147,7 +127,6 @@ class AndroidAudioPluginFormat : public juce::AudioPluginFormat {
     std::unique_ptr<aap::PluginClient> android_host;
     OwnedArray<PluginDescription> juce_plugin_descs;
     HashMap<const aap::PluginInformation *, PluginDescription *> cached_descs;
-    aap_midi2_extension_t *midi2_extension;
 
     const aap::PluginInformation *findPluginInformationFrom(const PluginDescription &desc);
 

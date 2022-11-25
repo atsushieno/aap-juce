@@ -161,7 +161,7 @@ AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nati
 
 void AndroidAudioPluginInstance::updateParameterValue(AndroidAudioPluginParameter* parameter)
 {
-    int i = parameter->getAAPParameterIndex();
+    int i = parameter->getAAPParameterId();
 
     if(getNumParameters() <= i) return; // too early to reach here.
 
