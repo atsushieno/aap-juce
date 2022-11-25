@@ -1,4 +1,3 @@
-#define ENABLE_MIDI2 1
 #include "juceaap_audio_plugin_format.h"
 #include <sys/mman.h>
 
@@ -75,43 +74,16 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
             continue;
         if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO && juceInputsAssigned < audioBuffer.getNumChannels())
             memcpy(portBuffer, (void *) audioBuffer.getReadPointer(juceInputsAssigned++), (size_t) audioBuffer.getNumSamples() * sizeof(float));
-#if ENABLE_MIDI2
         else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI2) { // MIDI2 is handled below
-#else
-        else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI || port->getContentType() == AAP_CONTENT_TYPE_MIDI2) {
-#endif
-            // Convert MidiBuffer into MIDI 1.0 message stream on the AAP port
-            int dstIndex = 8; // fill length later
-            MidiMessage msg{};
-            int pos{0};
-            // FIXME: time unit must be configurable.
-            double oneTick = 1 / 480.0; // sec
-            double secondsPerFrameJUCE = 1.0 / sample_rate; // sec
-            MidiBuffer::Iterator iter{midiBuffer};
-            *((int32_t*) portBuffer) = 480; // time division
-            *((int32_t*) portBuffer + 2) = 0; // reset to ensure that there is no message by default
-            while (iter.getNextEvent(msg, pos)) {
-                double timestamp = msg.getTimeStamp();
-                double timestampSeconds = timestamp * secondsPerFrameJUCE;
-                int32_t timestampTicks = (int32_t) (timestampSeconds / oneTick);
-                do {
-                    *((uint8_t*) portBuffer + dstIndex++) = (uint8_t) timestampTicks % 0x80;
-                    timestampTicks /= 0x80;
-                } while (timestampTicks > 0x80);
-                memcpy(((uint8_t*) portBuffer) + dstIndex, msg.getRawData(), msg.getRawDataSize());
-                dstIndex += msg.getRawDataSize();
-            }
-            // AAP MIDI buffer is length-prefixed raw MIDI data.
-            *((int32_t*) portBuffer + 1) = dstIndex - 8;
-        } else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI2) {
             // Convert MidiBuffer into MIDI 2.0 UMP stream on the AAP port
-            int dstIntIndex = 8; // fill length later
+            size_t dstIntIndex = 8; // fill length later
             MidiMessage msg{};
             int pos{0};
-            double oneTick = 1 / 31250.0; // sec
+            const double oneTick = 1 / 31250.0; // sec
             double secondsPerFrameJUCE = 1.0 / sample_rate; // sec
             MidiBuffer::Iterator iter{midiBuffer};
-            int32_t *dstI = (int32_t *) portBuffer;
+            auto mbh = (AAPMidiBufferHeader*) portBuffer;
+            uint32_t *dstI = (uint32_t *) portBuffer;
             *(dstI + 2) = 0; // reset to ensure that there is no message by default
             while (iter.getNextEvent(msg, pos)) {
                 // generate UMP Timestamps only when message has non-zero timestamp.
@@ -135,16 +107,15 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
                     // FIXME: should we transmit META events in some wrapped manner like what we do for ktmidi MIDI 2.0 support?
                 } else {
                     auto data = msg.getRawData();
-                    *(dstI + dstIntIndex) = cmidi2_ump_midi1_message(0, data[0], (uint8_t) msg.getChannel(), data[1], data[2]);
+                    *(dstI + dstIntIndex) = (uint32_t) cmidi2_ump_midi1_message(
+                            0, data[0], (uint8_t) msg.getChannel(), data[1], data[2]);
                     dstIntIndex++;
                 }
             }
-            *dstI = (dstIntIndex - 8) * sizeof(uint32_t); // UMP length
-            *(dstI + 1) = 0; // reserved
-            // FIXME: use some constant for MIDI 2.0 Protocol (and Version 1)
-            *(dstI + 2) = 2; // MIDI CI Protocol in AAP
-            for (int i = 3; i < 8; i++)
-                *(dstI + i) = 0; // reserved
+            mbh->length = dstIntIndex * sizeof(uint32_t) - sizeof(AAPMidiBufferHeader);
+            mbh->time_options = 0;
+            for (int i = 0; i < 6; i++)
+                mbh->reserved[i] = 0;
         } else {
             // control parameters should assigned when parameter is assigned.
             // FIXME: at this state there is no callbacks for parameter changes, so
@@ -213,7 +184,7 @@ AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpected
 
     // minimum setup, as the pointers are not passed by JUCE framework side.
     int n = native->getNumPorts();
-    auto *buf = native->getAudioPluginBuffer(n, maximumExpectedSamplesPerBlock);
+    auto *buf = native->getAudioPluginBuffer(n, maximumExpectedSamplesPerBlock, sizeof(float));
     native->prepare(maximumExpectedSamplesPerBlock, buf);
 
     for (int i = 0; i < n; i++) {
