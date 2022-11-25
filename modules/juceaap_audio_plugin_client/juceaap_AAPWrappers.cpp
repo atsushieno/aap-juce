@@ -246,121 +246,116 @@ public:
                 switch (messageType) {
                     case CMIDI2_MESSAGE_TYPE_MIDI_1_CHANNEL:
                         juce_midi_messages.addEvent(
-                                MidiMessage{statusByte,
+                                MidiMessage(statusByte,
                                             cmidi2_ump_get_midi1_byte2(ump),
-                                            cmidi2_ump_get_midi1_byte3(ump)},
+                                            cmidi2_ump_get_midi1_byte3(ump)),
                                             sampleNumber);
                         break;
                     case CMIDI2_MESSAGE_TYPE_MIDI_2_CHANNEL: {
                         switch (statusCode) {
-                            /* We don't treat them here, as they are used for the parameter changes.
-                               FIXME: does this actually make sense? I'm afraid not...
                             case CMIDI2_STATUS_RPN: {
                                 auto data = cmidi2_ump_get_midi2_rpn_data(ump);
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                        MidiMessage(CMIDI2_STATUS_CC + channel,
                                                     CMIDI2_CC_RPN_MSB,
-                                                    cmidi2_ump_get_midi2_rpn_msb(ump)},
+                                                    cmidi2_ump_get_midi2_rpn_msb(ump)),
                                         sampleNumber);
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                        MidiMessage(CMIDI2_STATUS_CC + channel,
                                                     CMIDI2_CC_RPN_LSB,
-                                                    cmidi2_ump_get_midi2_rpn_lsb(ump)},
+                                                    cmidi2_ump_get_midi2_rpn_lsb(ump)),
                                         sampleNumber);
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                        MidiMessage(CMIDI2_STATUS_CC + channel,
                                                     CMIDI2_CC_DTE_MSB,
-                                                    (uint8_t) (data >> 25) & 0x7F},
+                                                    (uint8_t) (data >> 25) & 0x7F),
                                         sampleNumber);
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                        MidiMessage(CMIDI2_STATUS_CC + channel,
                                                     CMIDI2_CC_DTE_MSB,
-                                                    (uint8_t) (data >> 18) & 0x7F},
+                                                    (uint8_t) (data >> 18) & 0x7F),
                                         sampleNumber);
                             } break;
                             case CMIDI2_STATUS_NRPN: {
                                 auto data = cmidi2_ump_get_midi2_nrpn_data(ump);
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                        MidiMessage(CMIDI2_STATUS_CC + channel,
                                                     CMIDI2_CC_NRPN_MSB,
-                                                    cmidi2_ump_get_midi2_nrpn_msb(ump)},
+                                                    cmidi2_ump_get_midi2_nrpn_msb(ump)),
                                         sampleNumber);
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                        MidiMessage(CMIDI2_STATUS_CC + channel,
                                                     CMIDI2_CC_NRPN_LSB,
-                                                    cmidi2_ump_get_midi2_nrpn_lsb(ump)},
+                                                    cmidi2_ump_get_midi2_nrpn_lsb(ump)),
                                         sampleNumber);
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                        MidiMessage(CMIDI2_STATUS_CC + channel,
                                                     CMIDI2_CC_DTE_MSB,
-                                                    (uint8_t) (data >> 25) & 0x7F},
+                                                    (uint8_t) (data >> 25) & 0x7F),
                                         sampleNumber);
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{CMIDI2_STATUS_CC + channel,
+                                        MidiMessage(CMIDI2_STATUS_CC + channel,
                                                     CMIDI2_CC_DTE_MSB,
-                                                    (uint8_t) (data >> 18) & 0x7F},
+                                                    (uint8_t) (data >> 18) & 0x7F),
                                         sampleNumber);
                             } break;
-                            */
                             case CMIDI2_STATUS_NOTE_OFF:
                             case CMIDI2_STATUS_NOTE_ON:
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{statusCode,
+                                        MidiMessage(statusCode,
                                                     cmidi2_ump_get_midi2_note_note(ump),
                                                     cmidi2_ump_get_midi2_note_velocity(ump) /
-                                                    0x200},
+                                                    0x200),
                                         sampleNumber);
                                 break;
                             case CMIDI2_STATUS_PAF:
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{statusCode,
+                                        MidiMessage(statusCode,
                                                     cmidi2_ump_get_midi2_note_note(ump),
                                                     (uint8_t) (cmidi2_ump_get_midi2_paf_data(ump) /
-                                                               0x2000000)},
+                                                               0x2000000)),
                                         sampleNumber);
                                 break;
                             case CMIDI2_STATUS_CC:
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{statusCode,
+                                        MidiMessage(statusCode,
                                                     cmidi2_ump_get_midi2_cc_index(ump),
                                                     (uint8_t) (cmidi2_ump_get_midi2_cc_data(ump) /
-                                                               0x2000000)},
+                                                               0x2000000)),
                                         sampleNumber);
                                 break;
                             case CMIDI2_STATUS_PROGRAM:
                                 if (cmidi2_ump_get_midi2_program_options(ump) &
                                     CMIDI2_PROGRAM_CHANGE_OPTION_BANK_VALID) {
                                     juce_midi_messages.addEvent(
-                                            MidiMessage{CMIDI2_STATUS_CC + channel,
+                                            MidiMessage(CMIDI2_STATUS_CC + channel,
                                                         CMIDI2_CC_BANK_SELECT,
-                                                        cmidi2_ump_get_midi2_program_bank_msb(ump)},
+                                                        cmidi2_ump_get_midi2_program_bank_msb(ump)),
                                             sampleNumber);
                                     juce_midi_messages.addEvent(
-                                            MidiMessage{CMIDI2_STATUS_CC + channel,
+                                            MidiMessage(CMIDI2_STATUS_CC + channel,
                                                         CMIDI2_CC_BANK_SELECT_LSB,
-                                                        cmidi2_ump_get_midi2_program_bank_lsb(ump)},
+                                                        cmidi2_ump_get_midi2_program_bank_lsb(ump)),
                                             sampleNumber);
                                 }
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{statusByte,
-                                                    cmidi2_ump_get_midi2_program_program(ump),
-                                                    0},
+                                        MidiMessage(statusByte,
+                                                    cmidi2_ump_get_midi2_program_program(ump)),
                                         sampleNumber);
                                 break;
                             case CMIDI2_STATUS_CAF:
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{statusByte,
+                                        MidiMessage(statusByte,
                                                     (uint8_t) (cmidi2_ump_get_midi2_caf_data(ump) /
-                                                               0x2000000),
-                                                    0},
+                                                               0x2000000)),
                                         sampleNumber);
                                 break;
                             case CMIDI2_STATUS_PITCH_BEND: {
                                 auto data = cmidi2_ump_get_midi2_pitch_bend_data(ump);
                                 juce_midi_messages.addEvent(
-                                        MidiMessage{statusByte,
+                                        MidiMessage(statusByte,
                                                     (uint8_t) (data >> 25) & 0x7F,
-                                                    (uint8_t) (data >> 18) & 0x7F},
+                                                    (uint8_t) (data >> 18) & 0x7F),
                                         sampleNumber);
                             } break;
                         }
