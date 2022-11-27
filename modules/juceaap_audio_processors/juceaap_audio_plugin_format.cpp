@@ -88,15 +88,17 @@ void AndroidAudioPluginInstance::preProcessBuffers(AudioBuffer<float> &audioBuff
             memcpy(portBuffer, (void *) audioBuffer.getReadPointer(juceInputsAssigned++), (size_t) audioBuffer.getNumSamples() * sizeof(float));
         else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI2) { // MIDI2 is handled below
             // Convert MidiBuffer into MIDI 2.0 UMP stream on the AAP port
-            size_t dstIntIndex = sizeof(AAPMidiBufferHeader) / sizeof(int32_t); // fill length later
+            size_t dstIntIndex = 0;
             MidiMessage msg{};
             int pos{0};
             const double oneTick = 1 / 31250.0; // sec
             double secondsPerFrameJUCE = 1.0 / sample_rate; // sec
             MidiBuffer::Iterator iter{midiMessages};
             auto mbh = (AAPMidiBufferHeader*) portBuffer;
-            uint32_t *dstI = (uint32_t *) portBuffer;
-            *(dstI + 2) = 0; // reset to ensure that there is no message by default
+            uint32_t *dstI = (uint32_t *) (void*) (mbh + 1);
+            // Enable this for debugging when you are skeptical about parameter changes.
+            //if (mbh->length > 0)
+            //    aap::a_log_f(AAP_LOG_LEVEL_INFO, AAP_JUCE_LOG_TAG, "Maybe parameter changes: LEN %d / %x %x %x %x", mbh->length, dstI[0], dstI[1], dstI[2], dstI[3]);
             while (iter.getNextEvent(msg, pos)) {
                 // generate UMP Timestamps only when message has non-zero timestamp.
                 double timestamp = msg.getTimeStamp();
@@ -123,7 +125,7 @@ void AndroidAudioPluginInstance::preProcessBuffers(AudioBuffer<float> &audioBuff
                     dstIntIndex++;
                 }
             }
-            mbh->length = dstIntIndex * sizeof(uint32_t) - sizeof(AAPMidiBufferHeader);
+            mbh->length = dstIntIndex * sizeof(uint32_t);
             mbh->time_options = 0;
             for (int i = 0; i < 6; i++)
                 mbh->reserved[i] = 0;
@@ -211,8 +213,10 @@ bool AndroidAudioPluginInstance::parameterValueChanged(AndroidAudioPluginParamet
 
     // In AAP V2 protocol, parameters are sent over MIDI2 port as UMP.
     auto *buffer = native->getAudioPluginBuffer();
-    if (aap_midi_in_port < buffer->num_buffers)
+    if (aap_midi_in_port < 0)
         return false; // there is no port that accepts parameter changes
+    if ((uint32_t) aap_midi_in_port >= buffer->num_buffers)
+        return false; // buffer does not seem prepared yet
 
     int32_t paramId = parameter->getAAPParameterId();
     if (paramId > UINT16_MAX) {
