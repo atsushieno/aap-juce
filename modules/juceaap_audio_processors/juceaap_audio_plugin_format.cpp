@@ -4,6 +4,7 @@
 #include <libgen.h>
 #include <unistd.h>
 #include "cmidi2.h"
+#include <aap/ext/parameters.h>
 #if ANDROID
 #include <android/sharedmem.h>
 #else
@@ -14,6 +15,8 @@ extern void aap_parse_plugin_descriptor_into(const char* pluginPackageName, cons
 
 using namespace aap;
 using namespace juce;
+
+#define AAP_JUCE_LOG_TAG "AAP-JUCE"
 
 namespace juceaap {
 
@@ -57,16 +60,25 @@ static void fillPluginDescriptionFromNative(PluginDescription &description,
 
 int processIncrementalCount{0};
 
-void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audioBuffer,
-                                                        MidiBuffer &midiBuffer) {
+static void* handleSysex7(uint64_t data, void* context) {
+    auto mbh = (AAPMidiBufferHeader*) context;
+    auto p = (uint32_t*) (void*) ((uint8_t*) mbh) + mbh->length + sizeof (mbh);
+    p[0] = data >> 32;
+    p[1] = data & 0xFFFFFFFF;
+    return nullptr;
+}
+
+void AndroidAudioPluginInstance::preProcessBuffers(AudioBuffer<float> &audioBuffer,
+                                                        MidiBuffer &midiMessages) {
+    // FIXME: RT lock
+
     processIncrementalCount++;
 
     // FIXME: there is some glitch between how JUCE AudioBuffer assigns a channel for each buffer item
     //  and how AAP expects them.
     int juceInputsAssigned = 0;
-    auto aapDesc = this->native->getPluginInformation();
     int numPorts = native->getNumPorts();
-    auto *buffer = native->getAudioPluginBuffer(audioBuffer.getNumChannels(), audioBuffer.getNumSamples());
+    auto *buffer = native->getAudioPluginBuffer();
     for (int portIndex = 0; portIndex < numPorts; portIndex++) {
         auto port = native->getPort(portIndex);
         auto portBuffer = buffer->buffers[portIndex];
@@ -76,12 +88,12 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
             memcpy(portBuffer, (void *) audioBuffer.getReadPointer(juceInputsAssigned++), (size_t) audioBuffer.getNumSamples() * sizeof(float));
         else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI2) { // MIDI2 is handled below
             // Convert MidiBuffer into MIDI 2.0 UMP stream on the AAP port
-            size_t dstIntIndex = 8; // fill length later
+            size_t dstIntIndex = sizeof(AAPMidiBufferHeader) / sizeof(int32_t); // fill length later
             MidiMessage msg{};
             int pos{0};
             const double oneTick = 1 / 31250.0; // sec
             double secondsPerFrameJUCE = 1.0 / sample_rate; // sec
-            MidiBuffer::Iterator iter{midiBuffer};
+            MidiBuffer::Iterator iter{midiMessages};
             auto mbh = (AAPMidiBufferHeader*) portBuffer;
             uint32_t *dstI = (uint32_t *) portBuffer;
             *(dstI + 2) = 0; // reset to ensure that there is no message by default
@@ -100,11 +112,10 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
                 }
                 // then generate UMP for the status byte
                 if (msg.isSysEx()) {
-                    int sysexSize = msg.getSysExDataSize();
-                    int32_t numPackets = cmidi2_ump_sysex7_get_num_packets(sysexSize);
-                    // FIXME; implement rest
+                    cmidi2_ump_sysex7_process(0, (void *) msg.getRawData(), handleSysex7, mbh);
                 } else if (msg.isMetaEvent()) {
-                    // FIXME: should we transmit META events in some wrapped manner like what we do for ktmidi MIDI 2.0 support?
+                    // FIXME: we will transmit META events into some UMP which seems coming to the next UMP spec.
+                    //  https://www.midi.org/midi-articles/details-about-midi-2-0-midi-ci-profiles-and-property-exchange
                 } else {
                     auto data = msg.getRawData();
                     *(dstI + dstIntIndex) = (uint32_t) cmidi2_ump_midi1_message(
@@ -122,15 +133,18 @@ void AndroidAudioPluginInstance::fillNativeInputBuffers(AudioBuffer<float> &audi
             // any dynamic parameter changes are ignored at this state.
         }
     }
+
+    // FIXME: RT unlock
 }
 
-void AndroidAudioPluginInstance::fillNativeOutputBuffers(AudioBuffer<float> &audioBuffer) {
+void AndroidAudioPluginInstance::postProcessBuffers(AudioBuffer<float> &audioBuffer, MidiBuffer &midiMessages) {
+    // FIXME: RT lock
+
     // FIXME: there is some glitch between how JUCE AudioBuffer assigns a channel for each buffer item
     //  and how AAP expects them.
     int juceOutputsAssigned = 0;
-    auto aapDesc = native->getPluginInformation();
     int n = native->getNumPorts();
-    auto *buffer = native->getAudioPluginBuffer(audioBuffer.getNumChannels(), audioBuffer.getNumSamples());
+    auto *buffer = native->getAudioPluginBuffer();
     for (int i = 0; i < n; i++) {
         auto port = native->getPort(i);
         if (port->getPortDirection() != AAP_PORT_DIRECTION_OUTPUT)
@@ -140,6 +154,31 @@ void AndroidAudioPluginInstance::fillNativeOutputBuffers(AudioBuffer<float> &aud
             memcpy((void *) audioBuffer.getWritePointer(juceOutputsAssigned++), buffer->buffers[i],
                    buffer->num_frames * sizeof(float));
     }
+
+    if (aap_midi_out_port >= 0) {
+        auto mbh = (AAPMidiBufferHeader*) buffer->buffers[aap_midi_out_port];
+        mbh->length = 0;
+        auto ump = (cmidi2_ump*) (mbh + 1);
+        cmidi2_midi_conversion_context context;
+        cmidi2_midi_conversion_context_initialize(&context);
+        context.ump = ump;
+        context.ump_num_bytes = mbh->length;
+        context.midi1 = midi_output_store;
+        // FIXME: in the future we support sample accurate outputs
+        context.skip_delta_time = false;
+        cmidi2_convert_ump_to_midi1(&context);
+        for (uint32_t midi1At = 0; midi1At < context.midi1_num_bytes; ) {
+            size_t size = cmidi2_midi1_get_message_size(midi_output_store + midi1At, context.midi1_num_bytes - midi1At);
+            midiMessages.addEvent(midi_output_store + midi1At, (int) size, 0);
+            midi1At += size;
+        }
+    }
+
+    // clean up room for the next JUCE parameter changes cycle
+    if (aap_midi_in_port >= 0)
+        ((AAPMidiBufferHeader *) buffer->buffers[aap_midi_in_port])->length = 0;
+
+    // FIXME: RT unlock
 }
 
 AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nativePlugin)
@@ -159,23 +198,40 @@ AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nati
     }
 }
 
-void AndroidAudioPluginInstance::updateParameterValue(AndroidAudioPluginParameter* parameter)
+void AndroidAudioPluginParameter::valueChanged(float newValue) {
+    instance->parameterValueChanged(this, newValue);
+}
+
+bool AndroidAudioPluginInstance::parameterValueChanged(AndroidAudioPluginParameter* parameter, float newValue)
 {
     int i = parameter->getAAPParameterId();
 
-    if(getNumParameters() <= i) return; // too early to reach here.
+    if(getNumParameters() <= i)
+        return false; // too early to reach here.
 
-    // In JUCE, control parameters are passed as a single value, while LV2 (in general?) takes values as a buffer.
-    // It is inefficient to fill buffer every time, so we just set a value here.
-    // FIXME: it is actually arguable which is more efficient, as it is possible that JUCE control parameters are
-    //  more often assigned. Maybe we should have something like port properties that describes more characteristics
-    //  like LV2 "expensive" port property (if that really is for it), and make use of them.
-    //  related: https://github.com/atsushieno/android-audio-plugin-framework/issues/80
-    //
-    // This should not be the most likely case, but IF it is called *before* prepareToPlay() the audio buffer might be unallocated yet.
+    // In AAP V2 protocol, parameters are sent over MIDI2 port as UMP.
     auto *buffer = native->getAudioPluginBuffer();
-    float v = this->getParameters()[portMapAapToJuce[i]]->getValue();
-    std::fill_n((float *) buffer->buffers[i], 1, v);
+    if (aap_midi_in_port < buffer->num_buffers)
+        return false; // there is no port that accepts parameter changes
+
+    int32_t paramId = parameter->getAAPParameterId();
+    if (paramId > UINT16_MAX) {
+        aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_LOG_TAG,
+                     "Unsupported attempt to set parameter index %d which is > %d", paramId,
+                     UINT16_MAX);
+        return false;
+    }
+
+    // FIXME: RT lock
+
+    auto mbh = (AAPMidiBufferHeader*) buffer->buffers[aap_midi_in_port];
+    uint32_t* dst = (uint32_t*) (void*) ((uint8_t*) buffer->buffers[aap_midi_in_port] + sizeof(AAPMidiBufferHeader) + mbh->length);
+    mbh->length += 16;
+    aapMidi2ParameterSysex8(dst, dst + 1, dst + 2, dst + 3, 0, 0, 0, 0, (uint16_t) paramId, newValue);
+
+    // FIXME: RT unlock
+
+    return true;
 }
 
 void
@@ -183,31 +239,37 @@ AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpected
     sample_rate = (int) sampleRate;
 
     // minimum setup, as the pointers are not passed by JUCE framework side.
-    int n = native->getNumPorts();
-    auto *buf = native->getAudioPluginBuffer(n, maximumExpectedSamplesPerBlock, sizeof(float));
+    int numPorts = native->getNumPorts();
+    auto *buf = native->getAudioPluginBuffer(
+            (size_t) numPorts, (size_t) maximumExpectedSamplesPerBlock, midi_buffer_size);
     native->prepare(maximumExpectedSamplesPerBlock, buf);
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0, n = native->getNumPorts(); i < n; i++) {
         auto port = native->getPort(i);
-        if (port->getContentType() == AAP_CONTENT_TYPE_UNDEFINED && port->getPortDirection() == AAP_PORT_DIRECTION_INPUT)
-            updateParameterValue(dynamic_cast<AndroidAudioPluginParameter*>(getParameters()[portMapAapToJuce[i]]));
+        if (port->getContentType() == AAP_CONTENT_TYPE_MIDI2) {
+            if (port->getPortDirection() == AAP_PORT_DIRECTION_INPUT)
+                aap_midi_in_port = i;
+            else
+                aap_midi_out_port = i;
+        }
+
+        native->activate();
     }
-    native->activate();
 }
 
 void AndroidAudioPluginInstance::releaseResources() {
     native->deactivate();
 }
 
-void AndroidAudioPluginInstance::destroyResources() {
+AndroidAudioPluginInstance::~AndroidAudioPluginInstance() {
     native->dispose();
 }
 
 void AndroidAudioPluginInstance::processBlock(AudioBuffer<float> &audioBuffer,
                                               MidiBuffer &midiMessages) {
-    fillNativeInputBuffers(audioBuffer, midiMessages);
-    native->process(native->getAudioPluginBuffer(audioBuffer.getNumChannels(), audioBuffer.getNumSamples()), 0);
-    fillNativeOutputBuffers(audioBuffer);
+    preProcessBuffers(audioBuffer, midiMessages);
+    native->process(native->getAudioPluginBuffer(), 0);
+    postProcessBuffers(audioBuffer, midiMessages);
 }
 
 bool AndroidAudioPluginInstance::hasMidiPort(bool isInput) const {
@@ -300,9 +362,6 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         // Once plugin service is bound, then continue connection.
         auto aapCallback = [=](int32_t instanceID, std::string error) {
             auto androidInstance = android_host->getInstance(instanceID);
-
-            auto connections = android_host->getConnections();
-            auto dMem = (uint64_t) connections;
 
             androidInstance->completeInstantiation();
 

@@ -14,22 +14,20 @@ class AndroidAudioPluginInstance : public juce::AudioPluginInstance {
     friend class AndroidAudioPluginParameter;
 
     aap::PluginInstance *native;
+    int32_t aap_midi_in_port{-1}, aap_midi_out_port{-1};
+    uint8_t midi_output_store[4096];
+    uint32_t midi_buffer_size{4096};
     int sample_rate;
     std::map<int32_t,int32_t> portMapAapToJuce{};
+    void preProcessBuffers(AudioBuffer<float> &audioBuffer, MidiBuffer &midiMessages);
+    void postProcessBuffers(AudioBuffer<float> &buffer, MidiBuffer &midiMessages);
 
-    void fillNativeInputBuffers(AudioBuffer<float> &audioBuffer, MidiBuffer &midiBuffer);
-    void fillNativeOutputBuffers(AudioBuffer<float> &buffer);
-
-    void allocateSharedMemory(int bufferIndex, size_t size);
-
-    void updateParameterValue(AndroidAudioPluginParameter* paramter);
+    bool parameterValueChanged(AndroidAudioPluginParameter* parameter, float newValue);
 
 public:
 
     AndroidAudioPluginInstance(aap::PluginInstance *nativePlugin);
-    ~AndroidAudioPluginInstance() override {
-    }
-    void destroyResources();
+    ~AndroidAudioPluginInstance() override;
 
     inline const String getName() const override {
         return native->getPluginInformation()->getDisplayName();
@@ -95,11 +93,7 @@ public:
     void fillInPluginDescription(PluginDescription &description) const override;
 };
 
-#if JUCEAAP_HOSTED_PARAMETER
 class AndroidAudioPluginParameter : public juce::AudioParameterFloat {
-#else
-class AndroidAudioPluginParameter : public juce::AudioProcessorParameter {
-#endif
     friend class AndroidAudioPluginInstance;
 
     int aap_parameter_id;
@@ -115,10 +109,9 @@ class AndroidAudioPluginParameter : public juce::AudioProcessorParameter {
     {
     }
 
-    float value{0.0f};
-
 public:
     int getAAPParameterId() const { return aap_parameter_id; }
+    void valueChanged(float newValue) override;
 };
 
 class AndroidAudioPluginFormat : public juce::AudioPluginFormat {
