@@ -101,7 +101,7 @@ class AndroidAudioPluginParameter : public juce::AudioParameterFloat {
     const aap::ParameterInformation* impl;
 
     AndroidAudioPluginParameter(int aapParameterId, AndroidAudioPluginInstance* audioPluginInstance, const aap::ParameterInformation* parameterInfo)
-            :  juce::AudioParameterFloat(parameterInfo->getId(), parameterInfo->getName(),
+            :  juce::AudioParameterFloat(String{parameterInfo->getId()}, parameterInfo->getName(),
                                          static_cast<float>(parameterInfo->getMinimumValue()),
                                          static_cast<float>(parameterInfo->getMaximumValue()),
                                          static_cast<float>(parameterInfo->getDefaultValue())),
