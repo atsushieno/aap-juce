@@ -39,7 +39,7 @@ class JuceAAPWrapper : juce::AudioPlayHead {
     AndroidAudioPlugin *aap;
     const char *plugin_unique_id;
     int sample_rate;
-    AndroidAudioPluginHost *host;
+    AndroidAudioPluginHost host;
     AndroidAudioPluginBuffer *buffer;
     aap_state_t state{nullptr, 0};
     juce::AudioProcessor *juce_processor;
@@ -54,8 +54,8 @@ class JuceAAPWrapper : juce::AudioPlayHead {
 
 public:
     JuceAAPWrapper(AndroidAudioPlugin *plugin, const char *pluginUniqueId, int sampleRate,
-                   AndroidAudioPluginHost *host)
-            : aap(plugin), sample_rate(sampleRate), host(host) {
+                   AndroidAudioPluginHost *aapHost)
+            : aap(plugin), sample_rate(sampleRate), host(*aapHost) {
 #if ANDROID
         typedef JavaVM*(*getJVMFunc)();
         auto libaap = dlopen("libandroidaudioplugin.so", RTLD_NOW);
@@ -115,9 +115,6 @@ public:
             juce_processor->getBus(false, 0)->enable();
         //juce_buffer.setSize(juce_processor->getMainBusNumOutputChannels(), buffer->num_frames);
         juce_midi_messages.clear();
-        cached_parameter_values.resize(juce_processor->getParameters().size());
-        for (int i = 0; i < cached_parameter_values.size(); i++)
-            cached_parameter_values[i] = 0.0f;
     }
 
     inline int getNumberOfChannelsOfBus(juce::AudioPluginInstance::Bus *bus) {
@@ -166,7 +163,6 @@ public:
     int32_t current_bpm = 120; // FIXME: provide way to adjust it
     int32_t default_time_division = 192;
 
-    std::vector<float> cached_parameter_values;
     uint8_t sysex_buffer[4096];
     int32_t sysex_offset{0};
 
@@ -208,20 +204,18 @@ public:
             int32_t positionInJRTimestamp = 0;
 
             CMIDI2_UMP_SEQUENCE_FOREACH(umpStart, midiInBuf->length, iter) {
-                auto ump = (cmidi2_ump*) iter;
-                auto messageType = cmidi2_ump_get_message_type(ump);
-                auto statusCode = cmidi2_ump_get_status_code(ump);
+                auto ump = (cmidi2_ump*) (void*) iter;
 
                 uint8_t paramGroup, paramChannel, paramKey{0}, paramExtra{0};
                 uint16_t paramId;
                 float paramValue;
                 if (readMidi2Parameter(&paramGroup, &paramChannel, &paramKey, &paramExtra, &paramId, &paramValue, ump)) {
-                    if (cached_parameter_values[paramId] != paramValue) {
-                        auto param = juce_processor->getParameterTree().getParameters(true)[paramId];
+                    auto param = juce_processor->getParameterTree().getParameters(true)[paramId];
+                    if (param != nullptr)
                         param->setValue(paramValue);
-                        cached_parameter_values[paramId] = paramValue;
-                        param->sendValueChangedMessageToListeners (paramValue);
-                    }
+                    else
+                        // The processor is as traditional as not providing parameter tree. We have to resort to traditional API.
+                        juce_processor->setParameter(paramId, paramValue);
                     continue;
                 }
             }
