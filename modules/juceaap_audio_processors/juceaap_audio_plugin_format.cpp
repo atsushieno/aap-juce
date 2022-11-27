@@ -88,13 +88,13 @@ void AndroidAudioPluginInstance::preProcessBuffers(AudioBuffer<float> &audioBuff
             memcpy(portBuffer, (void *) audioBuffer.getReadPointer(juceInputsAssigned++), (size_t) audioBuffer.getNumSamples() * sizeof(float));
         else if (port->getContentType() == AAP_CONTENT_TYPE_MIDI2) { // MIDI2 is handled below
             // Convert MidiBuffer into MIDI 2.0 UMP stream on the AAP port
-            size_t dstIntIndex = 0;
             MidiMessage msg{};
             int pos{0};
             const double oneTick = 1 / 31250.0; // sec
             double secondsPerFrameJUCE = 1.0 / sample_rate; // sec
             MidiBuffer::Iterator iter{midiMessages};
             auto mbh = (AAPMidiBufferHeader*) portBuffer;
+            size_t dstIntIndex = mbh->length;
             uint32_t *dstI = (uint32_t *) (void*) (mbh + 1);
             // Enable this for debugging when you are skeptical about parameter changes.
             //if (mbh->length > 0)
