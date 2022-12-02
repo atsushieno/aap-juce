@@ -17,6 +17,8 @@
 
 using namespace juce;
 
+#define AAP_JUCE_TAG "AAP-JUCE"
+
 extern juce::AudioProcessor *
 createPluginFilter(); // it is defined in each Audio plugin project (by Projucer).
 
@@ -100,15 +102,12 @@ public:
     void allocateBuffer(AndroidAudioPluginBuffer *buffer) {
         if (!buffer) {
             errno = juce_aap_wrapper_last_error_code = JUCEAAP_ERROR_INVALID_BUFFER;
+            aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "null buffer passed to allocateBuffer()");
             return;
         }
         // allocates juce_buffer. No need to interpret content.
         this->buffer = buffer;
         if (juce_processor->getBusCount(true) > 0) {
-            if (juce_processor->getMainBusNumInputChannels() != juce_processor->getMainBusNumOutputChannels()) {
-                errno = juce_aap_wrapper_last_error_code = JUCEAAP_ERROR_CHANNEL_IN_OUT_NUM_MISMATCH;
-                return;
-            }
             juce_processor->getBus(true, 0)->enable();
         }
         if (juce_processor->getBusCount(false) > 0)
