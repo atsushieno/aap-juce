@@ -186,7 +186,7 @@ do-build-target-android:
 .PHONY:
 update-aap-metadata: build-target-desktop
 	#if [ '`uname`' = 'Darwin' ] ; then \
-	#	cd $(APP_BUILD_DIR) && APPNAME=$(MACAPPNAME) EXTRA_OUTDIR=Builds/Android $(THISDIR)/generate-metadata.sh || exit 1 ; \
+	#	cd $(APP_BUILD_DIR) && APPNAME=$(MACAPPNAME) EXTRA_OUTDIR=Builds/Android $(AAP_JUCE_DIR)/generate-metadata.sh || exit 1 ; \
 	#else \
 		cd $(APP_BUILD_DIR) && \
 		APPNAME=$(APP_NAME) \
@@ -195,7 +195,7 @@ update-aap-metadata: build-target-desktop
 		PLAT_BUILD_DIR=$(PLAT_BUILD_DIR) \
 		LIBFILES=$(LIBFILES) \
 		EXTRA_LDFLAGS=$(METADATA_GENERATOR_EXTRA_LDFLAGS) \
-		$(THISDIR)/generate-metadata.sh #|| exit 1 ; \
+		$(AAP_JUCE_DIR)/generate-metadata.sh #|| exit 1 ; \
 	#fi
 
 .PHONY:
