@@ -51,7 +51,9 @@ class JuceAAPWrapper : juce::AudioPlayHead {
 
     juce::MidiBuffer juce_midi_messages;
     int32_t aap_midi2_in_port{-1}, aap_midi2_out_port{-1};
-    std::map<int32_t,int32_t> aap_to_juce_portmap{};
+    std::map<int32_t,int32_t> aap_to_juce_portmap_in{};
+    std::map<int32_t,int32_t> aap_to_juce_portmap_out{};
+    std::map<int32_t,int32_t> portmap_juce_to_aap_out{};
 
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
     juce::AudioPlayHead::PositionInfo play_head_position;
@@ -137,7 +139,9 @@ public:
         // retrieve AAP MDI2 ports. They are different from juce::AudioProcessor.acceptsMidi()
         auto pluginInfoExt = (aap_host_plugin_info_extension_t*) host.get_extension_data(&host, AAP_PLUGIN_INFO_EXTENSION_URI);
         if (pluginInfoExt) {
-            aap_to_juce_portmap.clear();
+            aap_to_juce_portmap_in.clear();
+            aap_to_juce_portmap_out.clear();
+            portmap_juce_to_aap_out.clear();
             int jucePortInIdx = 0, jucePortOutIdx = 0;
             int nOut = juce_processor->getMainBusNumOutputChannels();
 
@@ -153,9 +157,11 @@ public:
                         break;
                     case AAP_CONTENT_TYPE_AUDIO:
                         if (port.direction(&port) == AAP_PORT_DIRECTION_INPUT)
-                            aap_to_juce_portmap[i] = nOut + jucePortInIdx++;
-                        else
-                            aap_to_juce_portmap[i] = jucePortOutIdx++;
+                            aap_to_juce_portmap_in[i] = jucePortInIdx++;
+                        else {
+                            portmap_juce_to_aap_out[jucePortOutIdx] = i;
+                            aap_to_juce_portmap_out[i] = jucePortOutIdx++;
+                        }
                         break;
                     default:
                         break;
@@ -177,8 +183,6 @@ public:
         juce_processor->setPlayHead(this);
 
         juce_processor->prepareToPlay(sample_rate, buffer->num_frames);
-
-        resetJuceChannels(buffer);
     }
 
     void activate() {
@@ -449,14 +453,18 @@ public:
     }
 
     void resetJuceChannels(AndroidAudioPluginBuffer *audioBuffer) {
-
         int nOut = juce_processor->getMainBusNumOutputChannels();
         int nIn = juce_processor->getMainBusNumInputChannels();
 
         for (int i = 0; i < audioBuffer->num_buffers; i++) {
-            auto iter = aap_to_juce_portmap.find(i);
-            if (iter != aap_to_juce_portmap.end())
-                juce_channels[iter->second] = (float*) audioBuffer->buffers[i];
+            // Assign JUCE out channel buffer ONLY IF it is not assigned for inputs.
+            // To achieve that, first fill output buffer pointers, then overwrite by input buffer pointers.
+            auto iterOut = aap_to_juce_portmap_out.find(i);
+            if (iterOut != aap_to_juce_portmap_out.end())
+                juce_channels[iterOut->second] = (float*) audioBuffer->buffers[i];
+            auto iterIn = aap_to_juce_portmap_in.find(i);
+            if (iterIn != aap_to_juce_portmap_in.end())
+                juce_channels[iterIn->second] = (float*) audioBuffer->buffers[i];
         }
 
         juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), audioBuffer->num_frames);
@@ -499,6 +507,14 @@ public:
         // There isn't anything we can send to AAP MIDI2 output port if it does not exist, so far.
         if (juce_processor->producesMidi())
             processMidiOutputs(buffer);
+
+        int numAudioIns = juce_processor->getMainBusNumInputChannels();
+        int numAudioOuts = juce_processor->getMainBusNumOutputChannels();
+        int numCopied = numAudioIns < numAudioOuts ? numAudioIns : numAudioOuts;
+        for (int i = 0; i < numCopied; i++) {
+            auto aapPortIndex = portmap_juce_to_aap_out[i];
+            memcpy(audioBuffer->buffers[aapPortIndex], juce_channels[i], audioBuffer->num_frames * sizeof(float));
+        }
 
 #if JUCEAAP_LOG_PERF
         clock_gettime(CLOCK_REALTIME, &timeSpecEnd);
