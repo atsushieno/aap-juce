@@ -46,9 +46,11 @@ class JuceAAPWrapper : juce::AudioPlayHead {
     AndroidAudioPluginBuffer *buffer;
     aap_state_t state{nullptr, 0};
     juce::AudioProcessor *juce_processor;
-    HeapBlock<float*> juce_channels;
+    juce::HeapBlock<float*> juce_channels;
+    juce::AudioSampleBuffer juce_audio_buffer;
+
     juce::MidiBuffer juce_midi_messages;
-    int32_t midi_in_port{-1}, midi_out_port{-1};
+    int32_t aap_midi2_in_port{-1}, aap_midi2_out_port{-1};
     std::map<int32_t,int32_t> aap_to_juce_portmap{};
 
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
@@ -102,8 +104,8 @@ public:
     }
 #endif
 
-    void allocateBuffer(AndroidAudioPluginBuffer *buffer) {
-        if (!buffer) {
+    void allocateBuffer(AndroidAudioPluginBuffer *aapBuffer) {
+        if (!aapBuffer) {
             errno = juce_aap_wrapper_last_error_code = JUCEAAP_ERROR_INVALID_BUFFER;
             aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "null buffer passed to allocateBuffer()");
             return;
@@ -111,14 +113,15 @@ public:
 
         juce_channels.calloc(juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels());
 
+        juce_audio_buffer.setSize(juce_processor->getMainBusNumOutputChannels(), aapBuffer->num_frames);
+
         // allocates juce_buffer. No need to interpret content.
-        this->buffer = buffer;
+        this->buffer = aapBuffer;
         if (juce_processor->getBusCount(true) > 0) {
             juce_processor->getBus(true, 0)->enable();
         }
         if (juce_processor->getBusCount(false) > 0)
             juce_processor->getBus(false, 0)->enable();
-        //juce_buffer.setSize(juce_processor->getMainBusNumOutputChannels(), buffer->num_frames);
         juce_midi_messages.clear();
     }
 
@@ -144,9 +147,9 @@ public:
                 switch (port.content_type(&port)) {
                     case AAP_CONTENT_TYPE_MIDI2:
                         if (port.direction(&port) == AAP_PORT_DIRECTION_INPUT)
-                            midi_in_port = i;
+                            aap_midi2_in_port = i;
                         else
-                            midi_out_port = i;
+                            aap_midi2_out_port = i;
                         break;
                     case AAP_CONTENT_TYPE_AUDIO:
                         if (port.direction(&port) == AAP_PORT_DIRECTION_INPUT)
@@ -174,6 +177,8 @@ public:
         juce_processor->setPlayHead(this);
 
         juce_processor->prepareToPlay(sample_rate, buffer->num_frames);
+
+        resetJuceChannels(buffer);
     }
 
     void activate() {
@@ -206,11 +211,10 @@ public:
                                            *raw, *(raw + 1), *(raw + 2), *(raw + 3));
     }
 
-    void processMidiInputs(int nBuf, AndroidAudioPluginBuffer *audioBuffer) {
+    void processMidiInputs(AndroidAudioPluginBuffer *audioBuffer) {
 
         sysex_offset = 0;
-        int32_t midiBufferPortId = nBuf;
-        auto midiInBuf = (AAPMidiBufferHeader*) audioBuffer->buffers[midiBufferPortId];
+        auto midiInBuf = (AAPMidiBufferHeader*) audioBuffer->buffers[aap_midi2_in_port];
         auto umpStart = ((uint8_t*) midiInBuf) + sizeof(AAPMidiBufferHeader);
         int32_t positionInJRTimestamp = 0;
 
@@ -407,16 +411,47 @@ public:
         }
     }
 
-    void process(AndroidAudioPluginBuffer *audioBuffer, long timeoutInNanoseconds) {
-#if JUCEAAP_LOG_PERF
-        struct timespec timeSpecBegin, timeSpecEnd;
-        struct timespec procTimeSpecBegin, procTimeSpecEnd;
-        clock_gettime(CLOCK_REALTIME, &timeSpecBegin);
-#endif
+    void processMidiOutputs(AndroidAudioPluginBuffer* buffer) {
+        // This part is not really verified... we need some JUCE plugin that generates some outputs.
+        void *dst = buffer->buffers[aap_midi2_out_port];
+        auto outMidiBuf = (AAPMidiBufferHeader*) dst;
+        auto umpDst = (cmidi2_ump*) ((uint8_t*) dst + sizeof(AAPMidiBufferHeader));
+
+        MidiBuffer::Iterator iterator{juce_midi_messages};
+        const uint8_t *data;
+        int32_t eventSize, eventPos, dstBufSize = 0;
+        while (iterator.getNextEvent(data, eventSize, eventPos)) {
+            if (data[eventPos] == 0xF0) {
+                // sysex
+                memcpy(sysex_buffer, data + eventPos, eventSize);
+                auto numPackets = cmidi2_ump_sysex7_get_num_packets(eventSize);
+                for (int i = 0; i < numPackets; i++)
+                    cmidi2_ump_write64(umpDst, cmidi2_ump_sysex7_get_packet_of(
+                            0, i + 1 < numPackets ? 6 : eventSize % 6,
+                            (void *) (data + eventPos + i * 6), i));
+                umpDst += 2;
+            } else if (data[eventPos] > 0xF0) {
+                cmidi2_ump_write32(umpDst, cmidi2_ump_system_message(
+                        0, data[eventPos],
+                        eventSize > 1 ? data[eventPos + 1] : 0,
+                        eventSize > 2 ? data[eventPos + 2] : 0));
+                umpDst++;
+            } else {
+                cmidi2_ump_write32(umpDst, cmidi2_ump_midi1_message(
+                        0, data[eventPos] & 0xF0, data[eventPos] & 0xF,
+                        eventSize > 1 ? data[eventPos + 1] : 0,
+                        eventSize > 2 ? data[eventPos + 2] : 0));
+                umpDst++;
+            }
+            dstBufSize += eventSize;
+        }
+        outMidiBuf->length = dstBufSize;
+    }
+
+    void resetJuceChannels(AndroidAudioPluginBuffer *audioBuffer) {
 
         int nOut = juce_processor->getMainBusNumOutputChannels();
-        int nBuf = juce_processor->getMainBusNumInputChannels() +
-                   juce_processor->getMainBusNumOutputChannels();
+        int nIn = juce_processor->getMainBusNumInputChannels();
 
         for (int i = 0; i < audioBuffer->num_buffers; i++) {
             auto iter = aap_to_juce_portmap.find(i);
@@ -424,17 +459,26 @@ public:
                 juce_channels[iter->second] = (float*) audioBuffer->buffers[i];
         }
 
-        if (midi_in_port >= 0) {
-            processMidiInputs(nBuf, audioBuffer);
-        }
+        juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), audioBuffer->num_frames);
+    }
+
+    void process(AndroidAudioPluginBuffer *audioBuffer, long timeoutInNanoseconds) {
+#if JUCEAAP_LOG_PERF
+        struct timespec timeSpecBegin, timeSpecEnd;
+        struct timespec procTimeSpecBegin, procTimeSpecEnd;
+        clock_gettime(CLOCK_REALTIME, &timeSpecBegin);
+#endif
+        resetJuceChannels(audioBuffer);
+
+        if (aap_midi2_in_port >= 0)
+            processMidiInputs(audioBuffer);
 
         // process data by the JUCE plugin
 #if JUCEAAP_LOG_PERF
         clock_gettime(CLOCK_REALTIME, &procTimeSpecBegin);
 #endif
-        juce::AudioSampleBuffer juceAudioBuffer(juce_channels, jmax(nBuf - nOut, nOut), audioBuffer->num_frames);
 
-        juce_processor->processBlock(juceAudioBuffer, juce_midi_messages);
+        juce_processor->processBlock(juce_audio_buffer, juce_midi_messages);
 
 #if JUCEAAP_LOG_PERF
         clock_gettime(CLOCK_REALTIME, &procTimeSpecEnd);
@@ -453,43 +497,8 @@ public:
 #endif
 
         // There isn't anything we can send to AAP MIDI2 output port if it does not exist, so far.
-        if (juce_processor->producesMidi()) {
-            // This part is not really verified... we need some JUCE plugin that generates some outputs.
-            int32_t midiOutBufIndex = nBuf + (juce_processor->acceptsMidi() ? 1 : 0);
-            void *dst = buffer->buffers[midiOutBufIndex];
-            auto outMidiBuf = (AAPMidiBufferHeader*) dst;
-            auto umpDst = (cmidi2_ump*) ((uint8_t*) dst + sizeof(AAPMidiBufferHeader));
-
-            MidiBuffer::Iterator iterator{juce_midi_messages};
-            const uint8_t *data;
-            int32_t eventSize, eventPos, dstBufSize = 0;
-            while (iterator.getNextEvent(data, eventSize, eventPos)) {
-                if (data[eventPos] == 0xF0) {
-                    // sysex
-                    memcpy(sysex_buffer, data + eventPos, eventSize);
-                    auto numPackets = cmidi2_ump_sysex7_get_num_packets(eventSize);
-                    for (int i = 0; i < numPackets; i++)
-                        cmidi2_ump_write64(umpDst, cmidi2_ump_sysex7_get_packet_of(
-                                0, i + 1 < numPackets ? 6 : eventSize % 6,
-                                (void *) (data + eventPos + i * 6), i));
-                    umpDst += 2;
-                } else if (data[eventPos] > 0xF0) {
-                    cmidi2_ump_write32(umpDst, cmidi2_ump_system_message(
-                            0, data[eventPos],
-                            eventSize > 1 ? data[eventPos + 1] : 0,
-                            eventSize > 2 ? data[eventPos + 2] : 0));
-                    umpDst++;
-                } else {
-                    cmidi2_ump_write32(umpDst, cmidi2_ump_midi1_message(
-                            0, data[eventPos] & 0xF0, data[eventPos] & 0xF,
-                            eventSize > 1 ? data[eventPos + 1] : 0,
-                            eventSize > 2 ? data[eventPos + 2] : 0));
-                    umpDst++;
-                }
-                dstBufSize += eventSize;
-            }
-            outMidiBuf->length = dstBufSize;
-        }
+        if (juce_processor->producesMidi())
+            processMidiOutputs(buffer);
 
 #if JUCEAAP_LOG_PERF
         clock_gettime(CLOCK_REALTIME, &timeSpecEnd);
