@@ -3,7 +3,7 @@
 buildscript {
     ext.kotlin_version = '1.7.10'
     ext.dokka_version = '1.7.20'
-    ext.aap_version = '0.7.4'
+    ext.aap_version = '0.7.5-pre'
     ext.enable_asan = false
 
     repositories {
@@ -12,7 +12,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.2.2'
+        classpath 'com.android.tools.build:gradle:7.3.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokka_version"
     }
