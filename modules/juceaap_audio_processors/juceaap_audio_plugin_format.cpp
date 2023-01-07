@@ -236,8 +236,8 @@ AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpected
 
     // minimum setup, as the pointers are not passed by JUCE framework side.
     int numPorts = native->getNumPorts();
-    auto *buf = native->getAudioPluginBuffer(
-            (size_t) numPorts, (size_t) maximumExpectedSamplesPerBlock, midi_buffer_size);
+    native->allocateAudioPluginBuffer((size_t) numPorts, (size_t) maximumExpectedSamplesPerBlock, midi_buffer_size);
+    auto *buf = native->getAudioPluginBuffer();
     native->prepare(maximumExpectedSamplesPerBlock, buf);
 
     for (int i = 0, n = native->getNumPorts(); i < n; i++) {
@@ -385,8 +385,8 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         callback(nullptr, error);
     } else {
         // Once plugin service is bound, then continue connection.
-        auto aapCallback = [this, callback](int32_t instanceID, std::string error) {
-            auto androidInstance = android_host->getInstance(instanceID);
+        std::function<void(int32_t,std::string&)> aapCallback = [this, callback](int32_t instanceID, std::string& error) {
+            auto androidInstance = android_host->getInstanceById(instanceID);
 
             androidInstance->completeInstantiation();
 

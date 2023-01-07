@@ -70,7 +70,7 @@ public:
     }
 
     inline const String getProgramName(int index) override {
-        return native->getStandardExtensions().getCurrentPresetName(index);
+        return native->getStandardExtensions().getPresetName(index);
     }
 
     inline void changeProgramName(int index, const String &newName) override {
