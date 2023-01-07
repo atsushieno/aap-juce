@@ -1,6 +1,6 @@
 # AAP-JUCE: JUCE audio plugin and hosting support for AAP (Android Audio Plugin)
 
-This repo is the place where we have the common JUCE integration support modules for [android-audio-plugin-framework](https://github.com/atsushieno/android-audio-plugin-framework) (AAP), for both plugins and hosts.
+This repo is the place where we have the common JUCE integration support modules for [aap-core](https://github.com/atsushieno/aap-core) (AAP), for both plugins and hosts.
 
 The entire AAP framework is on early development phase and not ready for any serious consumption yet.
 Everything is subject to change. Contributions are welcome but please bear in mind, documentation is poor and source code is ugly yet. We have [GitHub discussions for the project](https://github.com/atsushieno/aap-juce/discussions/landing) enabled so please feel free to shoot your questions, if any.
@@ -53,9 +53,9 @@ You would have to build and install each host and/or plugin from source so far, 
 
 You need a host app and a plugin to try at least one plugin via one host. This repository does not contain any application within itself.
 
-The host can be either `aaphostsample` in android-audio-plugin-framework repo, or `AudioPluginHost` in [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) repo (which is JUCE AudioPluginHost with AAP support).
+The host can be either `aaphostsample` in aap-core repo, or `AudioPluginHost` in [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) repo (which is JUCE AudioPluginHost with AAP support).
 
-The plugin can be either `aapbarebonepluginsample` in android-audio-plugin-framework repo (more stable), or any plugin from the [Existing ports](#Existing%20ports) section.
+The plugin can be either `aapbarebonepluginsample` in aap-core repo (more stable), or any plugin from the [Existing ports](#Existing%20ports) section.
 
 For those `aap-juce-*` repositories, `make` will build them.
 
@@ -257,19 +257,19 @@ Changes below are also needed. You can edit with text editors, which would be ea
 - In `<LINUX_MAKE>` and `<ANDROIDSTUDIO>` element, replace `<CONFIGURATION>` elements with the contents explained below for each.
 
 Below are `<CONFIGURATION>` rewrites.
-Note that `make copy-and-patch-app-sources` adds a symbolic link `android-audio-plugin-framework` to AAP submodule, so without it those configuration sections won't work.
+Note that `make copy-and-patch-app-sources` adds a symbolic link `aap-core` to AAP submodule, so without it those configuration sections won't work.
 Also this ignores any possible existing header and library paths specified, so if there are any, do not forget to add them to those paths as well.
 
 For `<LINUX_MAKE>` for desktop (`Builds/LinuxMakefile`, not to be confused with the one for `EMSCRIPTEN`, if exists), below:
 
 ```
         <CONFIGURATION name="Debug" isDebug="1"
-            headerPath="../../android-audio-plugin-framework/include"
-            libraryPath="/usr/X11R6/lib/;../../android-audio-plugin-framework/build/native/androidaudioplugin"
+            headerPath="../../aap-core/include"
+            libraryPath="/usr/X11R6/lib/;../../aap-core/build/native/androidaudioplugin"
             />
         <CONFIGURATION name="Release" isDebug="0" optimisation="2"
-            headerPath="../../android-audio-plugin-framework/include"
-            libraryPath="/usr/X11R6/lib/;../../android-audio-plugin-framework/build/native/androidaudioplugin"
+            headerPath="../../aap-core/include"
+            libraryPath="/usr/X11R6/lib/;../../aap-core/build/native/androidaudioplugin"
             />
 ```
 
@@ -277,13 +277,13 @@ For `<ANDROIDSTUDIO>`:
 
 ```
         <CONFIGURATION name="Debug" isDebug="1" 
-                       headerPath="../../android-audio-plugin-framework/include"
-                       libraryPath="../../android-audio-plugin-framework/androidaudioplugin/build/intermediates/cmake/debug/obj/${ANDROID_ABI}"
+                       headerPath="../../aap-core/include"
+                       libraryPath="../../aap-core/androidaudioplugin/build/intermediates/cmake/debug/obj/${ANDROID_ABI}"
                        optimisation="1" linkTimeOptimisation="0"
                        recommendedWarnings="LLVM"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" linkTimeOptimisation="1"
-                       headerPath="../../android-audio-plugin-framework/include"
-                       libraryPath="../../android-audio-plugin-framework/androidaudioplugin/build/intermediates/cmake/release/obj/${ANDROID_ABI}"
+                       headerPath="../../aap-core/include"
+                       libraryPath="../../aap-core/androidaudioplugin/build/intermediates/cmake/release/obj/${ANDROID_ABI}"
                        recommendedWarnings="LLVM"/>
 ```
 
@@ -312,7 +312,7 @@ It is tricky to set up ASAN for aap-juce apps, especially for those projects tha
 
 The easiest way would be to copy `setup-asan-for-debugging.sh` to `(app)/Builds/Android/` directory, modify the script to have `ALL_APPS` variable to point to `app` directory, and run it there. For CMake-based projects, it can be just the top directory (and point to the source as well).
 
-Then you have to make some changes to the build scripts (`build.gradle(.kts)` and `CMakeLists.txt`) to take those options. You can track how `enable_asan` variable in `android-audio-plugin-framework` repository is used.
+Then you have to make some changes to the build scripts (`build.gradle(.kts)` and `CMakeLists.txt`) to take those options. You can track how `enable_asan` variable in `aap-core` repository is used.
 
 There is one more change needed: Projucer generates CMake arguments to contain `-DANDROID_STL_c++_static`. It has to be changed to `-DANDROID_STL=c++_shared`.
 

@@ -31,7 +31,7 @@ JUCE_DIR=$(shell pwd)/external/JUCE
 endif
 
 ## Specify path to aap core. The default is the submodule path.
-AAP_DIR=$(shell pwd)/external/android-audio-plugin-framework
+AAP_DIR=$(shell pwd)/external/aap-core
 
 ## If the build output is going to be too huge to keep, use this flag to delete.
 MINIMIZE_INTERMEDIATES=0
@@ -151,8 +151,8 @@ $(APP_COPY_DIR)/.stamp: \
 	if [ ! -L $(APP_COPY_DIR)/juce-modules ] ; then \
 		ln -s $(JUCE_DIR)/modules $(APP_COPY_DIR)/juce-modules ; \
 	fi
-	if [ ! -L $(APP_COPY_DIR)/android-audio-plugin-framework ] ; then \
-		ln -s $(AAP_DIR) $(APP_COPY_DIR)/android-audio-plugin-framework ; \
+	if [ ! -L $(APP_COPY_DIR)/aap-core ] ; then \
+		ln -s $(AAP_DIR) $(APP_COPY_DIR)/aap-core ; \
 	fi
 
 .PHONY:

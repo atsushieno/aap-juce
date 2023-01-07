@@ -6,7 +6,7 @@ vendor: atsushieno
 version: 0.1.0
 name: AAP JUCE client support
 description: AAP wrapper to build AAP from JUCE audio processors
-website: https://github.com/atsushieno/android-audio-plugin-framework
+website: https://github.com/atsushieno/aap-juce
 license: GPLv3
 
 END_JUCE_MODULE_DECLARATION
