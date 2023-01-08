@@ -1,4 +1,4 @@
-# AAP-JUCE: JUCE audio plugin and hosting support for AAP (Android Audio Plugin)
+# AAP-JUCE: JUCE audio plugin and hosting support for AAP (Audio Plugins For Android)
 
 This repo is the place where we have the common JUCE integration support modules for [aap-core](https://github.com/atsushieno/aap-core) (AAP), for both plugins and hosts.
 
@@ -32,7 +32,7 @@ This repository used to contain a handful of sample projects, but to avoid bloat
 
 aap-juce-plugin-host can enumerate the installed AAP plugins on the system (not limited to aap-juce ones), and instantiate each plugin.
 
-At this state, this repository itself is almost only about a set of build scripts that lets you bring in your own JUCE based audio plugins into AAP world. And probably more importantly, this README.
+At this state, this repository itself is almost only about a set of build scripts that lets you port your (or others') JUCE based audio plugins to AAP world. And probably more importantly, this README.
 
 ## Why JUCE for AAP?
 
