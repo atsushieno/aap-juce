@@ -90,7 +90,11 @@ build-aap-core:
 
 build-app-cmake:
 	if [ ! -f local.properties ] ; then \
-		echo "sdk.dir=$(HOME)/Android/Sdk" > local.properties ; \
+		if [ `uname` == "Darwin" ] ; then \
+			echo "sdk.dir=$(HOME)/Library/Android/sdk" > local.properties ; \
+		else \
+			echo "sdk.dir=$(HOME)/Android/Sdk" > local.properties ; \
+		fi ; \
 	fi
 	./gradlew build
 	mkdir -p release-builds
