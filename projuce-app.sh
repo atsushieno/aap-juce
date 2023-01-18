@@ -80,7 +80,7 @@ APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:] | tr - _`
 
 # Projucer is too inflexible to generate required content.
 ## AndroidManifest.xml (only for plugins)
-sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.juceports.$APPNAMELOWER/" $MANIFEST_TEMPLATE > Builds/Android/app/src/main/AndroidManifest.xml || exit 1
+sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.ports.juce.$APPNAMELOWER/" $MANIFEST_TEMPLATE > Builds/Android/app/src/main/AndroidManifest.xml || exit 1
 
 echo "-------- Post-projucer file list for $APPNAME: --------"
 find .
