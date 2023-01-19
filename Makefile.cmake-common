@@ -115,7 +115,7 @@ dist:
 update-aap-metadata-cmake:
 	mkdir -p $(APP_SRC_DIR)/build-desktop
 	cd $(APP_SRC_DIR)/build-desktop && \
-		cmake -DAAP_DIR="$(AAP_DIR)" -DAAP_JUCE_DIR="$(AAP_JUCE_DIR)" .. && \
+		cmake -DAAP_DIR="$(AAP_DIR)" -DAAP_JUCE_DIR="$(AAP_JUCE_DIR)" $(METADATA_GENERATOR_CMAKE_EXTRA_FLAGS) .. && \
 		make && cd $(CURDIR)
 	cd $(APP_SRC_DIR)/build-desktop && \
 		APPNAME=$(APP_NAME) \
