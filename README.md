@@ -7,32 +7,11 @@ Everything is subject to change. Contributions are welcome but please bear in mi
 
 ## Existing ports
 
-This repository used to contain a handful of sample projects, but to avoid bloat core library repository, they are split from here and have their own repositories.
-
-- Host:
-  - [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) from JUCE [AudioPluginHost](https://github.com/WeAreROLI/JUCE/tree/master/extras/AudioPluginHost/)
-  - [aap-juce-helio](https://github.com/atsushieno/aap-juce-helio) from [helio-fm/helio-workstation](https://github.com/helio-fm/helio-workstation)
-- Plugins:
-  - These are projects based on traditional Projucer stuff. Not recommended to follow them to start a new AAP project.
-    - [aap-juce-adlplug](https://github.com/atsushieno/aap-juce-adlplug) from [jpcima/ADLplug](https://github.com/jpcima/ADLplug)
-    - [aap-juce-obxd](https://github.com/atsushieno/aap-juce-obxd) from [reales/OB-Xd](https://github.com/reales/OB-Xd)
-    - [aap-juce-vital](https://github.com/atsushieno/aap-juce-vital) from [mtytel/vital](https://github.com/mtytel/vital)
-    - [aap-juce-ports](https://github.com/atsushieno/aap-juce-ports) contains other various ports from...
-      - [artfwo/andes](https://github.com/artfwo/andes/)
-      - [getdunne/SARAH](https://github.com/getdunne/SARAH/)
-      - [yokemura/Magical8bitPlug2](https://github.com/yokemura/Magical8bitPlug2/)
-  - There are some ports from CMake based projects as well (better to follow):
-    - [aap-juce-dexed](https://github.com/atsushieno/aap-juce-dexed) from [asb2m10/dexed](https://github.com/asb2m10/dexed/)
-    - [aap-juce-odin2](https://github.com/atsushieno/aap-juce-odin2) from [TheWaveWarden/odin2](https://github.com/TheWaveWarden/odin2)
-    - [aap-juce-witte-eq](https://github.com/atsushieno/aap-juce-witte-eq) from [witte/Eq](https://github.com/witte/Eq)
-    - [aap-juce-chow-phaser](https://github.com/atsushieno/aap-juce-chow-phaser) from [jatinchowdhury18/ChowPhaser](https://github.com/jatinchowdhury18/ChowPhaser/)
-    - [aap-juce-simple-reverb](https://github.com/atsushieno/aap-juce-simple-reverb) from [szkkng/SimpleReverb](https://github.com/szkkng/SimpleReverb)
-    - [aap-juce-hera](https://github.com/atsushieno/aap-juce-hera) from [jpcima/Hera](https://github.com/jpcima/Hera)
-    - [aap-juce-frequalizer](https://github.com/atsushieno/aap-juce-frequalizer) from [ffAudio/Frequalizer](https://github.com/ffAudio/Frequalizer)
+This repository used to contain a handful of sample projects, but to avoid bloat core library repository, they are split from here and have their own repositories. Now they are listed at [AAP Wiki](https://github.com/atsushieno/aap-core/wiki/List-of-AAP-plugins-and-hosts).
 
 aap-juce-plugin-host can enumerate the installed AAP plugins on the system (not limited to aap-juce ones), and instantiate each plugin.
 
-At this state, this repository itself is almost only about a set of build scripts that lets you port your (or others') JUCE based audio plugins to AAP world. And probably more importantly, this README.
+At this state, this repository itself is almost only about a set of build scripts that lets you port your (or others') JUCE audio plugins and hosts to AAP world. And probably more importantly, this README.
 
 ## Why JUCE for AAP?
 
@@ -45,38 +24,41 @@ While JUCE itself is useful to develop frameworks like AAP, it is designed to be
 
 Their API is stable-ish, while AAP API is not. So if anyone wants to get audio plugins portable without fear of API breakage, JUCE can be your good friend.
 
-Note that JUCE plugins are usually designed for desktop and not meant to be usable on mobiles. In particular, their UIs are usually useless on mobile.
+Note that JUCE plugins are usually designed for desktop and not meant to be usable on mobiles. In particular -
+
+- their UIs are usually useless on mobile.
+- those plugins that lets user pick up local files would not fit well with Android paradigm.
+- Some plugins woudl expose performance issues too.
 
 ## How to try it out?
 
-You would have to build and install each host and/or plugin from source so far, or look for the APKs from the build artifacts zip archives from successful GitHub Actions workflow runs.
+You would have to build and install each host and/or plugin from source so far, or look for the APKs from the build artifacts zip archives from successful GitHub Actions workflow runs. They could be installed via [AAP APK Installer](https://github.com/atsushieno/aap-ci-package-installer).
 
 You need a host app and a plugin to try at least one plugin via one host. This repository does not contain any application within itself.
 
 The host can be either `aaphostsample` in aap-core repo, or `AudioPluginHost` in [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) repo (which is JUCE AudioPluginHost with AAP support).
 
-The plugin can be either `aapbarebonepluginsample` in aap-core repo (more stable), or any plugin from the [Existing ports](#Existing%20ports) section.
+The plugin can be either `aapbarebonepluginsample` in aap-core repo (more stable), or any plugin on the [AAP Wiki](https://github.com/atsushieno/aap-core/wiki/List-of-AAP-plugins-and-hosts).
 
 For those `aap-juce-*` repositories, `make` will build them.
 
 For JUCE apps that use Projucer, JUCE Android apps are generated and built under `Builds/Android/app/build/outputs/` in each app directory.
 Though we typically use Android Studio and open `Builds/Android` and then run or debug there, once top-level `make` ran successfully.
 
-(For those projects that does not use Projucer, there is no `Builds/Android` path part.)
+For those projects that use CMake, it is `app/build/outputs`.
 
 
 ## Build Instruction
 
 There is a GitHub Actions workflow setup, which is an official build instructions. It is almost one `make` call if all conditions are met.
 
-We used to require Linux desktop for complete builds, but now that we skip desktop builds of those plugins, there are much less requirements. Yet, we need a working "Projucer" as well as bash-baked Makefiles, so you'd still need a Unix-y environment. It may change again once we support UI integration, but until then it would be quite portable.
+You need Android SDK. If you install it via Android Studio it is usually placed under `~/Android/Sdk` on Linux, and `~/Library/Android/sdk` on MacOS.
+You also need Android NDK, most likely at least r23 (our latest development version uses newer ones).
 
-You need Android SDK. If you install it via Android Studio it is usually placed under `~/Android/Sdk`.
-You also need Android NDK, most likely 23.x (no verification with other versions). It would be installed under `~/Android/Sdk/ndk/23.*`.
-
-Depending on the NDK setup you might also have to rewrite `Makefile` and `Builds/Android/local.properties` to point to the right NDK location. Then run `cd Builds/Android && ./gradlew build` instead of `./projuce-app.sh`.
+For those project that use Projucer: depending on the NDK setup you might also have to rewrite `Makefile` and `Builds/Android/local.properties` to point to the right NDK location. Then run `cd Builds/Android && ./gradlew build` instead of `./projuce-app.sh`.
 It would be much easier to place Android SDK and NDK to the standard location though. Symbolic links would suffice.
 
+CMake based projects would similarly need to tweak `Makefile`, but other than that it is a typical Android Studio (Android Gradle) project.
 
 ## Porting a plugin or a host to AAP
 
@@ -84,16 +66,7 @@ To port existing plugins, or even with a new project, you will either follow the
 You would normally have no choice, the original project would be either of those already, but CMake is much easier and much more intuitive to deal with. With Projucer, you will have to generate project every time you make changes to the project.
 In either approach, you end up with an Android Studio (Gradle) project that you can open on Android Studio (or stick to Gradle to build and adb to install, like we do on CI).
 
-### Find reference projects from existing ports
-
-There is not a few example ports of existing open source JUCE plugins, and some of them are deliverately picked up to fill this matrix:
-
-| Project kind | Instruments | Effects | Hosts |
-|-|-|-|-|
-| Projucer | Obxd, ... | - | AudioPluginHost, Helio Workstation |
-| CMake | Dexed, Odin2, Hera | witte/Eq, ChowPhaser, Frequalizer | - |
-
-(AudioPluginHost builds with CMake too, but our since CMake support came later it is still based on Projucer. Also since it's part of the entire JUCE source, importing only AudioPluginHost looks complicated. This may change in the near future.)
+There are many aap-juce based apps that could be used as reference/template projects. See the list of plugins on the AAP Wiki.
 
 ### Making application itself build for Android
 
@@ -111,17 +84,18 @@ For a project that build with CMake, it is fairly easier to port to AAP.
 
 There are existing sample projects listed earlier on this documentation, and to port an existing plugin project (or even if you are going to create a new JUCE plugin project), it is easier to create new project based off of those existing ones, making changes to your plugin specifics.
 
-The best way to find out what you should make changes can be found by:
+The best way to find out what you should make changes can be found e.g. by:
 
 ```
 diff -u aap-juce-witte-eq/ aap-juce-chow-phaser/
 diff -u aap-juce-witte-eq/app aap-juce-chow-phaser/app
+diff -ur aap-juce-witte-eq/app/src aap-juce-chow-phaser/app/src -x cpp
 ```
 
-are some important bits:
+There are some important bits:
 
 - JUCE needs some changes. [JUCE-support-Android-CMake.patch](JUCE-support-Android-CMake.patch) is applied if you build those ports with `make`.
-- The plugin's top level `CMakeLists.txt` : we need `Standalone` plugin build (as no other formats are supported, and on Android it is built as a shared library). Also there are handful of 
+- The plugin's top level `CMakeLists.txt` : we need `Standalone` plugin build (as no other formats are supported, and on Android it is built as a shared library).
 - `app/CMakeLists.txt` has plugin-specific information, as well as references to JUCE subdirectories.
 
 A typical porting trouble we encounter is that even if the activity launches, it shows an empty screen.
@@ -146,9 +120,9 @@ Now, we have to dive into our sausage internals more in depth...
 
 The copied project has overwritten .jucer project (or sometimes different .jucer file than the original aside) that you can keep working with Projucer and Android Studio without creating patched source tree over and over again.
 But any changes made to the source code has to be backported to the original source tree.
-And if you indeed need to perform this process, run `make copy-and-patch-app-sources` which will recreate the application source tree.
+And if you *indeed* need to perform this process (you usually don't), run `make copy-and-patch-app-sources` which will recreate the application source tree.
 
-In any case, before performing this task, you need this "modified version of `.jucer` file". This work is too verbose to explain here. I wrote the details later in this README ("Rewriting .jucer file for AAP").
+In any case, before performing this task, you need this "modified" version of the `.jucer` file. This work is too verbose to explain here. I wrote the details later in this README ("Rewriting .jucer file for AAP").
 
 Once you are done with the modified .jucer file, you still need `aap_metadata.xml` for your project, so run `make update-aap-metadata` or `make update-aap-metadata-cmake` to generate it (explained later too).
 Copy it somewhere with some identical name, typically under `apps`.
@@ -160,7 +134,7 @@ If you are not making changes to .jucer file, you can keep working with the gene
 If you run Projucer to resave the project, the project is overwritten, which invalidates project fixup for AAP (we rewrite AndroidManifest.xml, build.gradle, and so on), so you should avoid that.
 Instead, run `make projuce-app` to resave projects and perform required overwrites.
 
-Lastly, for hosts, `AndroidAudioPluginFormat` has to be added to the app's `AudioPluginFormatManager` instances in the application code.
+Lastly, for hosts, `AndroidAudioPluginFormat` has to be added to the app's `AudioPluginFormatManager` instances in the application code (example [1](https://github.com/atsushieno/aap-juce-plugin-host/blob/295aa69b48a25f798520d9a365b611a081a0a725/apps/juceaaphost.patch#L62)/[2](https://github.com/atsushieno/aap-juce-plugin-host/blob/295aa69b48a25f798520d9a365b611a081a0a725/apps/juceaaphost.patch#L102)).
 
 
 ### Generating and updating aap_metadata.xml
@@ -175,6 +149,10 @@ To import JUCE audio plugins into AAP world, we have to create plugin
 descriptor (`aap_metadata.xml`). We have a supplemental tool source to
 help generating it automatically from JUCE plugin binary (shared code).
 
+
+### Dealing with different JUCE versions
+
+JUCE sometimes involves incompatible changes between versions, and sometimes they involve those project file generators. We have some Makefile variables that changes the behavior. It is worth inspecting `Makefile.common` for Projucer-based project and `Makefile.cmake-common` for CMake-based projects (they are often added).
 
 ## Under the hood
 
@@ -324,22 +302,6 @@ The easiest way to hack AAP JUCE integration itself would be still via soem port
 
 Although on the other hand, JUCE integration on desktop is significantly easy as JUCE is primarily developed for desktop, if code to hack is not Android specific.
 JUCE exporter for CLion may be useful for debugging (especially that Android Studio native builds are also for CMake either way). On CLion (verified with 2019.3) setting the project root with `Tools` -> `CMake` -> `Change Project Root` command would make it possible to diagnose issues with breakpoints on the sources from AAP itself (also LV2 dependencies and prebuilt LV2 plugins e.g. mda-lv2, but it is out of scope of this repo).
-
-## Debugging plugins (obsolete?)
-
-WARNING: this does not "seem" to apply anymore. @atsushieno does not need this anyhow. But in case debuggers does not work, this might give some hints so I would leave this section as is...
-
-It is not very intuitive to debug a plugin service. As a standard Android debugging tip, a service needs to call `android.os.waitForDebugger()` to accept debugger connection from Android Studio (or anything that supports ADB/JDWP).
-
-It is not called by default, so it has to be manually added when you'd like to debug plugins. AAP-JUCE plugins are JUCE Apps, and they starts from `com.roli.juce.JuceApp`, whose `onCreate()` calls `Java.initialiseJUCE()`. So if you add a call to `waitForDebugger()` above before `initializeJUCE()`, then it enables the debugger.
-
-Note that if you add such a call, the call to `waitForDebugger()` will block until Android Studio actually connects, so you should add the call only when you need a debugger.
-
-Also, aap-juce plugins are apps with the default Activity from Juce Android support, which terminates the application if the activity gets inactive, which means debugger also gets terminated. You need another startup configuration that does not launch the main Activity.
-
-![configuration for service debugging](docs/images/debugging-exec-configuration.png)
-
-Also note that depending on which application you are debugging, you either want to debug the host app or the plugin app, opening corresponding projects on one or more Android Studio instances.
 
 ## Measuring performance
 
