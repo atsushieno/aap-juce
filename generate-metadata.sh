@@ -16,13 +16,13 @@ if [ -z "$BUILDS_DIR" ] ; then
 BUILDS_DIR=Builds
 fi
 if [ -z "$PLAT_BUILD_DIR" ] ; then
-if [ `uname` == 'Darwin' ] ; then
+if [ "`uname`" == 'Darwin' ] ; then
 PLAT_BUILD_DIR=MacOSX
 else
 PLAT_BUILD_DIR=LinuxMakefile
 fi
 fi
-if [ `uname` == 'Darwin' ] ; then
+if [ "`uname`" == 'Darwin' ] ; then
 LIBDEFAULTS=$BUILDS_DIR/$PLAT_BUILD_DIR/build/Debug/lib$APPNAME.a
 PLAT_LDFLAGS="-lobjc -framework Foundation -framework AudioToolbox -framework QuartzCore -framework Carbon -framework Cocoa -framework CoreAudio -framework IOKit -framework CoreAudioKit -framework Accelerate -framework CoreMIDI"
 PLAT_COMPILER="xcrun clang++"

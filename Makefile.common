@@ -99,7 +99,7 @@ $(PROJUCER_BIN_DARWIN):
 .PHONY:
 build-aap:
 	if [ ! -f $(AAP_DIR)/local.properties ] ; then \
-		if [ `uname` == "Darwin" ] ; then \
+		if [ "`uname`" == "Darwin" ] ; then \
 			echo "sdk.dir=$(HOME)/Library/Android/sdk" > $(AAP_DIR)/local.properties ; \
 		else \
 			echo "sdk.dir=$(HOME)/Android/Sdk" > $(AAP_DIR)/local.properties ; \
@@ -189,7 +189,7 @@ do-build-target-android:
 
 .PHONY:
 update-aap-metadata: build-target-desktop
-	#if [ '`uname`' = 'Darwin' ] ; then \
+	#if [ "`uname`" = 'Darwin' ] ; then \
 	#	cd $(APP_BUILD_DIR) && APPNAME=$(MACAPPNAME) EXTRA_OUTDIR=Builds/Android $(AAP_JUCE_DIR)/generate-metadata.sh || exit 1 ; \
 	#else \
 		cd $(APP_BUILD_DIR) && \

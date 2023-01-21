@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CURDIR="$( cd `dirname $0` >/dev/null 2>&1 && pwd )"
-if [ `uname` == 'Darwin' ] ; then
+if [ "`uname`" == 'Darwin' ] ; then
 READLINK=greadlink # brew install coreutils
 else
 READLINK=readlink
@@ -13,7 +13,7 @@ if [ -z "$BUILDS_DIR" ] ; then
 BUILDS_DIR=Builds
 fi
 if [ -z "$PLAT_BUILD_DIR" ] ; then
-if [ `uname` == 'Darwin' ] ; then
+if [ "`uname`" == 'Darwin' ] ; then
 PLAT_BUILD_DIR=MacOSX
 else
 PLAT_BUILD_DIR=LinuxMakefile
@@ -39,7 +39,7 @@ pushd . && cd $SRCDIR
 
 $PROJUCER --resave `basename $1` || exit 1
 
-if [ `uname` == 'Darwin' ] ; then
+if [ "`uname`" == 'Darwin' ] ; then
 if [ $APPNAME == 'AudioPluginHost' ] ; then
 	pushd . && cd $BUILDS_DIR/$PLAT_BUILD_DIR && xcodebuild -project "$APPNAME.xcodeproj" && popd || exit 4
 else

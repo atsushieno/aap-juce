@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CURDIR="$( cd `dirname $0` >/dev/null 2>&1 && pwd )"
-if [ `uname` == 'Darwin' ] ; then
+if [ "`uname`" == 'Darwin' ] ; then
 READLINK=greadlink # brew install coreutils
 else
 READLINK=readlink
