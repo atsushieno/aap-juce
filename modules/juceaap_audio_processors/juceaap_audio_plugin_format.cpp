@@ -26,14 +26,14 @@ double AndroidAudioPluginInstance::getTailLengthSeconds() const {
 
 static void fillPluginDescriptionFromNative(PluginDescription &description,
                                             const aap::PluginInformation &src) {
-    description.name = src.getDisplayName();
+    description.descriptiveName = src.getDisplayName();
+    description.name = src.getPluginID();
     description.pluginFormatName = "AAP";
 
     description.category.clear();
     description.category += juce::String(src.getPrimaryCategory());
 
-    // The closer one would be `src.getManufacturerName()`, but that results in messy grouping on mobile UI.
-    description.manufacturerName = src.getPluginPackageName();
+    description.manufacturerName = src.getManufacturerName();
 
     description.version = src.getVersion();
     // JUCE plugin identifier is "PluginID" in AAP (not "identifier_string").
