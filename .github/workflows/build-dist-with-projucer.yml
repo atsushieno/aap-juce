@@ -1,7 +1,7 @@
 name: build dist
 
 on:
-  workfloaw_call:
+  workflow_call:
 
 jobs:
   linux-build:
