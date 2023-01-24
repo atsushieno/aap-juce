@@ -154,6 +154,12 @@ help generating it automatically from JUCE plugin binary (shared code).
 
 JUCE sometimes involves incompatible changes between versions, and sometimes they involve those project file generators. We have some Makefile variables that changes the behavior. It is worth inspecting `Makefile.common` for Projucer-based project and `Makefile.cmake-common` for CMake-based projects (they are often added).
 
+## GitHub Actions common scripts
+
+This repository contains some GitHub Actions workflow description files under `.github` directory. One is for Projucer-based projects, and the other is for CMake. They are being [reused](https://docs.github.com/en/actions/using-workflows/reusing-workflows) in `aap-juce-*` repositories (as they have been almost identical across projects).
+
+As long as other project follows the same structure, you can reuse it too. It is safe to use the versioned workflow by commit rev. as we will be making breaking changes.
+
 ## Under the hood
 
 JUCE itself already supports JUCE apps running on Android and there is still no need to make any changes to the upstream JUCE, unless you want to build CMake based project (see [this post by @atsushieno](https://atsushieno.github.io/2021/01/16/juce-cmake-android-now-works.html) for details).
