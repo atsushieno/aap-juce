@@ -67,7 +67,11 @@ $(JUCE_DIR)/.stamp-juce:
 		fi ; \
 	done
 	echo "For CMake build we need another standard patch..."
-	cd $(JUCE_DIR) && patch -i $(AAP_JUCE_DIR)/JUCE-support-Android-CMake.patch -p1
+	if [ "$AAP_JUCE_CMAKE_PATCH_HOSTING" != "" ] ; then \
+		cd $(JUCE_DIR) && patch -i $(AAP_JUCE_DIR)/JUCE-support-Android-CMake-hosting.patch -p1 ; \
+	else \
+		cd $(JUCE_DIR) && patch -i $(AAP_JUCE_DIR)/JUCE-support-Android-CMake.patch -p1 ; \
+	fi
 	touch $(JUCE_DIR)/.stamp-juce
 
 patch-app-cmake: $(APP_SRC_DIR)/.stamp-app
