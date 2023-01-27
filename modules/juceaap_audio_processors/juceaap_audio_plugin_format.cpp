@@ -384,19 +384,36 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         error << "Android Audio Plugin " << description.name << "was not found.";
         callback(nullptr, error);
     } else {
-        // Once plugin service is bound, then continue connection.
+        // If the plugin service is not connected yet, then connect asynchronously with the callback
+        // that processes instancing and invoke user callback (PluginCreationCallback).
         std::function<void(int32_t,std::string&)> aapCallback = [this, callback](int32_t instanceID, std::string& error) {
             auto androidInstance = android_host->getInstanceById(instanceID);
 
             androidInstance->completeInstantiation();
 
-            MessageManager::callAsync([=] {
-                std::unique_ptr <AndroidAudioPluginInstance> instance{
-                        new AndroidAudioPluginInstance(androidInstance)};
-                callback(std::move(instance), error);
-            });
+            std::unique_ptr <AndroidAudioPluginInstance> instance{new AndroidAudioPluginInstance(androidInstance)};
+            callback(std::move(instance), error);
         };
-        android_host->createInstanceAsync(pluginInfo->getPluginID(), (int) initialSampleRate, false, aapCallback);
+        int sampleRate = (int) initialSampleRate;
+        auto identifier = pluginInfo->getPluginID();
+        auto service = plugin_client_connections->getServiceHandleForConnectedPlugin(pluginInfo->getPluginPackageName(), pluginInfo->getPluginLocalName());
+        if (service != nullptr) {
+            auto result = android_host->createInstance(identifier, sampleRate, true);
+            aapCallback(result.value, result.error);
+        } else {
+            std::function<void(std::string&)> cb = [identifier,sampleRate,aapCallback,this](std::string& error) {
+                if (error.empty()) {
+                    auto result = android_host->createInstance(identifier, sampleRate, true);
+                    aapCallback(result.value, result.error);
+                }
+                else
+                    aapCallback(-1, error);
+            };
+            // Make sure we launch a non-main thread
+            Thread::launch([this, pluginInfo, cb] {
+                PluginClientSystem::getInstance()->ensurePluginServiceConnected(plugin_client_connections, pluginInfo->getPluginPackageName(), cb);
+            });
+        }
     }
 }
 
