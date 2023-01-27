@@ -1,0 +1,98 @@
+diff --git a/modules/juce_core/native/juce_android_JNIHelpers.h b/modules/juce_core/native/juce_android_JNIHelpers.h
+index aeb49f97b..e03984205 100644
+--- a/modules/juce_core/native/juce_android_JNIHelpers.h
++++ b/modules/juce_core/native/juce_android_JNIHelpers.h
+@@ -796,6 +796,15 @@ DECLARE_JNI_CLASS (AndroidSurfaceView, "android/view/SurfaceView")
+ DECLARE_JNI_CLASS (AndroidSurfaceHolder, "android/view/SurfaceHolder")
+ #undef JNI_CLASS_MEMBERS
+ 
++#define JNI_CLASS_MEMBERS(METHOD, STATICMETHOD, FIELD, STATICFIELD, CALLBACK) \
++ METHOD (constructor1,     "<init>",     "(Ljava/lang/Runnable;)V") \
++ METHOD (constructor2,     "<init>",     "(Ljava/lang/Runnable;Ljava/lang/String;)V") \
++ METHOD (start,            "start",      "()V") \
++
++DECLARE_JNI_CLASS (JavaLangThread, "java/lang/Thread")
++#undef JNI_CLASS_MEMBERS
++
++
+ //==============================================================================
+ namespace
+ {
+@@ -992,6 +1001,32 @@ private:
+     }
+ };
+ 
++//==============================================================================
++class ThreadTargetRunnable : public AndroidInterfaceImplementer
++{
++    Thread *juce_thread;
++    std::function<void*(void* userData)> threadEntryProc;
++public:
++    ThreadTargetRunnable(Thread *juceThread, std::function<void*(void* userData)> threadEntryProc) : juce_thread(juceThread), threadEntryProc(threadEntryProc) {}
++
++    jobject invoke (jobject proxy, jobject method, jobjectArray args) override
++    {
++        auto* env = getEnv();
++
++        auto methodName = juceString ((jstring) env->CallObjectMethod (method, JavaMethod.getName));
++
++        if (methodName == "run")
++        {
++            juce_thread->threadHandle = (void*) pthread_self();
++            juce_thread->threadId = (Thread::ThreadID) juce_thread->threadHandle;
++            threadEntryProc(juce_thread);
++            return nullptr;
++        }
++
++        return AndroidInterfaceImplementer::invoke (proxy, method, args);
++    }
++};
++
+ //==============================================================================
+ class FragmentOverlay
+ {
+diff --git a/modules/juce_core/native/juce_android_Threads.cpp b/modules/juce_core/native/juce_android_Threads.cpp
+index fe6088553..95d157c72 100644
+--- a/modules/juce_core/native/juce_android_Threads.cpp
++++ b/modules/juce_core/native/juce_android_Threads.cpp
+@@ -400,7 +400,16 @@ bool Thread::createNativeThread (Priority)
+     }
+ 
+     PosixThreadAttribute attr { threadStackSize };
+-    threadId = threadHandle = makeThreadHandle (attr, this, threadEntryProc);
++
++    auto env = getEnv();
++    auto runnableNative = new ThreadTargetRunnable(this, threadEntryProc);
++    auto runnable = CreateJavaInterface(runnableNative, "java/lang/Runnable");
++    GlobalRef threadRunnableGRef { runnable };
++    auto name = env->NewStringUTF("ThreadTargetRunnable");
++    auto threadObj = env->NewObject(JavaLangThread, JavaLangThread.constructor1, threadRunnableGRef.get(), name);
++    auto threadGRef = env->NewGlobalRef(LocalRef<jobject>(threadObj));
++    env->CallVoidMethod(threadGRef, JavaLangThread.start);
++    threadId = threadHandle = threadGRef;
+ 
+     return threadId != nullptr;
+ }
+diff --git a/modules/juce_core/threads/juce_Thread.h b/modules/juce_core/threads/juce_Thread.h
+index 97b66ff6f..5492f5f3c 100644
+--- a/modules/juce_core/threads/juce_Thread.h
++++ b/modules/juce_core/threads/juce_Thread.h
+@@ -457,6 +457,7 @@ protected:
+     bool setPriority (Priority newPriority);
+ 
+ private:
++    friend class ThreadTargetRunnable; // needs to access threadHandle
+     //==============================================================================
+     const String threadName;
+     std::atomic<void*> threadHandle { nullptr };
+@@ -470,6 +471,9 @@ private:
+     std::atomic<bool> shouldExit { false };
+     ListenerList<Listener, Array<Listener*, CriticalSection>> listeners;
+ 
++    #if JUCE_ANDROID
++    /*GlobalRef*/ void* javaThreadPeer { nullptr };
++    #endif
+    #if JUCE_ANDROID || JUCE_LINUX || JUCE_BSD
+     std::atomic<Priority> priority;
+    #endif
+ 
