@@ -1,0 +1,17 @@
+diff --git a/modules/juce_core/native/juce_posix_SharedCode.h b/modules/juce_core/native/juce_posix_SharedCode.h
+index dbf06043a..f94b397a4 100644
+--- a/modules/juce_core/native/juce_posix_SharedCode.h
++++ b/modules/juce_core/native/juce_posix_SharedCode.h
+@@ -865,9 +865,10 @@ static void* threadEntryProc (void* userData)
+         void* env = nullptr;
+         androidJNIJavaVM->GetEnv(&env, JNI_VERSION_1_2);
+ 
++        // LAMESPACE: disabled: see the code comment on getEnv() for details.
+         // only detach if we have actually been attached
+-        if (env != nullptr)
+-            androidJNIJavaVM->DetachCurrentThread();
++        //if (env != nullptr)
++        //    androidJNIJavaVM->DetachCurrentThread();
+     }
+    #endif
+ 

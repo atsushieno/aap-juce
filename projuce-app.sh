@@ -73,7 +73,7 @@ MANIFEST_TEMPLATE=$CURDIR/template.AndroidManifest-host.xml
 
 # copy additional host sources
 mkdir -p Builds/Android/app/src/main/java/org/androidaudioplugin/juce/
-cp $CURDIR/JuceAppInitializer.java Builds/Android/app/src/main/java/org/androidaudioplugin/juce/
+cp $CURDIR/java/org/androidaudioplugin/juce/JuceAppInitializer.java Builds/Android/app/src/main/java/org/androidaudioplugin/juce/
 fi
 
 APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:] | tr - _`
