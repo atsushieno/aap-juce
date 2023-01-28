@@ -1,0 +1,99 @@
+diff --git a/modules/juce_core/native/juce_android_JNIHelpers.cpp b/modules/juce_core/native/juce_android_JNIHelpers.cpp
+index 537346914..67b802e1c 100644
+--- a/modules/juce_core/native/juce_android_JNIHelpers.cpp
++++ b/modules/juce_core/native/juce_android_JNIHelpers.cpp
+@@ -149,6 +149,8 @@ static File getCodeCacheDirectory()
+     return File("/data/data/" + bundleId + "/code_cache");
+ }
+ 
++extern jobject androidDefaultClassLoader;
++
+ void JNIClassBase::initialise (JNIEnv* env)
+ {
+     auto sdkVersion = getAndroidSDKVersion();
+@@ -160,8 +162,15 @@ void JNIClassBase::initialise (JNIEnv* env)
+ 
+         if (! SystemJavaClassComparator::isSystemClass(this))
+         {
+-            LocalRef<jobject> defaultClassLoader (env->CallStaticObjectMethod (JavaClassLoader, JavaClassLoader.getSystemClassLoader));
+-            tryLoadingClassWithClassLoader (env, defaultClassLoader.get());
++            LocalRef<jobject> defaultClassLoaderRef;
++            jobject defaultClassLoader = androidDefaultClassLoader;
++            if (defaultClassLoader == nullptr) {
++                defaultClassLoaderRef = LocalRef<jobject>(
++                        env->CallStaticObjectMethod(JavaClassLoader,
++                                                    JavaClassLoader.getSystemClassLoader));
++                defaultClassLoader = defaultClassLoaderRef.get();
++            }
++            tryLoadingClassWithClassLoader (env, defaultClassLoader);
+ 
+             if (classRef == nullptr)
+             {
+@@ -198,7 +207,7 @@ void JNIClassBase::initialise (JNIEnv* env)
+ 
+                         byteCodeClassLoader = LocalRef<jobject> (env->NewObject (AndroidInMemoryDexClassLoader,
+                                                                                  AndroidInMemoryDexClassLoader.constructor,
+-                                                                                 byteBuffer.get(), defaultClassLoader.get()));
++                                                                                 byteBuffer.get(), defaultClassLoader));
+                     }
+                     else if (uncompressedByteCode.getDataSize() >= 32)
+                     {
+@@ -217,7 +226,7 @@ void JNIClassBase::initialise (JNIEnv* env)
+                                                                                      javaString (dexFile.getFullPathName()).get(),
+                                                                                      javaString (optimizedDirectory.getFullPathName()).get(),
+                                                                                      nullptr,
+-                                                                                     defaultClassLoader.get()));
++                                                                                     defaultClassLoader));
+                         }
+                         else
+                         {
+diff --git a/modules/juce_core/native/juce_android_Threads.cpp b/modules/juce_core/native/juce_android_Threads.cpp
+index f9ba13b0a..abcacd0e9 100644
+--- a/modules/juce_core/native/juce_android_Threads.cpp
++++ b/modules/juce_core/native/juce_android_Threads.cpp
+@@ -37,6 +37,7 @@ DECLARE_JNI_CLASS (AndroidResolveInfo, "android/content/pm/ResolveInfo")
+ //==============================================================================
+ JavaVM* androidJNIJavaVM = nullptr;
+ jobject androidApkContext = nullptr;
++jobject androidDefaultClassLoader = nullptr;
+ 
+ //==============================================================================
+ JNIEnv* getEnv() noexcept
+@@ -89,8 +90,6 @@ extern "C" jint JNIEXPORT JNI_OnLoad (JavaVM* vm, void*)
+         env->ExceptionClear();
+     }
+ 
+-    JNIClassBase::initialiseAllClasses (env);
+-
+     return JNI_VERSION_1_2;
+ }
+ 
+@@ -293,11 +292,28 @@ void Thread::initialiseJUCE (void* jniEnv, void* context)
+         androidJNIJavaVM = javaVM;
+     }
+ 
++    if (androidDefaultClassLoader == nullptr)
++    {
++        // We haven't initialised JNIClassBase classes yet, so do not use JavaClass.getClassLoader here.
++        jclass classClass = env->FindClass("java/lang/Class");
++        jmethodID getClassLoaderID = env->GetMethodID(classClass, "getClassLoader", "()Ljava/lang/ClassLoader;");
++        // Try com.rmsl.juce.Java for better non-system class that likely used non-system ClassLoader.
++        auto targetClass = env->FindClass("com/rmsl/juce/Java");
++        if (targetClass == nullptr)
++            targetClass = env->GetObjectClass(reinterpret_cast<jobject>(context));
++        jobject classLoader = env->CallObjectMethod(targetClass, getClassLoaderID);
++        androidDefaultClassLoader = env->NewGlobalRef(classLoader);
++        jassert (androidDefaultClassLoader != nullptr);
++    }
++
+     static bool firstCall = true;
+ 
+     if (firstCall)
+     {
+         firstCall = false;
++        
++        // Now that we have a working ClassLoader, we can initialize JNIClassBase classes.
++        JNIClassBase::initialiseAllClasses (env);
+ 
+         // if we ever support unloading then this should probably be a weak reference
+         androidApkContext = env->NewGlobalRef (static_cast<jobject> (context));
