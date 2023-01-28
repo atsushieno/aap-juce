@@ -5,7 +5,7 @@
 #include "aap/unstable/logging.h"
 #include "aap/ext/presets.h"
 #include "aap/ext/state.h"
-#include "aap/ext/aap-midi2.h"
+#include "aap/ext/midi.h"
 #include "aap/ext/parameters.h"
 #include "aap/ext/plugin-info.h"
 #include "cmidi2.h"

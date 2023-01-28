@@ -2,7 +2,7 @@
 #include <aap/core/host/audio-plugin-host.h>
 #include <aap/core/host/plugin-client-system.h>
 #include <aap/core/host/android/audio-plugin-host-android.h>
-#include <aap/ext/aap-midi2.h>
+#include <aap/ext/midi.h>
 
 using namespace juce;
 
