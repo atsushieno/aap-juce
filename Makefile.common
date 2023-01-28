@@ -78,7 +78,7 @@ all: build
 build: prepare build-aap build-target-app
 
 .PHONY:
-prepare: build-projucer
+prepare: $(PRE_BUILD_TASKS) build-projucer
 
 .PHONY:
 build-projucer: $(PROJUCER_BIN)

@@ -54,7 +54,7 @@ ANDROID_DIR=$(APP_BUILD_DIR)
 
 all: build-cmake
 
-build-cmake: patch-juce-cmake patch-app-cmake build-aap-core build-app-cmake
+build-cmake: $(PRE_BUILD_TASKS) patch-juce-cmake patch-app-cmake build-aap-core build-app-cmake
 
 patch-juce-cmake: $(JUCE_DIR)/.stamp-juce
 
