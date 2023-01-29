@@ -24,7 +24,7 @@ double AndroidAudioPluginInstance::getTailLengthSeconds() const {
     return native->getTailTimeInMilliseconds() / 1000.0;
 }
 
-static void fillPluginDescriptionFromNative(PluginDescription &description,
+static void fillPluginDescriptionFromNativeCommon(PluginDescription &description,
                                             const aap::PluginInformation &src) {
     description.descriptiveName = src.getDisplayName();
     description.name = src.getDisplayName();
@@ -47,6 +47,13 @@ static void fillPluginDescriptionFromNative(PluginDescription &description,
     description.uid = String(src.getPluginID()).hashCode();
 #endif
     description.isInstrument = src.isInstrument();
+    description.hasSharedContainer = false; //src.hasSharedContainer();
+}
+
+static void fillPluginDescriptionFromNativeDescription(PluginDescription &description,
+                                            const aap::PluginInformation &src) {
+    fillPluginDescriptionFromNativeCommon(description, src);
+
     for (int i = 0; i < src.getNumDeclaredPorts(); i++) {
         auto port = src.getDeclaredPort(i);
         auto dir = port->getPortDirection();
@@ -55,7 +62,20 @@ static void fillPluginDescriptionFromNative(PluginDescription &description,
         else if (dir == AAP_PORT_DIRECTION_OUTPUT)
             description.numOutputChannels++;
     }
-    description.hasSharedContainer = false; //src.hasSharedContainer();
+}
+
+static void fillPluginDescriptionFromNativeInstance(PluginDescription &description, aap::PluginInstance *native) {
+    const auto src = *native->getPluginInformation();
+    fillPluginDescriptionFromNativeCommon(description, src);
+
+    for (int i = 0; i < native->getNumPorts(); i++) {
+        auto port = native->getPort(i);
+        auto dir = port->getPortDirection();
+        if (dir == AAP_PORT_DIRECTION_INPUT)
+            description.numInputChannels++;
+        else if (dir == AAP_PORT_DIRECTION_OUTPUT)
+            description.numOutputChannels++;
+    }
 }
 
 static void* handleSysex7(uint64_t data, void* context) {
@@ -176,8 +196,48 @@ void AndroidAudioPluginInstance::postProcessBuffers(AudioBuffer<float> &audioBuf
     // FIXME: RT unlock
 }
 
-AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance *nativePlugin)
-        : native(nativePlugin),
+juce::AudioProcessor::BusesProperties AndroidAudioPluginInstance::createJuceBuses(aap::PluginInstance* native) {
+    juce::AudioProcessor::BusesProperties ret{};
+    int32_t numAudioIns = 0, numAudioOuts = 0;
+    for (int32_t i = 0, n = native->getNumPorts(); i < n; i++) {
+        auto port = native->getPort(i);
+        if (port->getContentType() != AAP_CONTENT_TYPE_AUDIO)
+            continue;
+        if (port->getPortDirection() == AAP_PORT_DIRECTION_INPUT)
+            numAudioIns++;
+        else
+            numAudioOuts++;
+    }
+    switch (numAudioIns) {
+        case 0:
+            break;
+        case 1:
+            ret.addBus(true, "Mono Input", juce::AudioChannelSet::mono());
+            break;
+        stereo_input:
+        case 2:
+            ret.addBus(true, "Stereo Input", juce::AudioChannelSet::stereo());
+            break;
+        default:
+            aap::a_log_f(AAP_LOG_LEVEL_WARN, AAP_JUCE_LOG_TAG,
+                         "TODO: the plugin has more audio input channels than stereo, which is not implemented in aap-juce. Treating it as stereo.");
+            goto stereo_input;
+    }
+    switch (numAudioOuts) {
+        case 0: break;
+        case 1: ret.addBus(false, "Mono Output", juce::AudioChannelSet::mono()); break;
+        stereo_output:
+        case 2: ret.addBus(false, "Stereo Output", juce::AudioChannelSet::stereo()); break;
+        default:
+            aap::a_log_f(AAP_LOG_LEVEL_WARN, AAP_JUCE_LOG_TAG,
+                         "TODO: the plugin has more audio output channels than stereo, which is not implemented in aap-juce. Treating it as stereo.");
+            goto stereo_output;
+    }
+    return ret;
+}
+
+AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance* nativePlugin)
+        : juce::AudioPluginInstance(createJuceBuses(nativePlugin)), native(nativePlugin),
           sample_rate(-1) {
 
     // It is super awkward, but plugin parameter definition does not exist in juce::PluginInformation.
@@ -313,8 +373,7 @@ AudioProcessorEditor *AndroidAudioPluginInstance::createEditor() {
 }
 
 void AndroidAudioPluginInstance::fillInPluginDescription(PluginDescription &description) const {
-    auto src = native->getPluginInformation();
-    fillPluginDescriptionFromNative(description, *src);
+    fillPluginDescriptionFromNativeInstance(description, native);
 }
 
 const aap::PluginInformation *
@@ -333,7 +392,7 @@ AndroidAudioPluginFormat::AndroidAudioPluginFormat() {
     for (int i = 0; i < list.getNumPluginInformation(); i++) {
         auto d = list.getPluginInformation(i);
         auto dst = new PluginDescription();
-        fillPluginDescriptionFromNative(*dst, *d);
+        fillPluginDescriptionFromNativeDescription(*dst, *d);
         cached_descs.set(d, dst);
     }
 #else
@@ -355,7 +414,7 @@ void AndroidAudioPluginFormat::findAllTypesForFile(OwnedArray <PluginDescription
         if (strcmp(p->getPluginPackageName().c_str(), id) == 0) {
             auto d = new PluginDescription();
             juce_plugin_descs.add(d);
-            fillPluginDescriptionFromNative(*d, *p);
+            fillPluginDescriptionFromNativeCommon(*d, *p);
             results.add(d);
         }
     }
@@ -389,8 +448,7 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         std::function<void(int32_t,std::string&)> aapCallback = [this, callback](int32_t instanceID, std::string& error) {
             auto androidInstance = android_host->getInstanceById(instanceID);
 
-            std::unique_ptr <AndroidAudioPluginInstance> instance{new AndroidAudioPluginInstance(androidInstance)};
-            callback(std::move(instance), error);
+            callback(std::make_unique<AndroidAudioPluginInstance>(androidInstance), error);
         };
         int sampleRate = (int) initialSampleRate;
         auto identifier = pluginInfo->getPluginID();

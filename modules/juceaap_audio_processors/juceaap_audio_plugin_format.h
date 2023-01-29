@@ -24,6 +24,8 @@ class AndroidAudioPluginInstance : public juce::AudioPluginInstance {
 
     bool parameterValueChanged(AndroidAudioPluginParameter* parameter, float newValue);
 
+    static juce::AudioProcessor::BusesProperties createJuceBuses(aap::PluginInstance* native);
+
 public:
 
     AndroidAudioPluginInstance(aap::PluginInstance *nativePlugin);
