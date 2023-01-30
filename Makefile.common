@@ -40,11 +40,11 @@ MINIMIZE_INTERMEDIATES=0
 NDK_VERSION=21.4.7075529
 
 ## Specify whatever gradle task you want to run.
-GRADLE_TASK=build
+GRADLE_TASK="build bundle"
 
 
 ## dist directory to collect build artifacts
-DIST_DIR=$(shell pwd)/release-builds
+DIST_DIR=$(shell pwd)/dist
 
 # End of user configuration. ------------------------------------
 
@@ -110,7 +110,8 @@ build-aap:
 .PHONY:
 dist:
 	mkdir -p $(DIST_DIR)
-	cp  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/apk/release_/release/app-release_-release.apk  $(DIST_DIR)/$(APP_NAME)-release.apk
+	cp  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/apk/debug_/debug/*.apk  $(DIST_DIR)/$(APP_NAME)-debug.apk
+	cp  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/bundle/release_/release/app-release_-release.aab  $(DIST_DIR)/$(APP_NAME)-release.aab
 
 
 .PHONY:
