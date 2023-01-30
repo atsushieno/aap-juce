@@ -7,6 +7,8 @@ jobs:
   linux-build:
     name: build on linux
     runs-on: ubuntu-20.04
+    permissions:
+      contents: write
     steps:
     - name: checkout
       uses: actions/checkout@v1
@@ -44,11 +46,17 @@ jobs:
                  graphviz cmake ninja-build
     - name: build
       run: xvfb-run -a --server-args="-screen 0 1280x800x24 -ac -nolisten tcp -dpi 96 +extension RANDR" make MINIMIZE_INTERMEDIATES=1 build dist
-    - name: upload-artifact
+    - name: upload artifact
       uses: actions/upload-artifact@v3
       with:
         name: release-builds
         path: release-builds
+    - name: Create Release
+      uses: ncipollo/release-action@v1.12.0
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        artifacts: release-builds/*
+        #bodyFile: "body.md"
 
   osx-build:
     name: build on osx
