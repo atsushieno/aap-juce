@@ -1,9 +1,10 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.7.10'
-    ext.dokka_version = '1.7.20'
-    ext.aap_version = '0.7.5-pre'
+    ext.kotlin_version = libs.versions.kotlin.get()
+    ext.aap_version = libs.versions.aap.core.get()
+    ext.compose_version = libs.versions.compose.get()
+    ext.ndk_version = libs.versions.ndk.get()
     ext.enable_asan = false
 
     repositories {
@@ -12,9 +13,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.3.1'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokka_version"
+        classpath (libs.tools.build.gradle)
+        classpath (libs.kotlin.gradle.plugin)
+        classpath (libs.dokka.gradle.plugin)
     }
 }
 
