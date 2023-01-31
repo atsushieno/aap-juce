@@ -34,11 +34,10 @@ MINIMIZE_INTERMEDIATES=0
 NDK_VERSION=21.4.7075529
 
 ## Specify whatever gradle task you want to run.
-GRADLE_TASK=build
-
+GRADLE_TASK=$(shell printf '%b' "build bundle")
 
 ## dist directory to collect build artifacts
-DIST_DIR=$(shell pwd)/release-builds
+DIST_DIR=$(shell pwd)/dist
 
 # End of user configuration. ------------------------------------
 
@@ -52,9 +51,9 @@ endif
 # for CMake, it is the same as $(APP_BUILD_DIR)
 ANDROID_DIR=$(APP_BUILD_DIR)
 
-all: build-cmake
+all: build
 
-build-cmake: $(PRE_BUILD_TASKS) patch-juce-cmake patch-app-cmake build-aap-core build-app-cmake
+build: $(PRE_BUILD_TASKS) patch-juce-cmake patch-app-cmake build-aap-core build-app-cmake
 
 patch-juce-cmake: $(JUCE_DIR)/.stamp-juce
 
@@ -100,8 +99,7 @@ build-app-cmake:
 			echo "sdk.dir=$(HOME)/Android/Sdk" > local.properties ; \
 		fi ; \
 	fi
-	./gradlew build
-	mkdir -p release-builds
+	./gradlew $(GRADLE_TASK)
 	if [ $(MINIMIZE_INTERMEDIATES) ] ; then \
 		rm -rf $(ANDROID_DIR)/app/build/intermediates/ ; \
 		rm -rf $(ANDROID_DIR)/app/.cxx ; \
@@ -110,7 +108,8 @@ build-app-cmake:
 .PHONY:
 dist:
 	mkdir -p $(DIST_DIR)
-	cp $(APP_BUILD_DIR)/app/build/outputs/apk/release/app-release-unsigned.apk $(DIST_DIR)/$(APP_NAME)-release.apk
+	cp $(APP_BUILD_DIR)/app/build/outputs/apk/debug/*.apk  $(DIST_DIR)/$(APP_NAME)-debug.apk
+	cp $(APP_BUILD_DIR)/app/build/outputs/bundle/release/*.aab  $(DIST_DIR)/$(APP_NAME)-release.aab
 
 
 # Independent Tasks that have to be performed manually
