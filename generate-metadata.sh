@@ -24,7 +24,7 @@ fi
 fi
 if [ "`uname`" == 'Darwin' ] ; then
 LIBDEFAULTS=$BUILDS_DIR/$PLAT_BUILD_DIR/build/Debug/lib$APPNAME.a
-PLAT_LDFLAGS="-lobjc -framework Foundation -framework AudioToolbox -framework QuartzCore -framework Carbon -framework Cocoa -framework CoreAudio -framework IOKit -framework CoreAudioKit -framework Accelerate -framework CoreMIDI"
+PLAT_LDFLAGS="-lobjc -framework Foundation -framework AudioToolbox -framework QuartzCore -framework Carbon -framework Cocoa -framework CoreAudio -framework IOKit -framework CoreAudioKit -framework Accelerate -framework CoreMIDI -framework Metal"
 PLAT_COMPILER="xcrun clang++"
 else
 LIBDEFAULTS=$BUILDS_DIR/$PLAT_BUILD_DIR/build/$APPNAME.a
