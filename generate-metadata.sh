@@ -37,10 +37,16 @@ fi
 
 echo "Static libraries for `uname` are $LIBFILES"
 
+IFS=':' read -ra arr <<< "$LIBFILES"
+Q_LIBFILES=()
+for i in "${arr[@]}"; do
+Q_LIBFILES+=("$i")
+done
+
 rm -f `pwd`/aap_metadata.xml ;
 echo "building aap-metadata-generator tool..." ;
 $PLAT_COMPILER -g $CURDIR/tools/aap-metadata-generator.cpp \
-	$LIBFILES \
+	"${Q_LIBFILES[@]}" \
 	$EXTRA_LDFLAGS \
 	$PLAT_LDFLAGS \
         -lstdc++ -ldl -lm -lpthread \
@@ -59,3 +65,4 @@ cp `pwd`/aap_metadata.xml $EXTRA_OUTDIR/app/src/main/res/xml/ ;
 fi
 fi
 
+echo "done."
