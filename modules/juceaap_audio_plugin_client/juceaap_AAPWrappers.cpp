@@ -43,7 +43,7 @@ class JuceAAPWrapper : juce::AudioPlayHead {
     const char *plugin_unique_id;
     int sample_rate;
     AndroidAudioPluginHost host;
-    AndroidAudioPluginBuffer *buffer;
+    aap_buffer_t *buffer;
     aap_state_t state{nullptr, 0};
     juce::AudioProcessor *juce_processor;
     juce::HeapBlock<float*> juce_channels;
@@ -106,7 +106,7 @@ public:
     }
 #endif
 
-    void allocateBuffer(AndroidAudioPluginBuffer *aapBuffer) {
+    void allocateBuffer(aap_buffer_t *aapBuffer) {
         if (!aapBuffer) {
             errno = juce_aap_wrapper_last_error_code = JUCEAAP_ERROR_INVALID_BUFFER;
             aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "null buffer passed to allocateBuffer()");
@@ -115,7 +115,7 @@ public:
 
         juce_channels.calloc(juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels());
 
-        juce_audio_buffer.setSize(juce_processor->getMainBusNumOutputChannels(), aapBuffer->num_frames);
+        juce_audio_buffer.setSize(juce_processor->getMainBusNumOutputChannels(), aapBuffer->num_frames(*aapBuffer));
 
         // allocates juce_buffer. No need to interpret content.
         this->buffer = aapBuffer;
@@ -131,7 +131,7 @@ public:
         return bus ? bus->getNumberOfChannels() : 0;
     }
 
-    void prepare(AndroidAudioPluginBuffer *buffer) {
+    void prepare(aap_buffer_t *buffer) {
         allocateBuffer(buffer);
         if (juce_aap_wrapper_last_error_code != JUCEAAP_SUCCESS)
             return;
@@ -179,10 +179,10 @@ public:
         juce_processor->setPlayConfigDetails(
                 getNumberOfChannelsOfBus(juce_processor->getBus(true, 0)),
                 getNumberOfChannelsOfBus(juce_processor->getBus(false, 0)),
-                sample_rate, buffer->num_frames);
+                sample_rate, buffer->num_frames(*buffer));
         juce_processor->setPlayHead(this);
 
-        juce_processor->prepareToPlay(sample_rate, buffer->num_frames);
+        juce_processor->prepareToPlay(sample_rate, buffer->num_frames(*buffer));
     }
 
     void activate() {
@@ -215,10 +215,10 @@ public:
                                            *raw, *(raw + 1), *(raw + 2), *(raw + 3));
     }
 
-    void processMidiInputs(AndroidAudioPluginBuffer *audioBuffer) {
+    void processMidiInputs(aap_buffer_t *audioBuffer) {
 
         sysex_offset = 0;
-        auto midiInBuf = (AAPMidiBufferHeader*) audioBuffer->buffers[aap_midi2_in_port];
+        auto midiInBuf = (AAPMidiBufferHeader*) audioBuffer->get_buffer(*audioBuffer, aap_midi2_in_port);
         auto umpStart = ((uint8_t*) midiInBuf) + sizeof(AAPMidiBufferHeader);
         int32_t positionInJRTimestamp = 0;
 
@@ -417,9 +417,9 @@ public:
         }
     }
 
-    void processMidiOutputs(AndroidAudioPluginBuffer* buffer) {
+    void processMidiOutputs(aap_buffer_t* buffer) {
         // This part is not really verified... we need some JUCE plugin that generates some outputs.
-        void *dst = buffer->buffers[aap_midi2_out_port];
+        void *dst = buffer->get_buffer(*buffer, aap_midi2_out_port);
         auto outMidiBuf = (AAPMidiBufferHeader*) dst;
         auto umpDst = (cmidi2_ump*) ((uint8_t*) dst + sizeof(AAPMidiBufferHeader));
 
@@ -454,25 +454,25 @@ public:
         outMidiBuf->length = dstBufSize;
     }
 
-    void resetJuceChannels(AndroidAudioPluginBuffer *audioBuffer) {
+    void resetJuceChannels(aap_buffer_t *audioBuffer) {
         int nOut = juce_processor->getMainBusNumOutputChannels();
         int nIn = juce_processor->getMainBusNumInputChannels();
 
-        for (int i = 0; i < audioBuffer->num_buffers; i++) {
+        for (int i = 0; i < audioBuffer->num_ports(*audioBuffer); i++) {
             // Assign JUCE out channel buffer ONLY IF it is not assigned for inputs.
             // To achieve that, first fill output buffer pointers, then overwrite by input buffer pointers.
             auto iterOut = aap_to_juce_portmap_out.find(i);
             if (iterOut != aap_to_juce_portmap_out.end())
-                juce_channels[iterOut->second] = (float*) audioBuffer->buffers[i];
+                juce_channels[iterOut->second] = (float*) audioBuffer->get_buffer(*audioBuffer, i);
             auto iterIn = aap_to_juce_portmap_in.find(i);
             if (iterIn != aap_to_juce_portmap_in.end())
-                juce_channels[iterIn->second] = (float*) audioBuffer->buffers[i];
+                juce_channels[iterIn->second] = (float*) audioBuffer->get_buffer(*audioBuffer, i);
         }
 
-        juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), audioBuffer->num_frames);
+        juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), audioBuffer->num_frames(*audioBuffer));
     }
 
-    void process(AndroidAudioPluginBuffer *audioBuffer, long timeoutInNanoseconds) {
+    void process(aap_buffer_t *audioBuffer, long timeoutInNanoseconds) {
 #if JUCEAAP_LOG_PERF
         struct timespec timeSpecBegin, timeSpecEnd;
         struct timespec procTimeSpecBegin, procTimeSpecEnd;
@@ -500,8 +500,9 @@ public:
         auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames / sample_rate;
         play_head_position.setPpqPosition(*play_head_position.getPpqPosition() + *play_head_position.getBpm() / 60 * 4 * thisTimeInSeconds);
 #else
-        play_head_position.timeInSamples += audioBuffer->num_frames;
-        auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames / sample_rate;
+        auto numFrames = audioBuffer->num_frames(*audioBuffer);
+        play_head_position.timeInSamples += numFrames;
+        auto thisTimeInSeconds = 1.0 * numFrames / sample_rate;
         play_head_position.timeInSeconds += thisTimeInSeconds;
         play_head_position.ppqPosition += play_head_position.bpm / 60 * 4 * thisTimeInSeconds;
 #endif
@@ -515,7 +516,7 @@ public:
         int numCopied = numAudioIns < numAudioOuts ? numAudioIns : numAudioOuts;
         for (int i = 0; i < numCopied; i++) {
             auto aapPortIndex = portmap_juce_to_aap_out[i];
-            memcpy(audioBuffer->buffers[aapPortIndex], juce_channels[i], audioBuffer->num_frames * sizeof(float));
+            memcpy(audioBuffer->get_buffer(*audioBuffer, aapPortIndex), juce_channels[i], audioBuffer->num_frames(*audioBuffer) * sizeof(float));
         }
 
 #if JUCEAAP_LOG_PERF
@@ -602,7 +603,7 @@ JuceAAPWrapper *getWrapper(AndroidAudioPlugin *plugin) {
 
 void juceaap_prepare(
         AndroidAudioPlugin *plugin,
-        AndroidAudioPluginBuffer *audioBuffer) {
+        aap_buffer_t *audioBuffer) {
     getWrapper(plugin)->prepare(audioBuffer);
 }
 
@@ -616,7 +617,7 @@ void juceaap_deactivate(AndroidAudioPlugin *plugin) {
 
 void juceaap_process(
         AndroidAudioPlugin *plugin,
-        AndroidAudioPluginBuffer *audioBuffer,
+        aap_buffer_t *audioBuffer,
         long timeoutInNanoseconds) {
     getWrapper(plugin)->process(audioBuffer, timeoutInNanoseconds);
 }
