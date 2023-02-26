@@ -69,17 +69,23 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
     pluginElement->setAttribute("name", JucePlugin_Name);
     pluginElement->setAttribute("category", JucePlugin_IsSynth ? "Instrument" : "Effect");
     pluginElement->setAttribute("author", JucePlugin_Manufacturer);
-    pluginElement->setAttribute("manufacturer", JucePlugin_ManufacturerWebsite);
+    pluginElement->setAttribute("developer", JucePlugin_Manufacturer);
     pluginElement->setAttribute("unique-id",
                                 String::formatted("juceaap:%x", JucePlugin_PluginCode));
     //pluginElement->setAttribute("library", "lib" JucePlugin_Name ".so");
     pluginElement->setAttribute("library", library);
     pluginElement->setAttribute("entrypoint", entrypoint);
-    pluginElement->setAttribute("assets", "");
 
     auto topLevelExtensionsElement = pluginElement->createNewChildElement("extensions");
-    auto extensionElement = topLevelExtensionsElement->createNewChildElement("extension");
-    extensionElement->setAttribute("uri", AAP_PRESETS_EXTENSION_URI);
+    const char* extensions[] {
+        AAP_PRESETS_EXTENSION_URI,
+        AAP_STATE_EXTENSION_URI,
+        AAP_MIDI_EXTENSION_URI
+    };
+    for (auto ext : extensions) {
+        auto extensionElement = topLevelExtensionsElement->createNewChildElement("extension");
+        extensionElement->setAttribute("uri", ext);
+    }
 
     auto &tree = filter->getParameterTree();
     auto topLevelParametersElement = pluginElement->createNewChildElement("parameters");
