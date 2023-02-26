@@ -46,7 +46,7 @@ done
 rm -f `pwd`/aap_metadata.xml ;
 echo "building aap-metadata-generator tool..." ;
 $PLAT_COMPILER -g $CURDIR/tools/aap-metadata-generator.cpp \
-	"${Q_LIBFILES[@]}" \
+	${Q_LIBFILES[@]} \
 	$EXTRA_LDFLAGS \
 	$PLAT_LDFLAGS \
         -lstdc++ -ldl -lm -lpthread \
