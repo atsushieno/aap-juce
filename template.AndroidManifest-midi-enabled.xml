@@ -27,10 +27,10 @@
 	android:label="@string/app_name"
         android:exported="true">
       <intent-filter>
-        <action android:name="org.androidaudioplugin.AudioPluginService.V2"/>
+        <action android:name="org.androidaudioplugin.AudioPluginService.V3"/>
       </intent-filter>
       <meta-data
-	android:name="org.androidaudioplugin.AudioPluginService.V2#Plugins"
+	android:name="org.androidaudioplugin.AudioPluginService.V3#Plugins"
 	android:resource="@xml/aap_metadata"/>
     </service>
     <service android:name="org.androidaudioplugin.midideviceservice.StandaloneAudioPluginMidiDeviceService"

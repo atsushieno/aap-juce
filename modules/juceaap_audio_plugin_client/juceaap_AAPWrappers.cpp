@@ -472,7 +472,7 @@ public:
         juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), audioBuffer->num_frames(*audioBuffer));
     }
 
-    void process(aap_buffer_t *audioBuffer, long timeoutInNanoseconds) {
+    void process(aap_buffer_t *audioBuffer, int32_t frameCount, int64_t timeoutInNanoseconds) {
 #if JUCEAAP_LOG_PERF
         struct timespec timeSpecBegin, timeSpecEnd;
         struct timespec procTimeSpecBegin, procTimeSpecEnd;
@@ -496,13 +496,17 @@ public:
 #endif
 
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
-        play_head_position.setTimeInSamples(*play_head_position.getTimeInSamples() + audioBuffer->num_frames);
-        auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames / sample_rate;
+        play_head_position.setTimeInSamples(*play_head_position.getTimeInSamples() + audioBuffer->num_frames(*audioBuffer));
+        auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames(*audioBuffer) / sample_rate;
         play_head_position.setPpqPosition(*play_head_position.getPpqPosition() + *play_head_position.getBpm() / 60 * 4 * thisTimeInSeconds);
 #else
         auto numFrames = audioBuffer->num_frames(*audioBuffer);
-        play_head_position.timeInSamples += numFrames;
-        auto thisTimeInSeconds = 1.0 * numFrames / sample_rate;
+        if (frameCount > numFrames) {
+            aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "frameCount is bigger than numFrames from aap_buffer_t.");
+            frameCount = numFrames;
+        }
+        play_head_position.timeInSamples += frameCount;
+        auto thisTimeInSeconds = 1.0 * frameCount / sample_rate;
         play_head_position.timeInSeconds += thisTimeInSeconds;
         play_head_position.ppqPosition += play_head_position.bpm / 60 * 4 * thisTimeInSeconds;
 #endif
@@ -618,8 +622,9 @@ void juceaap_deactivate(AndroidAudioPlugin *plugin) {
 void juceaap_process(
         AndroidAudioPlugin *plugin,
         aap_buffer_t *audioBuffer,
-        long timeoutInNanoseconds) {
-    getWrapper(plugin)->process(audioBuffer, timeoutInNanoseconds);
+        int32_t frameCount,
+        int64_t timeoutInNanoseconds) {
+    getWrapper(plugin)->process(audioBuffer, frameCount, timeoutInNanoseconds);
 }
 
 size_t juceaap_get_state_size(AndroidAudioPluginExtensionTarget target) {
