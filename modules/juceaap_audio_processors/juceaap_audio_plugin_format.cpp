@@ -332,7 +332,7 @@ void AndroidAudioPluginInstance::processBlock(AudioBuffer<float> &audioBuffer,
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts_pre);
     // FIXME: here we would need to pass the exact number of frames.
     //  Right now we only pass maximumExpectedSampleBlock as the fixed frame size, which is *wrong*.
-    native->process(0);
+    native->process(audioBuffer.getNumSamples(), 0);
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts_proc);
     postProcessBuffers(audioBuffer, midiMessages);
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts_end);
