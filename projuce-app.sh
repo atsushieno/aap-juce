@@ -46,9 +46,15 @@ cp $CURDIR/sample-project.gradle-wrapper.properties Builds/Android/gradle/wrappe
 cp $CURDIR/sample-project.proguard-rules.pro Builds/Android/app/proguard-rules.pro
 # Projucer is too inflexible to generate required content for top-level file.
 cp $CURDIR/sample-project.build.gradle Builds/Android/build.gradle
-# app/build.gradle needs furter tweaks.
+# app/build.gradle needs further tweaks.
 sed -i "" -e "s/defaultConfig {/defaultConfig {\n        proguardFiles \"proguard-rules.pro\"/" -- Builds/Android/app/build.gradle
 sed -i "" -e "s/ANDROID_ARM_MODE/INVALIDATED_ANDROID_ARM_MODE/" -- Builds/Android/app/build.gradle
+sed -i "" -e "s/c++_static/c++_shared/" -- Builds/Android/app/build.gradle
+sed -i "" -e "s/repositories {/buildFeatures { prefab true }\n    repositories {/" -- Builds/Android/app/build.gradle
+
+# app/CMakeLists.txt needs further tweaks
+echo "find_package(androidaudioplugin REQUIRED CONFIG)" >> Builds/Android/app/CMakeLists.txt
+echo "target_link_libraries(\${BINARY_NAME} androidaudioplugin::androidaudioplugin)" >> Builds/Android/app/CMakeLists.txt
 
 # copy aap_metadata.xml once Builds/Android is created.
 # Projucer behavior is awkward. It generates "debug" and "release" directories, and any other common resources are ignored.
