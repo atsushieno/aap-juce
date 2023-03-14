@@ -14,6 +14,7 @@
 #include <dlfcn.h>
 #include <jni.h>
 #include <android/looper.h>
+#include <android/trace.h>
 #endif
 
 using namespace juce;
@@ -29,7 +30,6 @@ extern "C" { int juce_aap_wrapper_last_error_code{0}; }
 #define JUCEAAP_ERROR_INVALID_BUFFER -1
 #define JUCEAAP_ERROR_PROCESS_BUFFER_ALTERED -2
 #define JUCEAAP_ERROR_CHANNEL_IN_OUT_NUM_MISMATCH -3
-#define JUCEAAP_LOG_PERF 0
 
 // JUCE-AAP port mappings:
 //
@@ -472,11 +472,17 @@ public:
         juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), audioBuffer->num_frames(*audioBuffer));
     }
 
+    const char *AAP_JUCE_TRACE_SECTION_NAME = "aap-juce_process";
+    const char *AAP_JUCE_DSP_TRACE_SECTION_NAME = "aap-juce_process_dsp";
+
     void process(aap_buffer_t *audioBuffer, int32_t frameCount, int64_t timeoutInNanoseconds) {
-#if JUCEAAP_LOG_PERF
-        struct timespec timeSpecBegin, timeSpecEnd;
-        struct timespec procTimeSpecBegin, procTimeSpecEnd;
-        clock_gettime(CLOCK_REALTIME, &timeSpecBegin);
+#if ANDROID
+        struct timespec tsBegin, tsEnd;
+        struct timespec tsDspBegin, tsDspEnd;
+        if (ATrace_isEnabled()) {
+            clock_gettime(CLOCK_REALTIME, &tsBegin);
+            ATrace_beginSection(AAP_JUCE_TRACE_SECTION_NAME);
+        }
 #endif
         resetJuceChannels(audioBuffer);
 
@@ -484,15 +490,22 @@ public:
             processMidiInputs(audioBuffer);
 
         // process data by the JUCE plugin
-#if JUCEAAP_LOG_PERF
-        clock_gettime(CLOCK_REALTIME, &procTimeSpecBegin);
+#if ANDROID
+        if (ATrace_isEnabled()) {
+            clock_gettime(CLOCK_REALTIME, &tsDspBegin);
+            ATrace_beginSection(AAP_JUCE_DSP_TRACE_SECTION_NAME);
+        }
 #endif
 
         juce_processor->processBlock(juce_audio_buffer, juce_midi_messages);
 
-#if JUCEAAP_LOG_PERF
-        clock_gettime(CLOCK_REALTIME, &procTimeSpecEnd);
-        long procTimeDiff = (procTimeSpecEnd.tv_sec - procTimeSpecBegin.tv_sec) * 1000000000 + procTimeSpecEnd.tv_nsec - procTimeSpecBegin.tv_nsec;
+#if ANDROID
+        if (ATrace_isEnabled()) {
+            clock_gettime(CLOCK_REALTIME, &tsDspEnd);
+            ATrace_setCounter(AAP_JUCE_DSP_TRACE_SECTION_NAME,
+                              (tsDspEnd.tv_sec - tsDspBegin.tv_sec) * 1000000000 + tsDspEnd.tv_nsec - tsDspBegin.tv_nsec);
+            ATrace_endSection();
+        }
 #endif
 
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
@@ -523,11 +536,13 @@ public:
             memcpy(audioBuffer->get_buffer(*audioBuffer, aapPortIndex), juce_channels[i], audioBuffer->num_frames(*audioBuffer) * sizeof(float));
         }
 
-#if JUCEAAP_LOG_PERF
-        clock_gettime(CLOCK_REALTIME, &timeSpecEnd);
-        long timeDiff = (timeSpecEnd.tv_sec - timeSpecBegin.tv_sec) * 1000000000 + timeSpecEnd.tv_nsec - timeSpecBegin.tv_nsec;
-        aap::aprintf("AAP JUCE Bridge %s - Synth TAT: %ld", plugin_unique_id, procTimeDiff);
-        aap::aprintf("AAP JUCE Bridge %s - Process TAT: time diff %ld", plugin_unique_id, timeDiff);
+#if ANDROID
+        if (ATrace_isEnabled()) {
+            clock_gettime(CLOCK_REALTIME, &tsEnd);
+            ATrace_setCounter(AAP_JUCE_TRACE_SECTION_NAME,
+                              (tsEnd.tv_sec - tsBegin.tv_sec) * 1000000000 + tsEnd.tv_nsec - tsBegin.tv_nsec);
+            ATrace_endSection();
+        }
 #endif
     }
 
