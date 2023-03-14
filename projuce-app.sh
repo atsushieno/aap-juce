@@ -55,6 +55,9 @@ sed -i "" -e "s/repositories {/buildFeatures { prefab true }\n    repositories {
 # app/CMakeLists.txt needs further tweaks
 echo "find_package(androidaudioplugin REQUIRED CONFIG)" >> Builds/Android/app/CMakeLists.txt
 echo "target_link_libraries(\${BINARY_NAME} androidaudioplugin::androidaudioplugin)" >> Builds/Android/app/CMakeLists.txt
+echo "// We NEVER ALLOW JUCE audio plugin standalone apps to automatically open MIDI devices." >> Builds/Android/app/CMakeLists.txt
+echo "// It will open virtual MidiDeviceServices, including AAP MidiDeviceServices!!" >> Builds/Android/app/CMakeLists.txt 
+echo "add_compile_definitions(JUCE_DONT_AUTO_OPEN_MIDI_DEVICES_ON_MOBILE=1) >> Builds/Android/app/CMakeLists.txt
 
 # copy aap_metadata.xml once Builds/Android is created.
 # Projucer behavior is awkward. It generates "debug" and "release" directories, and any other common resources are ignored.
