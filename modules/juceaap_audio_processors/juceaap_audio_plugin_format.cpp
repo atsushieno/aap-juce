@@ -7,6 +7,7 @@
 #include <aap/ext/parameters.h>
 #if ANDROID
 #include <android/sharedmem.h>
+#include <android/trace.h>
 #else
 namespace aap {
 extern void aap_parse_plugin_descriptor_into(const char* pluginPackageName, const char* pluginLocalName, const char* xmlfile, std::vector<PluginInformation*>& plugins);
@@ -319,38 +320,45 @@ AndroidAudioPluginInstance::~AndroidAudioPluginInstance() {
 
 int32_t n_warned{0};
 
+const char *AAP_JUCE_TRACE_SECTION_NAME = "aap-juce:host:process";
+const char *AAP_JUCE_DSP_TRACE_SECTION_NAME = "aap-juce:host:dsp-process";
+
 void AndroidAudioPluginInstance::processBlock(AudioBuffer<float> &audioBuffer,
                                               MidiBuffer &midiMessages) {
-    struct timespec ts_start, ts_pre, ts_proc, ts_end;
-    bool empty = midiMessages.isEmpty(); // store it here before postProcessBuffers() replaces the content.
-
-    //auto buffer = native->getAudioPluginBuffer();
-    //buffer->num_frames = static_cast<size_t>(audioBuffer.getNumSamples());
-
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts_start);
-    preProcessBuffers(audioBuffer, midiMessages);
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts_pre);
-    // FIXME: here we would need to pass the exact number of frames.
-    //  Right now we only pass maximumExpectedSampleBlock as the fixed frame size, which is *wrong*.
-    native->process(audioBuffer.getNumSamples(), 0);
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts_proc);
-    postProcessBuffers(audioBuffer, midiMessages);
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts_end);
-    /* Enable this for debugging if you have doubts on your hosting plugin(s)...
-    if (!empty) {
-        aap::a_log_f(AAP_LOG_LEVEL_INFO, AAP_JUCE_LOG_TAG, "processBlock() start %lu",
-                     ts_start.tv_nsec + ts_start.tv_sec * 1000000000);
-        aap::a_log_f(AAP_LOG_LEVEL_INFO, AAP_JUCE_LOG_TAG, "processBlock()   pre %lu",
-                     ts_pre.tv_nsec + ts_pre.tv_sec * 1000000000);
-        aap::a_log_f(AAP_LOG_LEVEL_INFO, AAP_JUCE_LOG_TAG, "processBlock()  proc %lu",
-                     ts_proc.tv_nsec + ts_proc.tv_sec * 1000000000);
-        aap::a_log_f(AAP_LOG_LEVEL_INFO, AAP_JUCE_LOG_TAG, "processBlock()   end %lu",
-                     ts_end.tv_nsec + ts_end.tv_sec * 1000000000);
+    struct timespec tsBegin, tsDspBegin, tsDspEnd, tsEnd;
+#if ANDROID
+    if (ATrace_isEnabled()) {
+        clock_gettime(CLOCK_REALTIME, &tsBegin);
+        ATrace_beginSection(AAP_JUCE_TRACE_SECTION_NAME);
     }
-    */
-    long durationNanoseconds = (ts_end.tv_sec - ts_start.tv_sec) * 1000000000 + ts_end.tv_nsec - ts_start.tv_nsec;
-    if (n_warned++ < 100 && durationNanoseconds > MAX_ACCEPTABLE_PROCESS_NANOSECCONDS)
-        aap::a_log_f(AAP_LOG_LEVEL_WARN, AAP_JUCE_LOG_TAG, "processBlock() exceeds 10msec. : %f", durationNanoseconds / 1000000.0);
+#endif
+    preProcessBuffers(audioBuffer, midiMessages);
+
+#if ANDROID
+    if (ATrace_isEnabled()) {
+        clock_gettime(CLOCK_REALTIME, &tsDspBegin);
+        ATrace_beginSection(AAP_JUCE_DSP_TRACE_SECTION_NAME);
+    }
+#endif
+    native->process(audioBuffer.getNumSamples(), 0);
+#if ANDROID
+    if (ATrace_isEnabled()) {
+        clock_gettime(CLOCK_REALTIME, &tsDspEnd);
+        ATrace_setCounter(AAP_JUCE_DSP_TRACE_SECTION_NAME,
+                          (tsDspEnd.tv_sec - tsDspBegin.tv_sec) * 1000000000 + tsDspEnd.tv_nsec - tsDspBegin.tv_nsec);
+        ATrace_endSection();
+    }
+#endif
+
+    postProcessBuffers(audioBuffer, midiMessages);
+#if ANDROID
+    if (ATrace_isEnabled()) {
+        clock_gettime(CLOCK_REALTIME, &tsEnd);
+        ATrace_setCounter(AAP_JUCE_TRACE_SECTION_NAME,
+                          (tsEnd.tv_sec - tsBegin.tv_sec) * 1000000000 + tsEnd.tv_nsec - tsBegin.tv_nsec);
+        ATrace_endSection();
+    }
+#endif
 }
 
 bool AndroidAudioPluginInstance::hasMidiPort(bool isInput) const {
