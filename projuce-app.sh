@@ -24,11 +24,10 @@ SRCDIR=`dirname $SRCFILE` >/dev/null
 echo "Entering $SRCDIR ..."
 cd $SRCDIR
 
-$PROJUCER --resave `basename $1` || exit 1
+$PROJUCER --resave "`basename $1`" || exit 1
 
 # We can skip this for update-aap-metadata (which rarely happens in the build structures though, mostly for vital)
 if [ -d Builds/Android ] ; then
-
 
 # If a top-level `local.properties` exists, then copy it into the generated Android project.
 if [ -f ../../local.properties ] ; then
@@ -55,9 +54,9 @@ sed -i "" -e "s/repositories {/buildFeatures { prefab true }\n    repositories {
 # app/CMakeLists.txt needs further tweaks
 echo "find_package(androidaudioplugin REQUIRED CONFIG)" >> Builds/Android/app/CMakeLists.txt
 echo "target_link_libraries(\${BINARY_NAME} androidaudioplugin::androidaudioplugin)" >> Builds/Android/app/CMakeLists.txt
-echo "// We NEVER ALLOW JUCE audio plugin standalone apps to automatically open MIDI devices." >> Builds/Android/app/CMakeLists.txt
-echo "// It will open virtual MidiDeviceServices, including AAP MidiDeviceServices!!" >> Builds/Android/app/CMakeLists.txt 
-echo "add_compile_definitions(JUCE_DONT_AUTO_OPEN_MIDI_DEVICES_ON_MOBILE=1) >> Builds/Android/app/CMakeLists.txt
+echo "# We NEVER ALLOW JUCE audio plugin standalone apps to automatically open MIDI devices." >> Builds/Android/app/CMakeLists.txt
+echo "# It will open virtual MidiDeviceServices, including AAP MidiDeviceServices!!" >> Builds/Android/app/CMakeLists.txt 
+echo "add_compile_definitions(JUCE_DONT_AUTO_OPEN_MIDI_DEVICES_ON_MOBILE=1)" >> Builds/Android/app/CMakeLists.txt
 
 # copy aap_metadata.xml once Builds/Android is created.
 # Projucer behavior is awkward. It generates "debug" and "release" directories, and any other common resources are ignored.
@@ -72,7 +71,8 @@ fi
 if [ -f Builds/Android/app/src/debug/res/xml/aap_metadata.xml ] ; then
 if [ ! -z "$ENABLE_MIDI_DEVICE_SERVICE" ] ; then
 MANIFEST_TEMPLATE=$CURDIR/template.AndroidManifest-midi-enabled.xml
-sed -e "s/@@@APPNAME@@@/$APPNAME/g" $CURDIR/template.midi_device_info.xml > midi_device_info.xml || exit 1
+cp $CURDIR/template.midi_device_info.xml midi_device_info.xml
+sed -i "" -e "s/@@@APPNAME@@@/$APPNAME/g" -- midi_device_info.xml || exit 1
 cp midi_device_info.xml Builds/Android/app/src/debug/res/xml
 cp midi_device_info.xml Builds/Android/app/src/release/res/xml
 else
@@ -89,8 +89,9 @@ fi
 APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:] | tr - _`
 
 # Projucer is too inflexible to generate required content.
-## AndroidManifest.xml (only for plugins)
-sed -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.ports.juce.$APPNAMELOWER/" $MANIFEST_TEMPLATE > Builds/Android/app/src/main/AndroidManifest.xml || exit 1
+echo "Manifest template is $MANIFEST_TEMPLATE"
+cp $MANIFEST_TEMPLATE Builds/Android/app/src/main/AndroidManifest.xml
+sed -i "" -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.ports.juce.$APPNAMELOWER/" -- Builds/Android/app/src/main/AndroidManifest.xml || exit 1
 
 echo "-------- Post-projucer file list for $APPNAME: --------"
 find .
