@@ -236,8 +236,8 @@ Changes below are also needed. You can edit with text editors, which would be ea
   - `make copy-and-patch-app-sources` adds symbolic link `juce-modules` to the JUCE `modules` directory. If it does not exist, then this change does not work.
   - If you don't set `path` to point to the exact location e.g. to the one in the submodule in this repo, then it may result in system global path to JUCE (or fails if it is not installed) and any unexpected build breakage could happen. The build log would tell if it went as such.
   - If you are copy-pasting `<MODULES>` element, make sure that you do not accidentally remove necessary ones. @atsushieno had spent a lot of time on finding that he was missing `<MODULE>` for `juce_audio_plugin_client` when copying from `AudioPluginHost` to `Andes_1`...
-- Add `<MODULEPATH id="juceaap_audio_processors" path="./modules"/>` for each `<MODULEPATHS>` for each `<EXPORTFORMAT>`. (You can do this in Projucer too, but copypasting on a text editor is 10x easier.)
-  - Similar to JUCE modules, the make target adds a symbolic link `modules` here.
+- Add `<MODULEPATH id="juceaap_audio_processors" path="./aap-modules"/>` for each `<MODULEPATHS>` for each `<EXPORTFORMAT>`. (You can do this in Projucer too, but copypasting on a text editor is 10x easier.)
+  - Similar to JUCE modules, the make target adds a symbolic link `aap-modules` to `aap-modules` directory in the aap-juce checkout.
 - In `<LINUX_MAKE>` and `<ANDROIDSTUDIO>` element, replace `<CONFIGURATION>` elements with the contents explained below for each.
 
 Below are `<CONFIGURATION>` rewrites.
