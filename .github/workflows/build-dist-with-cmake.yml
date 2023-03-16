@@ -22,9 +22,9 @@ jobs:
         distribution: temurin
     - name: set up node
       uses: actions/setup-node@v3
-      if: ${{ inputs.node_version != '' }}
+      if: ${{ vars.AAP_JUCE_NODE_VERSION != '' }}
       with:
-        node-version: ${{ inputs.node_version }}
+        node-version: ${{ vars.AAP_JUCE_NODE_VERSION }}
     - name: cache AVD
       uses: actions/cache@v3
       env:
