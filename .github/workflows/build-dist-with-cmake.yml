@@ -20,6 +20,11 @@ jobs:
       with:
         java-version: 11
         distribution: temurin
+    - name: set up node
+      uses: actions/setup-node@v3
+      if: ${{ inputs.node_version != '' }}
+      with:
+        node-version: ${{ inputs.node_version }}
     - name: cache AVD
       uses: actions/cache@v3
       env:
