@@ -46,10 +46,13 @@ cp $CURDIR/sample-project.proguard-rules.pro Builds/Android/app/proguard-rules.p
 # Projucer is too inflexible to generate required content for top-level file.
 cp $CURDIR/sample-project.build.gradle Builds/Android/build.gradle
 # app/build.gradle needs further tweaks.
-sed -i "" -e "s/defaultConfig {/defaultConfig {\n        proguardFiles \"proguard-rules.pro\"/" -- Builds/Android/app/build.gradle
-sed -i "" -e "s/ANDROID_ARM_MODE/INVALIDATED_ANDROID_ARM_MODE/" -- Builds/Android/app/build.gradle
-sed -i "" -e "s/c++_static/c++_shared/" -- Builds/Android/app/build.gradle
-sed -i "" -e "s/repositories {/buildFeatures { prefab true }\n    repositories {/" -- Builds/Android/app/build.gradle
+if [ "`uname`" == 'Darwin' ] ; then
+SED_I_ARGS="''"
+fi
+sed -i $SED_I_ARGS -e "s/defaultConfig {/defaultConfig {\n        proguardFiles \"proguard-rules.pro\"/" -- Builds/Android/app/build.gradle
+sed -i $SED_I_ARGS -e "s/ANDROID_ARM_MODE/INVALIDATED_ANDROID_ARM_MODE/" -- Builds/Android/app/build.gradle
+sed -i $SED_I_ARGS -e "s/c++_static/c++_shared/" -- Builds/Android/app/build.gradle
+sed -i $SED_I_ARGS -e "s/repositories {/buildFeatures { prefab true }\n    repositories {/" -- Builds/Android/app/build.gradle
 
 # app/CMakeLists.txt needs further tweaks
 echo "find_package(androidaudioplugin REQUIRED CONFIG)" >> Builds/Android/app/CMakeLists.txt
@@ -72,7 +75,7 @@ if [ -f Builds/Android/app/src/debug/res/xml/aap_metadata.xml ] ; then
 if [ ! -z "$ENABLE_MIDI_DEVICE_SERVICE" ] ; then
 MANIFEST_TEMPLATE=$CURDIR/template.AndroidManifest-midi-enabled.xml
 cp $CURDIR/template.midi_device_info.xml midi_device_info.xml
-sed -i "" -e "s/@@@APPNAME@@@/$APPNAME/g" -- midi_device_info.xml || exit 1
+sed -i $SED_I_ARGS -e "s/@@@APPNAME@@@/$APPNAME/g" -- midi_device_info.xml || exit 1
 cp midi_device_info.xml Builds/Android/app/src/debug/res/xml
 cp midi_device_info.xml Builds/Android/app/src/release/res/xml
 else
@@ -91,7 +94,7 @@ APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:] | tr - _`
 # Projucer is too inflexible to generate required content.
 echo "Manifest template is $MANIFEST_TEMPLATE"
 cp $MANIFEST_TEMPLATE Builds/Android/app/src/main/AndroidManifest.xml
-sed -i "" -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.ports.juce.$APPNAMELOWER/" -- Builds/Android/app/src/main/AndroidManifest.xml || exit 1
+sed -i $SED_I_ARGS -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.ports.juce.$APPNAMELOWER/" -- Builds/Android/app/src/main/AndroidManifest.xml || exit 1
 
 echo "-------- Post-projucer file list for $APPNAME: --------"
 find .
