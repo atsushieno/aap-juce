@@ -10,8 +10,6 @@ void generate_xml_parameter_node(XmlElement *parent, AudioProcessorParameter *pa
     childXml->setAttribute("id", para->getParameterIndex());
     childXml->setAttribute("name", para->getName(1024));
     childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
-    if (!std::isnormal(para->getDefaultValue()))
-        childXml->setAttribute("default", para->getDefaultValue());
     auto ranged = dynamic_cast<RangedAudioParameter *>(para);
     if (ranged) {
         auto range = ranged->getNormalisableRange();
@@ -22,7 +20,7 @@ void generate_xml_parameter_node(XmlElement *parent, AudioProcessorParameter *pa
         if (std::isnormal(ranged->getDefaultValue()) || ranged->getDefaultValue() == 0.0)
             childXml->setAttribute("default", range.convertTo0to1(ranged->getDefaultValue()));
     }
-    else
+    else if (std::isnormal(para->getDefaultValue()))
         childXml->setAttribute("default", para->getDefaultValue());
     childXml->setAttribute("content", "other");
 }
