@@ -313,7 +313,8 @@ void AndroidAudioPluginInstance::releaseResources() {
 }
 
 AndroidAudioPluginInstance::~AndroidAudioPluginInstance() {
-    native->dispose();
+    // it does not dispose here; whatever allocated the instance (and passed to the constructor) is responsible.
+    native->deactivate();
 }
 
 #define MAX_ACCEPTABLE_PROCESS_NANOSECCONDS 10000000 // I think it's fair to say that one plugin taking 10msec. is not appropriate...
