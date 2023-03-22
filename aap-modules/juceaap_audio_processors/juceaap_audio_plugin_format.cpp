@@ -373,8 +373,22 @@ bool AndroidAudioPluginInstance::hasMidiPort(bool isInput) const {
     return false;
 }
 
+class AndroidAudioProcessorEditor : public AudioProcessorEditor {
+public:
+    AndroidAudioProcessorEditor(AudioProcessor *audioProcessor, AndroidViewComponent* content)
+    : AudioProcessorEditor(audioProcessor) {
+        setBounds(0, 0, 400, 400);
+        content->setBounds(getBounds());
+        this->addAndMakeVisible(content);
+    }
+};
+
 AudioProcessorEditor *AndroidAudioPluginInstance::createEditor() {
-    return nullptr;
+    auto instance = (aap::RemotePluginInstance*) native;
+    auto aView = new AndroidViewComponent();
+    auto webView = instance->getWebView();
+    aView->setView(webView);
+    return new AndroidAudioProcessorEditor(this, aView);
 }
 
 void AndroidAudioPluginInstance::fillInPluginDescription(PluginDescription &description) const {

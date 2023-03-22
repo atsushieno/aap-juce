@@ -1,4 +1,5 @@
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_gui_extra/juce_gui_extra.h>
 #include <aap/core/host/audio-plugin-host.h>
 #include <aap/core/host/plugin-client-system.h>
 #include <aap/core/host/android/audio-plugin-host-android.h>
@@ -56,7 +57,8 @@ public:
     AudioProcessorEditor *createEditor() override;
 
     inline bool hasEditor() const override {
-        return native->getPluginInformation()->hasEditor();
+        // So far we support Web UI.
+        return true;
     }
 
     inline int getNumPrograms() override {
