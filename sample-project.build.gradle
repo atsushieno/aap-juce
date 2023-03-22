@@ -1,10 +1,10 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = libs.versions.kotlin.get()
-    ext.aap_version = libs.versions.aap.core.get()
-    ext.compose_version = libs.versions.compose.get()
-    ext.ndk_version = libs.versions.ndk.get()
+    ext.kotlin_version = libs.versions.kotlin
+    ext.aap_version = libs.versions.aap.core
+    ext.compose_version = libs.versions.compose
+    ext.ndk_version = libs.versions.ndk
     ext.enable_asan = false
 
     repositories {
