@@ -377,7 +377,10 @@ class AndroidAudioProcessorEditor : public AudioProcessorEditor {
 public:
     AndroidAudioProcessorEditor(AudioProcessor *audioProcessor, AndroidViewComponent* content)
     : AudioProcessorEditor(audioProcessor) {
-        setBounds(0, 0, 400, 400);
+        auto screen = Desktop::getInstance().getDisplays().getPrimaryDisplay()->userArea;
+        auto width = screen.getWidth() < 600 ? screen.getWidth() : 600;
+        auto height = screen.getHeight() < 400 ? screen.getHeight() : 400;
+        setBounds(0, 0, width, height);
         content->setBounds(getBounds());
         this->addAndMakeVisible(content);
     }
