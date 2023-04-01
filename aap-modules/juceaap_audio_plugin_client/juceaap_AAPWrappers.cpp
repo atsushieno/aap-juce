@@ -137,7 +137,7 @@ public:
             return;
 
         // retrieve AAP MDI2 ports. They are different from juce::AudioProcessor.acceptsMidi()
-        auto pluginInfoExt = (aap_host_plugin_info_extension_t*) host.get_extension_data(&host, AAP_PLUGIN_INFO_EXTENSION_URI);
+        auto pluginInfoExt = (aap_host_plugin_info_extension_t*) host.get_extension(&host, AAP_PLUGIN_INFO_EXTENSION_URI);
         if (pluginInfoExt) {
             aap_to_juce_portmap_in.clear();
             aap_to_juce_portmap_out.clear();
