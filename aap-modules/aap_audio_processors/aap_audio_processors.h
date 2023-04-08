@@ -1,11 +1,11 @@
 /*
 BEGIN_JUCE_MODULE_DECLARATION
 
-ID: juceaap_audio_plugin_client
+ID: aap_audio_processors
 vendor: atsushieno
-version: 0.1.0
-name: AAP JUCE client support
-description: AAP wrapper to build AAP from JUCE audio processors
+version: 0.4.6
+name: AAP JUCE plugin support
+description: AAP wrapper to build AAP plugins from JUCE audio processors
 website: https://github.com/atsushieno/aap-juce
 license: GPLv3
 

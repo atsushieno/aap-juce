@@ -116,7 +116,7 @@ target_compile_definitions(${APP_NAME} PUBLIC
   
 message("AAP_DIR: ${AAP_DIR}")  
 message("AAP_JUCE_DIR: ${AAP_JUCE_DIR}")  
-juce_add_modules(${AAP_JUCE_DIR}/aap-modules/juceaap_audio_plugin_client)  
+juce_add_modules(${AAP_JUCE_DIR}/aap-modules/aap_audio_processors)  
   
 if (ANDROID)  
   
@@ -138,7 +138,7 @@ endif (ANDROID)
   
 target_link_libraries(${APP_NAME}  
   PRIVATE  
-  juceaap_audio_plugin_client  
+  aap_audio_processors
   )  
 # <-- end Android specifics  
 # <-- end AAP specifics

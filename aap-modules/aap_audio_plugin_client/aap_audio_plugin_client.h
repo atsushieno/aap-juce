@@ -1,9 +1,9 @@
 /*
 BEGIN_JUCE_MODULE_DECLARATION
 
-ID: juceaap_audio_processors
+ID: aap_audio_plugin_client
 vendor: atsushieno
-version: 0.1.0
+version: 0.4.6
 name: AAP JUCE hosting support
 description: Classes for AAP hosting support
 website: https://github.com/atsushieno/aap-juce
@@ -13,4 +13,4 @@ END_JUCE_MODULE_DECLARATION
 */
 
 #include "aap/android-audio-plugin.h"
-
+#include "juceaap_audio_plugin_format.h"

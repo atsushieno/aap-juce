@@ -223,7 +223,7 @@ Here are the porting steps that we had. Note that this applies only to `atsushie
 - open project settings and ensure to build at least one plugin format (`Standalone` works)
 - Ensure that `JUCEPROJECT` has `name` attribute value only with `_0-9A-Za-z` characters. That should be handled by Projucer but its hands are still too short.
   - For example, we had to rename `Andes-1` to `Andes_1` and `OB-Xd` to `OB_Xd`.
-- Go to Modules and add module `juceaap_audio_plugin_client` (via path, typically)
+- Go to Modules and add module `aap_audio_processors` (via path, typically)
 - Go to Android exporter section and make following changes (Gradle/AGP versions may vary):
   - Module Dependencies: add list below
   - minSdkVersion 29
@@ -236,7 +236,7 @@ Changes below are also needed. You can edit with text editors, which would be ea
   - `make copy-and-patch-app-sources` adds symbolic link `juce-modules` to the JUCE `modules` directory. If it does not exist, then this change does not work.
   - If you don't set `path` to point to the exact location e.g. to the one in the submodule in this repo, then it may result in system global path to JUCE (or fails if it is not installed) and any unexpected build breakage could happen. The build log would tell if it went as such.
   - If you are copy-pasting `<MODULES>` element, make sure that you do not accidentally remove necessary ones. @atsushieno had spent a lot of time on finding that he was missing `<MODULE>` for `juce_audio_plugin_client` when copying from `AudioPluginHost` to `Andes_1`...
-- Add `<MODULEPATH id="juceaap_audio_processors" path="./aap-modules"/>` for each `<MODULEPATHS>` for each `<EXPORTFORMAT>`. (You can do this in Projucer too, but copypasting on a text editor is 10x easier.)
+- Add `<MODULEPATH id="aap_audio_pprocessors" path="./aap-modules"/>` for each `<MODULEPATHS>` for each `<EXPORTFORMAT>`. (You can do this in Projucer too, but copypasting on a text editor is 10x easier.)
   - Similar to JUCE modules, the make target adds a symbolic link `aap-modules` to `aap-modules` directory in the aap-juce checkout.
 - In `<LINUX_MAKE>` and `<ANDROIDSTUDIO>` element, replace `<CONFIGURATION>` elements with the contents explained below for each.
 
@@ -311,7 +311,7 @@ JUCE exporter for CLion may be useful for debugging (especially that Android Stu
 
 ## Profiling
 
-Both `juceaap_audio_plugin_client` and `juceaap_audio_processors` implement profiling support using ATrace API, just like aap-core and aap-lv2 do. The profiling is done at both including and excluding juceaap-specific parts.
+Both `aap_audio_plugin_client` and `aap_audio_processors` implement profiling support using ATrace API, just like aap-core and aap-lv2 do. The profiling is done at both including and excluding aap-juce specific parts.
 
 For more details on AAP tracing, read the [aap-core documentation](https://github.com/atsushieno/aap-core/blob/e9a28aa7f382a0c30b8b378b6809d2effa25e002/docs/DEVELOPERS.md#profiling-audio-processing) (it is a permalink; there may be updated docs).
 
