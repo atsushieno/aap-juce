@@ -1,1 +1,1 @@
-../juceaap_audio_processors/cmidi2.h
+../aap_audio_plugin_client/cmidi2.h
