@@ -3,7 +3,7 @@
 This repo is the place where we have the common JUCE integration support modules for [aap-core](https://github.com/atsushieno/aap-core) (AAP), for both plugins and hosts.
 
 The entire AAP framework is on early development phase and not ready for any serious consumption yet.
-Everything is subject to change. Contributions are welcome but please bear in mind, documentation is poor and source code is ugly yet. We have [GitHub discussions for the project](https://github.com/atsushieno/aap-juce/discussions/landing) enabled so please feel free to shoot your questions, if any.
+Everything is subject to change. Contributions are welcome but please bear in mind, documentation is poor and source code is ugly yet. We have GitHub discussions for AAP enabled at [aap-core](https://github.com/atsushieno/aap-core/discussions/landing) so please feel free to shoot your questions, if any.
 
 ## Existing ports
 
@@ -36,7 +36,7 @@ You would have to build and install each host and/or plugin from source so far, 
 
 You need a host app and a plugin to try at least one plugin via one host. This repository does not contain any application within itself.
 
-The host can be either `aaphostsample` in aap-core repo, or `AudioPluginHost` in [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) repo (which is JUCE AudioPluginHost with AAP support).
+The host can be either `aaphostsample` in aap-core repo, a project [aap-juce-simple-host](https://github.com/atsushieno/aap-juce-simple-host) that is somewhat tailored for AAP and mobile UI, or `AudioPluginHost` in [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) repo (which is JUCE AudioPluginHost with AAP support).
 
 The plugin can be either `aapbarebonepluginsample` in aap-core repo (more stable), or any plugin on the [AAP Wiki](https://github.com/atsushieno/aap-core/wiki/List-of-AAP-plugins-and-hosts).
 
