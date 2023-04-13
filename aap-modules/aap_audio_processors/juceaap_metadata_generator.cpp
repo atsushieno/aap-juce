@@ -76,9 +76,11 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
 
     auto topLevelExtensionsElement = pluginElement->createNewChildElement("extensions");
     const char* extensions[] {
+        AAP_PLUGIN_INFO_EXTENSION_URI,
         AAP_PRESETS_EXTENSION_URI,
         AAP_STATE_EXTENSION_URI,
-        AAP_MIDI_EXTENSION_URI
+        AAP_MIDI_EXTENSION_URI,
+        AAP_GUI_EXTENSION_URI
     };
     for (auto ext : extensions) {
         auto extensionElement = topLevelExtensionsElement->createNewChildElement("extension");

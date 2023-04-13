@@ -8,6 +8,7 @@
 #include "aap/ext/midi.h"
 #include "aap/ext/parameters.h"
 #include "aap/ext/plugin-info.h"
+#include "aap/ext/gui.h"
 #include "cmidi2.h"
 
 #if ANDROID
@@ -145,7 +146,7 @@ public:
             int jucePortInIdx = 0, jucePortOutIdx = 0;
             int nOut = juce_processor->getMainBusNumOutputChannels();
 
-            auto pluginInfo = pluginInfoExt->get(&host, plugin_unique_id);
+            auto pluginInfo = pluginInfoExt->get(pluginInfoExt, &host, plugin_unique_id);
             for (int i = 0, n = pluginInfo.get_port_count(&pluginInfo); i < n; i++) {
                 auto port = pluginInfo.get_port(&pluginInfo, i);
                 switch (port.content_type(&port)) {
@@ -642,44 +643,44 @@ void juceaap_process(
     getWrapper(plugin)->process(audioBuffer, frameCount, timeoutInNanoseconds);
 }
 
-size_t juceaap_get_state_size(AndroidAudioPluginExtensionTarget target) {
-    return getWrapper(target.plugin)->getStateSize();
+size_t juceaap_get_state_size(aap_state_extension_t* ext, AndroidAudioPlugin* plugin) {
+    return getWrapper(plugin)->getStateSize();
 }
 
-void juceaap_get_state(AndroidAudioPluginExtensionTarget target, aap_state_t *result) {
-    getWrapper(target.plugin)->getState(result);
+void juceaap_get_state(aap_state_extension_t* ext, AndroidAudioPlugin* plugin, aap_state_t *result) {
+    getWrapper(plugin)->getState(result);
 }
 
-void juceaap_set_state(AndroidAudioPluginExtensionTarget target, aap_state_t *input) {
-    getWrapper(target.plugin)->setState(input);
+void juceaap_set_state(aap_state_extension_t* ext, AndroidAudioPlugin* plugin, aap_state_t *input) {
+    getWrapper(plugin)->setState(input);
 }
 
 // Extensions ----------------------------------------------------------------------
 
 // presets extension
 
-int32_t juce_aap_wrapper_get_preset_count(AndroidAudioPluginExtensionTarget target) {
-    auto wrapper = (JuceAAPWrapper*) target.plugin->plugin_specific;
+int32_t juce_aap_wrapper_get_preset_count(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
     return wrapper->getPresetCount();
 }
 
-int32_t juce_aap_wrapper_get_preset_data_size(AndroidAudioPluginExtensionTarget target, int32_t index) {
-    auto wrapper = (JuceAAPWrapper*) target.plugin->plugin_specific;
+int32_t juce_aap_wrapper_get_preset_data_size(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
     return wrapper->getPresetDataSize(index);
 }
 
-void juce_aap_wrapper_get_preset(AndroidAudioPluginExtensionTarget target, int32_t index, bool skipBinary, aap_preset_t *preset) {
-    auto wrapper = (JuceAAPWrapper*) target.plugin->plugin_specific;
+void juce_aap_wrapper_get_preset(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index, bool skipBinary, aap_preset_t *preset) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
     return wrapper->getPreset(index, skipBinary, preset);
 }
 
-int32_t juce_aap_wrapper_get_preset_index(AndroidAudioPluginExtensionTarget target) {
-    auto wrapper = (JuceAAPWrapper*) target.plugin->plugin_specific;
+int32_t juce_aap_wrapper_get_preset_index(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
     return wrapper->getPresetIndex();
 }
 
-void juce_aap_wrapper_set_preset_index(AndroidAudioPluginExtensionTarget target, int32_t index) {
-    auto wrapper = (JuceAAPWrapper*) target.plugin->plugin_specific;
+void juce_aap_wrapper_set_preset_index(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
     wrapper->setPresetIndex(index);
 }
 
@@ -689,9 +690,10 @@ std::map<AndroidAudioPlugin *, std::unique_ptr<aap_presets_extension_t>> presets
 void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
     if (strcmp(uri, AAP_STATE_EXTENSION_URI) == 0) {
         if (!state_ext_map[plugin]) {
-            aap_state_extension_t newInstance{juceaap_get_state_size,
-                                                juceaap_get_state,
-                                                juceaap_set_state};
+            aap_state_extension_t newInstance{nullptr,
+                                              juceaap_get_state_size,
+                                              juceaap_get_state,
+                                              juceaap_set_state};
 
             state_ext_map[plugin] = std::make_unique<aap_state_extension_t>(newInstance);
         }
@@ -699,7 +701,8 @@ void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
     }
     if (strcmp(uri, AAP_PRESETS_EXTENSION_URI) == 0) {
         if (!presets_ext_map[plugin]) {
-            aap_presets_extension_t newInstance{juce_aap_wrapper_get_preset_count,
+            aap_presets_extension_t newInstance{nullptr,
+                                                juce_aap_wrapper_get_preset_count,
                                                 juce_aap_wrapper_get_preset_data_size,
                                                 juce_aap_wrapper_get_preset,
                                                 juce_aap_wrapper_get_preset_index,
