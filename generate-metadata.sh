@@ -25,11 +25,15 @@ fi
 if [ "`uname`" == 'Darwin' ] ; then
 LIBDEFAULTS=$BUILDS_DIR/$PLAT_BUILD_DIR/build/Debug/lib$APPNAME.a
 PLAT_LDFLAGS="-lobjc -framework Foundation -framework AudioToolbox -framework QuartzCore -framework Carbon -framework Cocoa -framework CoreAudio -framework IOKit -framework CoreAudioKit -framework Accelerate -framework CoreMIDI -framework Metal"
+if [ -z "$PLAT_COMPILER" ] ; then
 PLAT_COMPILER="xcrun clang++"
+fi
 else
 LIBDEFAULTS=$BUILDS_DIR/$PLAT_BUILD_DIR/build/$APPNAME.a
 PLAT_LDFLAGS=`pkg-config --libs alsa x11 xinerama xext freetype2 libcurl webkit2gtk-4.0`
+if [ -z "$PLAT_COMPILER" ] ; then
 PLAT_COMPILER=gcc
+fi
 fi
 if [ -z "$LIBFILES" ] ; then
 LIBFILES=$LIBDEFAULTS
