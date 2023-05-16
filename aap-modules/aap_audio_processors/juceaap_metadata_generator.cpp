@@ -1,16 +1,26 @@
 
 // The code below are used by aap-metadata-generator tool ----------------------------------
 
+#include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_audio_plugin_client/utility/juce_CreatePluginFilter.h>
+#include "aap/android-audio-plugin.h"
+#include "aap/ext/presets.h"
+#include "aap/ext/state.h"
+#include "aap/ext/midi.h"
+#include "aap/ext/parameters.h"
+#include "aap/ext/plugin-info.h"
+#include "aap/ext/gui.h"
+
 #define JUCEAAP_EXPORT_AAP_METADATA_SUCCESS 0
 #define JUCEAAP_EXPORT_AAP_METADATA_INVALID_DIRECTORY 1
 #define JUCEAAP_EXPORT_AAP_METADATA_INVALID_OUTPUT_FILE 2
 
-void generate_xml_parameter_node(XmlElement *parent, AudioProcessorParameter *para) {
+void generate_xml_parameter_node(juce::XmlElement *parent, juce::AudioProcessorParameter *para) {
     auto childXml = parent->createNewChildElement("parameter");
     childXml->setAttribute("id", para->getParameterIndex());
     childXml->setAttribute("name", para->getName(1024));
     childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
-    auto ranged = dynamic_cast<RangedAudioParameter *>(para);
+    auto ranged = dynamic_cast<juce::RangedAudioParameter *>(para);
     if (ranged) {
         auto range = ranged->getNormalisableRange();
         if (std::isnormal(range.start) || range.start == 0.0)
@@ -25,8 +35,8 @@ void generate_xml_parameter_node(XmlElement *parent, AudioProcessorParameter *pa
     childXml->setAttribute("content", "other");
 }
 
-void generate_xml_parameter_node(XmlElement *parent,
-                                 const AudioProcessorParameterGroup::AudioProcessorParameterNode *node) {
+void generate_xml_parameter_node(juce::XmlElement *parent,
+                                 const juce::AudioProcessorParameterGroup::AudioProcessorParameterNode *node) {
     auto group = node->getGroup();
     if (group != nullptr) {
         auto childXml = parent->createNewChildElement("parameters");
@@ -52,16 +62,16 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
     auto filter = createPluginFilter();
     filter->enableAllBuses();
 
-    String name = "aapports:juce/" + filter->getName();
+    juce::String name = "aapports:juce/" + filter->getName();
     auto parameters = filter->getParameters();
 
-    File aapMetadataFile{aapMetadataFullPath};
+    juce::File aapMetadataFile{aapMetadataFullPath};
     if (!aapMetadataFile.getParentDirectory().exists()) {
         std::cerr << "Output directory '" << aapMetadataFile.getParentDirectory().getFullPathName()
                   << "' does not exist." << std::endl;
         return JUCEAAP_EXPORT_AAP_METADATA_INVALID_DIRECTORY;
     }
-    std::unique_ptr <juce::XmlElement> pluginsElement{new XmlElement("plugins")};
+    std::unique_ptr <juce::XmlElement> pluginsElement{new juce::XmlElement("plugins")};
     pluginsElement->setAttribute("xmlns", "urn:org.androidaudioplugin.core");
     auto pluginElement = pluginsElement->createNewChildElement("plugin");
     pluginElement->setAttribute("name", JucePlugin_Name);
@@ -69,7 +79,7 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
     pluginElement->setAttribute("author", JucePlugin_Manufacturer);
     pluginElement->setAttribute("developer", JucePlugin_Manufacturer);
     pluginElement->setAttribute("unique-id",
-                                String::formatted("juceaap:%x", JucePlugin_PluginCode));
+                                juce::String::formatted("juceaap:%x", JucePlugin_PluginCode));
     //pluginElement->setAttribute("library", "lib" JucePlugin_Name ".so");
     pluginElement->setAttribute("library", library);
     pluginElement->setAttribute("entrypoint", entrypoint);
@@ -145,7 +155,7 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
         portXml->setAttribute("name", "MIDI output");
     }
 
-    FileOutputStream output{aapMetadataFile};
+    juce::FileOutputStream output{aapMetadataFile};
     if (!output.openedOk()) {
         std::cerr << "Cannot create output file '" << aapMetadataFile.getFullPathName() << "'"
                   << std::endl;
