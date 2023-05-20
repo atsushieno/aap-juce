@@ -83,6 +83,8 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
     //pluginElement->setAttribute("library", "lib" JucePlugin_Name ".so");
     pluginElement->setAttribute("library", library);
     pluginElement->setAttribute("entrypoint", entrypoint);
+    pluginElement->setAttribute("gui:ui-view-factory", "org.androidaudioplugin.ui.web.AudioPluginWebViewFactory");
+    pluginElement->setAttribute("xmlns:gui", "urn://androidaudioplugin.org/extensions/gui");
 
     auto topLevelExtensionsElement = pluginElement->createNewChildElement("extensions");
     const char* extensions[] {
