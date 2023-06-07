@@ -375,23 +375,63 @@ bool AndroidAudioPluginInstance::hasMidiPort(bool isInput) const {
 
 class AndroidAudioProcessorEditor : public AudioProcessorEditor {
 public:
-    AndroidAudioProcessorEditor(AudioProcessor *audioProcessor, AndroidViewComponent* content)
-    : AudioProcessorEditor(audioProcessor) {
+    AndroidAudioProcessorEditor(AudioProcessor *audioProcessor)
+            : AudioProcessorEditor(audioProcessor) {
         auto screen = Desktop::getInstance().getDisplays().getPrimaryDisplay()->userArea;
         auto width = screen.getWidth() < 600 ? screen.getWidth() : 600;
         auto height = screen.getHeight() < 400 ? screen.getHeight() : 400;
         setBounds(0, 0, width, height);
-        content->setBounds(getBounds());
-        this->addAndMakeVisible(content);
     }
 };
 
+class AndroidNativeAudioProcessorEditor : public AndroidAudioProcessorEditor {
+public:
+    AndroidNativeAudioProcessorEditor(AudioProcessor *audioProcessor, aap::RemotePluginInstance* native)
+            : AndroidAudioProcessorEditor(audioProcessor) {
+        auto instance = (aap::RemotePluginInstance*) native;
+        // We have to make sure to instantiate SurfaceView, which is done at this call.
+        instance->prepareSurfaceControlForRemoteNativeUI();
+        // Then, before trying to connect to SurfaceControlViewHost, we have to ensure to have client display ID.
+        // To ensure that, we have to attach the SurfaceView to the window.
+        auto nativeView = instance->getRemoteNativeView();
+        auto aView = new AndroidViewComponent();
+        aView->setView(nativeView);
+        aView->setBounds(getBounds());
+        this->addAndMakeVisible(aView);
+        // Now displayID is ready.
+        auto bounds = getBounds();
+        instance->connectRemoteNativeView(bounds.getWidth(), bounds.getHeight());
+    }
+};
+
+class AndroidWebAudioProcessorEditor : public AndroidAudioProcessorEditor {
+public:
+    AndroidWebAudioProcessorEditor(AudioProcessor *audioProcessor, aap::RemotePluginInstance* instance)
+    : AndroidAudioProcessorEditor(audioProcessor) {
+        auto aView = new AndroidViewComponent();
+        auto webView = instance->getRemoteWebView();
+        aView->setView(webView);
+
+        aView->setBounds(getBounds());
+        this->addAndMakeVisible(aView);
+    }
+};
+
+bool AndroidAudioPluginInstance::hasEditor() const {
+    auto instance = (aap::RemotePluginInstance*) native;
+    auto info = instance->getPluginInformation();
+    if (info->getUiViewFactory().empty() && info->getUiWeb().empty())
+            return false;
+    return true;
+}
+
 AudioProcessorEditor *AndroidAudioPluginInstance::createEditor() {
     auto instance = (aap::RemotePluginInstance*) native;
-    auto aView = new AndroidViewComponent();
-    auto webView = instance->getWebView();
-    aView->setView(webView);
-    return new AndroidAudioProcessorEditor(this, aView);
+    auto info = instance->getPluginInformation();
+    if (info->getUiViewFactory().empty())
+        return new AndroidWebAudioProcessorEditor(this, instance);
+    else
+        return new AndroidNativeAudioProcessorEditor(this, instance);
 }
 
 void AndroidAudioPluginInstance::fillInPluginDescription(PluginDescription &description) const {

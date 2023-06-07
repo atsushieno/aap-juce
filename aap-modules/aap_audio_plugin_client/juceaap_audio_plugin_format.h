@@ -58,10 +58,7 @@ public:
 
     AudioProcessorEditor *createEditor() override;
 
-    inline bool hasEditor() const override {
-        // So far we support Web UI.
-        return true;
-    }
+    inline bool hasEditor() const override;
 
     inline int getNumPrograms() override {
         return native->getStandardExtensions().getPresetCount();
