@@ -32,7 +32,12 @@ void generate_xml_parameter_node(juce::XmlElement *parent, juce::AudioProcessorP
     }
     else if (std::isnormal(para->getDefaultValue()))
         childXml->setAttribute("default", para->getDefaultValue());
-    childXml->setAttribute("content", "other");
+    auto names = para->getAllValueStrings();
+    for (auto name : names) {
+        auto enumXml = childXml->createNewChildElement("enumeration");
+        enumXml->setAttribute("value", para->getValueForText(name));
+        enumXml->setAttribute("name", name);
+    }
 }
 
 void generate_xml_parameter_node(juce::XmlElement *parent,
