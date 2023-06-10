@@ -16,11 +16,19 @@
 #define JUCEAAP_EXPORT_AAP_METADATA_INVALID_OUTPUT_FILE 2
 
 void generate_xml_parameter_node(juce::XmlElement *parent, juce::AudioProcessorParameter *para) {
+    auto ranged = dynamic_cast<juce::RangedAudioParameter *>(para);
+    if (ranged) {
+        auto range = ranged->getNormalisableRange();
+        if (range.start == range.end) {
+            std::cerr << "Parameter " << para->getName(1024) << " has an invalid range: " << range.start << " .. " << range.end << " - skipping. " << std::endl;
+            return;
+        }
+    }
+
     auto childXml = parent->createNewChildElement("parameter");
     childXml->setAttribute("id", para->getParameterIndex());
     childXml->setAttribute("name", para->getName(1024));
     childXml->setAttribute("direction", "input"); // JUCE does not support output parameter.
-    auto ranged = dynamic_cast<juce::RangedAudioParameter *>(para);
     if (ranged) {
         auto range = ranged->getNormalisableRange();
         if (std::isnormal(range.start) || range.start == 0.0)
@@ -34,6 +42,10 @@ void generate_xml_parameter_node(juce::XmlElement *parent, juce::AudioProcessorP
         childXml->setAttribute("default", para->getDefaultValue());
     auto names = para->getAllValueStrings();
     for (auto name : names) {
+        if (!std::isnormal(para->getValueForText(name)) && para->getValueForText(name) != 0.0) {
+            std::cerr << "Parameter " << para->getName(1024) << " has an invalid enum value '" << para->getValueForText(name) << "'. Skipping. " << std::endl;
+            continue;
+        }
         auto enumXml = childXml->createNewChildElement("enumeration");
         enumXml->setAttribute("value", para->getValueForText(name));
         enumXml->setAttribute("name", name);

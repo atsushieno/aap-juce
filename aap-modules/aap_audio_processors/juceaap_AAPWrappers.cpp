@@ -85,6 +85,8 @@ public:
 
         juce::MessageManager::getInstance(); // ensure that we have a message loop.
         juce_processor = createPluginFilter();
+
+        buildParameterList();
     }
 
     virtual ~JuceAAPWrapper() {
@@ -106,6 +108,79 @@ public:
         return true;
     }
 #endif
+
+    juce::OwnedArray<aap_parameter_info_t> aapParams{};
+    juce::HashMap<int32_t,int32_t> aapParamIdToEnumIndex{};
+    juce::OwnedArray<aap_parameter_enum_t> aapEnums{};
+
+    void registerParameter(juce::String path, juce::AudioProcessorParameter* para) {
+        aap_parameter_info_t info;
+        strncpy(info.path, path.toRawUTF8(), sizeof(info.path));
+        info.stable_id = static_cast<int16_t>(para->getParameterIndex());
+        auto nameMax = sizeof(info.display_name);
+        const char* paramName = para->getName((int32_t) nameMax).toRawUTF8();
+        strncpy(info.display_name, paramName, nameMax);
+        auto ranged = dynamic_cast<juce::RangedAudioParameter *>(para);
+        if (ranged) {
+            auto range = ranged->getNormalisableRange();
+            if (std::isnormal(range.start) || range.start == 0.0)
+                info.min_value = range.start;
+            if (std::isnormal(range.end) || range.end == 0.0)
+                info.max_value = range.end;
+            if (std::isnormal(ranged->getDefaultValue()) || ranged->getDefaultValue() == 0.0)
+                info.default_value = range.convertTo0to1(ranged->getDefaultValue());
+        }
+        else if (std::isnormal(para->getDefaultValue()))
+            info.default_value = para->getDefaultValue();
+        auto names = para->getAllValueStrings();
+        if (!names.isEmpty()) {
+            aapParamIdToEnumIndex.set(info.stable_id, aapEnums.size());
+            for (auto name : names) {
+                aap_parameter_enum_t e;
+                e.value = para->getValueForText(name);
+                strncpy(e.name, name.toRawUTF8(), sizeof(e.name));
+                aapEnums.add(new aap_parameter_enum_t(e));
+            }
+        }
+        aapParams.add(new aap_parameter_info_t(info));
+    }
+
+    void registerParameters(juce::String path, const juce::AudioProcessorParameterGroup::AudioProcessorParameterNode* node) {
+        auto group = node->getGroup();
+        if (group != nullptr) {
+            juce::String curPath = path + "/" + group->getName();
+            for (const auto childPara : *group)
+                registerParameters(curPath, childPara);
+        } else {
+            auto para = node->getParameter();
+            registerParameter(path, para);
+        }
+    }
+
+    void buildParameterList() {
+        aapParams.clear();
+        aapParamIdToEnumIndex.clear();
+        aapEnums.clear();
+
+        auto &tree = juce_processor->getParameterTree();
+        for (auto node : tree)
+            registerParameters("", node);
+        if (aapParams.size() == 0)
+            for (auto para : juce_processor->getParameters())
+                registerParameter("", para);
+        if (aapParams.size() == 0) {
+            // Some classic plugins (such as OB-Xd) do not return parameter objects.
+            // They still return parameter names, so we can still generate AAP parameters.
+            for (int i = 0, n = juce_processor->getNumParameters(); i < n; i++) {
+                aap_parameter_info_t p;
+                p.stable_id = (int16_t) i;
+                strncpy(p.display_name, juce_processor->getParameterName(i).toRawUTF8(), sizeof(p.display_name));
+                p.min_value = 0.0;
+                p.max_value = 1.0;
+                p.default_value = juce_processor->getParameter(i);
+            }
+        }
+    }
 
     void allocateBuffer(aap_buffer_t *aapBuffer) {
         if (!aapBuffer) {
@@ -613,6 +688,47 @@ public:
     void setPresetIndex(int32_t index) {
         juce_processor->setCurrentProgram(index);
     }
+
+    int32_t getAAPParameterCount() { return aapParams.size(); }
+    aap_parameter_info_t* getAAPParameterInfo(int index) { return aapParams[index]; }
+    AudioProcessorParameter* findJUCEParameter(int id) {
+        for (auto p : juce_processor->getParameterTree().getParameters(true))
+            if (p->getParameterIndex() == id)
+                return p;
+        return nullptr;
+    }
+    double getAAPParameterProperty(int32_t parameterId, int32_t propertyId) {
+        for (auto info: aapParams) {
+            if (info->stable_id == parameterId) {
+                switch (propertyId) {
+                    case AAP_PARAMETER_PROPERTY_MIN_VALUE:
+                        return info->min_value;
+                    case AAP_PARAMETER_PROPERTY_MAX_VALUE:
+                        return info->max_value;
+                    case AAP_PARAMETER_PROPERTY_DEFAULT_VALUE:
+                        return info->default_value;
+                    case AAP_PARAMETER_PROPERTY_IS_DISCRETE: {
+                        auto p = findJUCEParameter(parameterId);
+                        return p != nullptr && p->isDiscrete();
+                    }
+                    // JUCE does not have it (yet?)
+                    case AAP_PARAMETER_PROPERTY_PRIORITY:
+                        return 0;
+                }
+            }
+        }
+        return 0;
+    }
+    int32_t getAAPEnumerationCount(int32_t parameterId) {
+        auto p = findJUCEParameter(parameterId);
+        return p != nullptr ? p->getAllValueStrings().size() : 0;
+    }
+    aap_parameter_enum_t* getAAPEnumeration(int32_t parameterId, int32_t enumIndex) {
+        int32_t baseIndex = aapParamIdToEnumIndex[parameterId];
+        return aapEnums[baseIndex + enumIndex];
+    }
+
+    AudioProcessor* getAudioProcessor() { return juce_processor; }
 };
 
 // AAP plugin API ----------------------------------------------------------------------
@@ -643,6 +759,10 @@ void juceaap_process(
     getWrapper(plugin)->process(audioBuffer, frameCount, timeoutInNanoseconds);
 }
 
+// Extensions ----------------------------------------------------------------------
+
+// state extension
+
 size_t juceaap_get_state_size(aap_state_extension_t* ext, AndroidAudioPlugin* plugin) {
     return getWrapper(plugin)->getStateSize();
 }
@@ -654,8 +774,6 @@ void juceaap_get_state(aap_state_extension_t* ext, AndroidAudioPlugin* plugin, a
 void juceaap_set_state(aap_state_extension_t* ext, AndroidAudioPlugin* plugin, aap_state_t *input) {
     getWrapper(plugin)->setState(input);
 }
-
-// Extensions ----------------------------------------------------------------------
 
 // presets extension
 
@@ -684,10 +802,48 @@ void juce_aap_wrapper_set_preset_index(aap_presets_extension_t* ext, AndroidAudi
     wrapper->setPresetIndex(index);
 }
 
+// parameters extension
+
+int32_t juceaap_get_parameter_count(aap_parameters_extension_t* ext, AndroidAudioPlugin* plugin) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    return wrapper->getAAPParameterCount();
+}
+
+aap_parameter_info_t* juceaap_get_parameter(aap_parameters_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    return wrapper->getAAPParameterInfo(index);
+}
+
+double juceaap_get_parameter_property(aap_parameters_extension_t* ext, AndroidAudioPlugin* plugin, int32_t parameterId, int32_t propertyId) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    return wrapper->getAAPParameterProperty(parameterId, propertyId);
+}
+
+int32_t juceaap_get_enumeration_count(aap_parameters_extension_t* ext, AndroidAudioPlugin* plugin, int32_t parameterId) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    return wrapper->getAAPEnumerationCount(parameterId);
+}
+
+aap_parameter_enum_t* juceaap_get_enumeration(aap_parameters_extension_t* ext, AndroidAudioPlugin* plugin, int32_t parameterId, int32_t enumIndex) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    return wrapper->getAAPEnumeration(parameterId, enumIndex);
+}
+
+aap_parameters_extension_t parameters_ext{nullptr,
+                                          juceaap_get_parameter_count,
+                                          juceaap_get_parameter,
+                                          juceaap_get_parameter_property,
+                                          juceaap_get_enumeration_count,
+                                          juceaap_get_enumeration
+                                          };
+
 std::map<AndroidAudioPlugin *, std::unique_ptr<aap_state_extension_t>> state_ext_map{};
 std::map<AndroidAudioPlugin *, std::unique_ptr<aap_presets_extension_t>> presets_ext_map{};
 
 void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
+    if (strcmp(uri, AAP_PARAMETERS_EXTENSION_URI) == 0) {
+        return &parameters_ext;
+    }
     if (strcmp(uri, AAP_STATE_EXTENSION_URI) == 0) {
         if (!state_ext_map[plugin]) {
             aap_state_extension_t newInstance{nullptr,
