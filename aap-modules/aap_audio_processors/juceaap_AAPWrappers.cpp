@@ -690,7 +690,7 @@ public:
     }
 
     int32_t getAAPParameterCount() { return aapParams.size(); }
-    aap_parameter_info_t* getAAPParameterInfo(int index) { return aapParams[index]; }
+    aap_parameter_info_t getAAPParameterInfo(int index) { return *aapParams[index]; }
     AudioProcessorParameter* findJUCEParameter(int id) {
         for (auto p : juce_processor->getParameterTree().getParameters(true))
             if (p->getParameterIndex() == id)
@@ -723,9 +723,9 @@ public:
         auto p = findJUCEParameter(parameterId);
         return p != nullptr ? p->getAllValueStrings().size() : 0;
     }
-    aap_parameter_enum_t* getAAPEnumeration(int32_t parameterId, int32_t enumIndex) {
+    aap_parameter_enum_t getAAPEnumeration(int32_t parameterId, int32_t enumIndex) {
         int32_t baseIndex = aapParamIdToEnumIndex[parameterId];
-        return aapEnums[baseIndex + enumIndex];
+        return *aapEnums[baseIndex + enumIndex];
     }
 
     AudioProcessor* getAudioProcessor() { return juce_processor; }
@@ -809,7 +809,7 @@ int32_t juceaap_get_parameter_count(aap_parameters_extension_t* ext, AndroidAudi
     return wrapper->getAAPParameterCount();
 }
 
-aap_parameter_info_t* juceaap_get_parameter(aap_parameters_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index) {
+aap_parameter_info_t juceaap_get_parameter(aap_parameters_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index) {
     auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
     return wrapper->getAAPParameterInfo(index);
 }
@@ -824,7 +824,7 @@ int32_t juceaap_get_enumeration_count(aap_parameters_extension_t* ext, AndroidAu
     return wrapper->getAAPEnumerationCount(parameterId);
 }
 
-aap_parameter_enum_t* juceaap_get_enumeration(aap_parameters_extension_t* ext, AndroidAudioPlugin* plugin, int32_t parameterId, int32_t enumIndex) {
+aap_parameter_enum_t juceaap_get_enumeration(aap_parameters_extension_t* ext, AndroidAudioPlugin* plugin, int32_t parameterId, int32_t enumIndex) {
     auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
     return wrapper->getAAPEnumeration(parameterId, enumIndex);
 }
