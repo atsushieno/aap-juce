@@ -146,6 +146,8 @@ target_link_libraries(${APP_NAME}
 
 ### Generate aap_metadata.xml
 
+<ins>Starting aap-juce a31c7c7 (0.4.7+), we don't have to "generate" `aap_metadata.xml` anymore, practically. The only task that is against humanity was parameter list generation, and it can be skipped now. It will be dynamically built at instantiation time. Note that you still have to create `aap_metadata.xml` and fill its metadata.</ins>
+
 Now, we have to generate `aap_metadata.xml` for the target project (Xenos this time). It can be automated by:
 
 ```
