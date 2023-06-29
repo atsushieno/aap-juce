@@ -126,9 +126,13 @@ After `a31c7c7` (aap-juce 0.4.7~), we do not really have to "generate" automatic
 
 <del>
 There is some non-trivial task: `aap_metadata.xml` has to be created for the plugin. Sometimes it can be hundreds of lines of markup, so you would like to automatically generate from existing code.
+</del>
 
+<del>
 There is `update-aap-metadata` target in `Makefile.common` or `update-aap-metadata-cmake` target in `Makefile.cmake-common`, but in case you would like to run it manually...
+</del>
 
+<del>
 To import JUCE audio plugins into AAP world, we have to create plugin
 descriptor (`aap_metadata.xml`). We have a supplemental tool source to
 help generating it automatically from JUCE plugin binary (shared code).
