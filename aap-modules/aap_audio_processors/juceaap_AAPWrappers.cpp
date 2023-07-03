@@ -178,6 +178,7 @@ public:
                 p.min_value = 0.0;
                 p.max_value = 1.0;
                 p.default_value = juce_processor->getParameter(i);
+                aapParams.add(new aap_parameter_info_t(p));
             }
         }
     }
