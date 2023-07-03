@@ -147,7 +147,7 @@ copy-and-patch-app-sources: $(APP_COPY_DIR)/.stamp
 $(APP_COPY_DIR)/.stamp: \
 		$(APP_SRC_DIR)/** \
 		$(APP_CUSTOM_JUCER) \
-		$(AAP_JUCE_DIR)/sample-project.*
+		$(AAP_JUCE_DIR)/projuce-app-template/*
 	$(AAP_JUCE_DIR)/copy-and-patch-app-sources.sh  $(APP_NAME)  $(APP_SRC_DIR) \
 		$(APP_COPY_DIR)  $(PATCH_FILE)  $(PATCH_DEPTH)  $(APP_CUSTOM_JUCER) $(APP_BUILD_DIR)
 	if [ ! -e $(APP_COPY_DIR)/aap-modules ] ; then \

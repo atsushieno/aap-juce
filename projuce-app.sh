@@ -10,6 +10,8 @@ if [ -z "$MACAPPNAME" ] ; then
 MACAPPNAME=$APPNAME
 fi
 
+APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:] | tr - _`
+
 if ! [ -f $1 ] ; then
     echo "usage: APPNAME=xyz PROJUCER=/path/to/JUCE/Projucer projuce-app.sh [.jucer file]"
     echo "Missing .jucer file (or it does not exist)."
@@ -39,12 +41,12 @@ fi
 # Fixup Android project
 echo "rootProject.name='$APPNAME'" > Builds/Android/settings.gradle
 echo "include ':app'" >> Builds/Android/settings.gradle
-cp $CURDIR/sample-project.gradle.properties Builds/Android/gradle.properties
-cp $CURDIR/sample-project.libs.versions.toml Builds/Android/gradle/libs.versions.toml
-cp $CURDIR/sample-project.gradle-wrapper.properties Builds/Android/gradle/wrapper/gradle-wrapper.properties
-cp $CURDIR/sample-project.proguard-rules.pro Builds/Android/app/proguard-rules.pro
+cp $CURDIR/projuce-app-template/gradle.properties Builds/Android/gradle.properties
+cp $CURDIR/projuce-app-template/libs.versions.toml Builds/Android/gradle/libs.versions.toml
+cp $CURDIR/projuce-app-template/gradle-wrapper.properties Builds/Android/gradle/wrapper/gradle-wrapper.properties
+cp $CURDIR/projuce-app-template/proguard-rules.pro Builds/Android/app/proguard-rules.pro
 # Projucer is too inflexible to generate required content for top-level file.
-cp $CURDIR/sample-project.build.gradle Builds/Android/build.gradle
+cp $CURDIR/projuce-app-template/build.gradle Builds/Android/build.gradle
 # app/build.gradle needs further tweaks.
 if [ "`uname`" == 'Darwin' ] ; then
 SED_I_ARGS="''"
@@ -53,6 +55,7 @@ sed -i $SED_I_ARGS -e "s/defaultConfig {/defaultConfig {\n        proguardFiles 
 sed -i $SED_I_ARGS -e "s/ANDROID_ARM_MODE/INVALIDATED_ANDROID_ARM_MODE/" -- Builds/Android/app/build.gradle
 sed -i $SED_I_ARGS -e "s/c++_static/c++_shared/" -- Builds/Android/app/build.gradle
 sed -i $SED_I_ARGS -e "s/repositories {/buildFeatures { prefab true }\n    repositories {/" -- Builds/Android/app/build.gradle
+sed -i $SED_I_ARGS -e "s/android {/android {\n    namespace \"org.androidaudioplugin.ports.juce.$APPNAMELOWER\"\n    /" -- Builds/Android/app/build.gradle
 
 # app/CMakeLists.txt needs further tweaks
 echo "find_package(androidaudioplugin REQUIRED CONFIG)" >> Builds/Android/app/CMakeLists.txt
@@ -73,23 +76,21 @@ fi
 
 if [ -f Builds/Android/app/src/debug/res/xml/aap_metadata.xml ] ; then
 if [ ! -z "$ENABLE_MIDI_DEVICE_SERVICE" ] ; then
-MANIFEST_TEMPLATE=$CURDIR/template.AndroidManifest-midi-enabled.xml
-cp $CURDIR/template.midi_device_info.xml midi_device_info.xml
-sed -i $SED_I_ARGS -e "s/@@@APPNAME@@@/$APPNAME/g" -- midi_device_info.xml || exit 1
+MANIFEST_TEMPLATE=$CURDIR/projuce-app-template/AndroidManifest-plugin-midi-enabled.xml
+cp $CURDIR/projuce-app-template/midi_device_info.xml midi_device_info.xml
+sed -i $SED_I_ARGS -e "s/@@@APPNAME@@@/$APPNAME/" -- midi_device_info.xml || exit 1
 cp midi_device_info.xml Builds/Android/app/src/debug/res/xml
 cp midi_device_info.xml Builds/Android/app/src/release/res/xml
 else
-MANIFEST_TEMPLATE=$CURDIR/template.AndroidManifest.xml
+MANIFEST_TEMPLATE=$CURDIR/projuce-app-template/AndroidManifest-plugin.xml
 fi
 else
-MANIFEST_TEMPLATE=$CURDIR/template.AndroidManifest-host.xml
+MANIFEST_TEMPLATE=$CURDIR/projuce-app-template/AndroidManifest-host.xml
 
 # copy additional host sources
 mkdir -p Builds/Android/app/src/main/java/org/androidaudioplugin/juce/
 cp $CURDIR/java/org/androidaudioplugin/juce/JuceAppInitializer.java Builds/Android/app/src/main/java/org/androidaudioplugin/juce/
 fi
-
-APPNAMELOWER=`echo $APPNAME | tr [:upper:] [:lower:] | tr - _`
 
 # Projucer is too inflexible to generate required content.
 echo "Manifest template is $MANIFEST_TEMPLATE"
