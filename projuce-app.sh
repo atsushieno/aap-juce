@@ -56,6 +56,7 @@ sed -i $SED_I_ARGS -e "s/ANDROID_ARM_MODE/INVALIDATED_ANDROID_ARM_MODE/" -- Buil
 sed -i $SED_I_ARGS -e "s/c++_static/c++_shared/" -- Builds/Android/app/build.gradle
 sed -i $SED_I_ARGS -e "s/repositories {/buildFeatures { prefab true }\n    repositories {/" -- Builds/Android/app/build.gradle
 sed -i $SED_I_ARGS -e "s/android {/android {\n    namespace \"org.androidaudioplugin.ports.juce.$APPNAMELOWER\"\n    /" -- Builds/Android/app/build.gradle
+sed -i $SED_I_ARGS -e "s/apply plugin:/apply plugin: \"kotlin-android\"\napply plugin:/" -- Builds/Android/app/build.gradle
 
 # app/CMakeLists.txt needs further tweaks
 echo "find_package(androidaudioplugin REQUIRED CONFIG)" >> Builds/Android/app/CMakeLists.txt
