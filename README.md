@@ -50,13 +50,15 @@ For those projects that use CMake, it is `app/build/outputs`.
 
 ## App Build Instruction
 
-aap-juce itself is a set of JUCE modules that itself does not "build". But still, there is a GitHub Actions workflow setup, which is kind of normative build instructions (in that it is offered by ourselves).
+### CI builds
 
-This repository contains some GitHub Actions workflow description files under `.github` directory. One is for Projucer-based projects, and the other is for CMake. They are being [reused](https://docs.github.com/en/actions/using-workflows/reusing-workflows) in `aap-juce-*` repositories (as they have been almost identical across projects).
+aap-juce itself is a set of JUCE modules that itself does not "build". But still, there are [reusable GitHub Actions workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows) under `.github` directory: one for CMake based projects and another for Projucer based projects. They are kind of normative build instructions (in that it is offered by ourselves).
 
-It is almost one `make` call if all conditions are met.
+The actual build is one `make` call if all conditions are met. In other words, every project that uses the workflow is adjusted to build with that.
 
 As long as other project follows the same structure, you can reuse it too. It is safe to use the versioned workflow by commit rev. as we will be making breaking changes.
+
+### Building locally
 
 As a prerequisite, you need Android SDK. If you install it via Android Studio it is usually placed under `~/Android/Sdk` on Linux, and `~/Library/Android/sdk` on MacOS.
 You also need Android NDK, most likely at least r23 (our latest development version uses newer ones).
@@ -66,7 +68,7 @@ It would be much easier to place Android SDK and NDK to the standard location th
 
 CMake based projects would similarly need to tweak `Makefile`, but other than that it is a typical Android Studio (Android Gradle) project.
 
-### On Projucer
+## Additional notes on Projucer
 
 aap-juce basically recommends CMake for porting JUCE plugins to Android, but it is still technically possible to use Projucer-based projects for porting.
 
@@ -94,35 +96,27 @@ So you will have to rewrite code to follow asynchronous way or disable code so f
 
 For a project that build with CMake, it is fairly easier to port to AAP.
 
-There are existing sample projects listed earlier on this documentation, and to port an existing plugin project (or even if you are going to create a new JUCE plugin project), it is easier to create new project based off of those existing ones, making changes to your plugin specifics.
-
-The best way to find out what you should make changes can be found e.g. by:
-
-```
-diff -u aap-juce-witte-eq/ aap-juce-chow-phaser/
-diff -u aap-juce-witte-eq/app aap-juce-chow-phaser/app
-diff -ur aap-juce-witte-eq/app/src aap-juce-chow-phaser/app/src -x cpp
-```
+There are existing sample projects listed earlier on our [AAP wiki page](https://github.com/atsushieno/aap-core/wiki/List-of-AAP-plugins-and-hosts), and to port an existing plugin project (or even if you are going to create a new JUCE plugin project), it is easier to create new project based off of those existing ones, making changes to your plugin specifics. For details, see [docs/PLUGIN_PORTING_GUIDE.md](docs/PLUGIN_PORTING_GUIDE.md).
 
 There are some important bits:
 
 - JUCE needs some changes. [JUCE-support-Android-CMake.patch](JUCE-support-Android-CMake.patch) is applied if you build those ports with `make`.
-- The plugin's top level `CMakeLists.txt` : we need `Standalone` plugin build (as no other formats are supported, and on Android it is built as a shared library).
-- `app/CMakeLists.txt` has plugin-specific information, as well as references to JUCE subdirectories.
+- The plugin's top level `CMakeLists.txt` : we need `Standalone` plugin build (as no other formats are supported, and on Android it is built as a shared library). We also (typically) patch this file to add build setup for AAP specifics.
+- `app/src/main/cpp`: is typically a symbolic link to the JUCE plugin app source (e.g. `cpp` -> `../../../external/dexed`).
 
 A typical porting trouble we encounter is that even if the activity launches, it shows an empty screen.
 It is because the application somehow fails to bootstrap (call to `com.rmsl.juce.Java.initialiseJUCE()`).
 
-Another typical problem is that it fails to load the plugin shared library. It is due to missing shared library within the apk, inconsistent `aap_metadata.xml` description (either `library` or `entrypoint` attribute), or missing entrypoint function symbol in the shared library (which must not be visibility=hidden).
+Another typical problem is that it fails to load the plugin shared library. It is due to missing shared library within the apk, inconsistent `aap_metadata.xml` description (either `library` or `entrypoint` attribute), or missing entrypoint function symbol in the shared library (which must not be `visibility=hidden`).
 
 
 ### Generating and updating aap_metadata.xml
 
-This only applies to plugins.
+This only applies to plugins (hosts do not need it).
 
 `aap_metadata.xml` has to be created for the plugin.
 
-After `a31c7c7` (aap-juce 0.4.7~), we do not really have to "generate" automatically - we could just copy some `aap_metadata.xml` and modify it to match your project (especially, names and the native library filename). Therefore, we deprecate the following paragraphs.
+Starting aap-juce 0.4.7, we do not really have to "generate" it automatically - we could just copy some `aap_metadata.xml` and modify it to match your project (especially, names and the native library filename). Therefore, we deprecate the following paragraphs.
 
 <del>
 There is some non-trivial task: `aap_metadata.xml` has to be created for the plugin. Sometimes it can be hundreds of lines of markup, so you would like to automatically generate from existing code.
@@ -163,7 +157,7 @@ We have a lot of works for Projucer-based projects here, but things are much sim
 
 ### GUI limitation
 
-aap-core 0.7.7 will bring in basic support for native plugin-process GUI, but since JUCE does not work as a standalone `View`, it is impossible to reuse existing desktop UI at the moment. JUCE plugins even invalidates whatever `Activity` we specify at `AndroidManifest.xml` and launches its own `JuceActivity` instead. It is a brutal behavior, but we cannot fix without a various patching effort.
+aap-core since 0.7.7 provides preliminary native plugin-process GUI functionality, but since JUCE GUI does not work as a standalone `View`, unlike Jetpack Compose,or Flutter, it is impossible to reuse existing desktop UI at the moment. JUCE plugins even invalidates whatever `Activity` we specify at `AndroidManifest.xml` and launches its own `JuceActivity` instead. It is a brutal behavior, but we cannot fix without a various patching effort.
 
 At the moment, you are encouraged to build a dedicated mobile UI for JUCE based plugins, without `juce_gui_basics`. Or push JUCE team to improve their GUI support to make it just work as `View`.
 
@@ -179,13 +173,6 @@ Then you have to make some changes to the build scripts (`build.gradle(.kts)` an
 There is one more change needed: Projucer generates CMake arguments to contain `-DANDROID_STL_c++_static`. It has to be changed to `-DANDROID_STL=c++_shared`.
 
 Note that if you are on Projucer based project, Projucer will clean up all your efforts every time it resaves the project.
-
-## Hacking JUCEAAP modules
-
-The easiest way to hack AAP JUCE integration itself would be still via soem ported app project on Android Studio.
-
-Although on the other hand, JUCE integration on desktop is significantly easy as JUCE is primarily developed for desktop, if code to hack is not Android specific.
-JUCE exporter for CLion may be useful for debugging (especially that Android Studio native builds are also for CMake either way). On CLion (verified with 2019.3) setting the project root with `Tools` -> `CMake` -> `Change Project Root` command would make it possible to diagnose issues with breakpoints on the sources from AAP itself (also LV2 dependencies and prebuilt LV2 plugins e.g. mda-lv2, but it is out of scope of this repo).
 
 ## Profiling
 
