@@ -31,6 +31,8 @@ enum cmidi2_status_code {
     CMIDI2_STATUS_PER_NOTE_MANAGEMENT = 0xF0,
 };
 
+// TODO: it still does not support June 2023 updates.
+
 enum cmidi2_message_type {
     // MIDI 2.0 UMP Section 3.
     CMIDI2_MESSAGE_TYPE_UTILITY = 0,
@@ -237,6 +239,9 @@ static inline uint8_t cmidi2_ump_get_num_bytes(uint32_t data) {
     return 0xFF; /* wrong */
 }
 
+// --------
+// UMP generators
+
 // 4.8 Utility Messages
 static inline uint32_t cmidi2_ump_noop(uint8_t group) { return (group & 0xF) << 24; }
 
@@ -415,16 +420,16 @@ static inline uint8_t cmidi2_ump_sysex_get_num_packets(uint8_t numBytes, uint8_t
     return numBytes <= radix ? 1 : numBytes / radix + (numBytes % radix ? 1 : 0);
 }
 
-static inline uint32_t cmidi2_ump_read_uint32_bytes_le(void *sequence) {
-    uint8_t *bytes = (uint8_t*) sequence;
+static inline uint32_t cmidi2_ump_read_uint32_bytes_le(const void *sequence) {
+    const uint8_t *bytes = (const uint8_t*) sequence;
     uint32_t ret = 0;
     for (int i = 0; i < 4; i++)
         ret += ((uint32_t) bytes[i]) << (i * 8);
     return ret;
 }
 
-static inline uint32_t cmidi2_ump_read_uint32_bytes_be(void *sequence) {
-    uint8_t *bytes = (uint8_t*) sequence;
+static inline uint32_t cmidi2_ump_read_uint32_bytes_be(const void *sequence) {
+    const uint8_t *bytes = (const uint8_t*) sequence;
     uint32_t ret = 0;
     for (int i = 0; i < 4; i++)
         ret += ((uint32_t) bytes[i]) << ((7 - i) * 8);
@@ -436,27 +441,27 @@ static inline bool cmidi2_util_is_platform_little_endian() {
     return *(char*) &i;
 }
 
-static inline uint32_t cmidi2_ump_read_uint32_bytes(void *sequence) {
+static inline uint32_t cmidi2_ump_read_uint32_bytes(const void *sequence) {
     return cmidi2_util_is_platform_little_endian() ? cmidi2_ump_read_uint32_bytes_le(sequence) : cmidi2_ump_read_uint32_bytes_be(sequence);
 }
 
-static inline uint64_t cmidi2_ump_read_uint64_bytes_le(void *sequence) {
-    return ((uint64_t) cmidi2_ump_read_uint32_bytes_le(sequence) << 32) + cmidi2_ump_read_uint32_bytes_le((uint8_t*) sequence + 4);
+static inline uint64_t cmidi2_ump_read_uint64_bytes_le(const void *sequence) {
+    return ((uint64_t) cmidi2_ump_read_uint32_bytes_le(sequence) << 32) + cmidi2_ump_read_uint32_bytes_le((const uint8_t*) sequence + 4);
 }
 
-static inline uint64_t cmidi2_ump_read_uint64_bytes_be(void *sequence) {
-    return ((uint64_t) cmidi2_ump_read_uint32_bytes_be(sequence) << 32) + cmidi2_ump_read_uint32_bytes_be((uint8_t*) sequence + 4);
+static inline uint64_t cmidi2_ump_read_uint64_bytes_be(const void *sequence) {
+    return ((uint64_t) cmidi2_ump_read_uint32_bytes_be(sequence) << 32) + cmidi2_ump_read_uint32_bytes_be((const uint8_t*) sequence + 4);
 }
 
-static inline uint64_t cmidi2_ump_read_uint64_bytes(void *sequence) {
+static inline uint64_t cmidi2_ump_read_uint64_bytes(const void *sequence) {
     return cmidi2_util_is_platform_little_endian() ? cmidi2_ump_read_uint64_bytes_le(sequence) : cmidi2_ump_read_uint64_bytes_be(sequence);
 }
 
-static inline void cmidi2_ump_sysex_get_packet_of(uint64_t* result1, uint64_t* result2, uint8_t group, uint8_t numBytes, void* srcData, int32_t index,
+static inline void cmidi2_ump_sysex_get_packet_of(uint64_t* result1, uint64_t* result2, uint8_t group, uint8_t numBytes, const void* srcData, int32_t index,
         enum cmidi2_message_type messageType, int radix, bool hasStreamId, uint8_t streamId) {
     uint8_t dst8[16];
     memset(dst8, 0, 16);
-    uint8_t *src8 = (uint8_t*) srcData;
+    const uint8_t *src8 = (const uint8_t*) srcData;
 
     dst8[0] = (messageType << 4) + (group & 0xF);
 
@@ -498,9 +503,9 @@ static inline uint64_t cmidi2_ump_sysex7_direct(uint8_t group, uint8_t status, u
         ((uint64_t) data1 << 40) + ((uint64_t) data2 << 32) + (data3 << 24) + (data4 << 16) + (data5 << 8) + data6;
 }
 
-static inline uint32_t cmidi2_ump_sysex7_get_sysex_length(void* srcData) {
+static inline uint32_t cmidi2_ump_sysex7_get_sysex_length(const void* srcData) {
     int i = 0;
-    uint8_t* csrc = (uint8_t*) srcData;
+    const uint8_t* csrc = (const uint8_t*) srcData;
     while (csrc[i] != 0xF7)        
         i++;
     /* This function automatically detects if 0xF0 is prepended and reduce length if it is. */
@@ -511,10 +516,10 @@ static inline uint8_t cmidi2_ump_sysex7_get_num_packets(uint8_t numSysex7Bytes) 
     return cmidi2_ump_sysex_get_num_packets(numSysex7Bytes, 6);
 }
 
-static inline uint64_t cmidi2_ump_sysex7_get_packet_of(uint8_t group, uint8_t numBytes, void* srcData, int32_t index) {
+static inline uint64_t cmidi2_ump_sysex7_get_packet_of(uint8_t group, uint8_t numBytes, const void* srcData, int32_t index) {
     uint64_t result;
-    int srcOffset = numBytes > 0 && ((uint8_t*) srcData)[0] == 0xF0 ? 1 : 0;
-    cmidi2_ump_sysex_get_packet_of(&result, NULL, group, numBytes, (uint8_t*) srcData + srcOffset, index, CMIDI2_MESSAGE_TYPE_SYSEX7, 6, false, 0);
+    int srcOffset = numBytes > 0 && ((const uint8_t*) srcData)[0] == 0xF0 ? 1 : 0;
+    cmidi2_ump_sysex_get_packet_of(&result, NULL, group, numBytes, (const uint8_t*) srcData + srcOffset, index, CMIDI2_MESSAGE_TYPE_SYSEX7, 6, false, 0);
     return result;
 }
 
@@ -543,7 +548,7 @@ static inline int8_t cmidi2_ump_sysex8_get_num_packets(uint8_t numBytes) {
     return cmidi2_ump_sysex_get_num_packets(numBytes, 13);
 }
 
-static inline void cmidi2_ump_sysex8_get_packet_of(uint8_t group, uint8_t streamId, uint8_t numBytes, void* srcData, int32_t index, uint64_t* result1, uint64_t* result2) {
+static inline void cmidi2_ump_sysex8_get_packet_of(uint8_t group, uint8_t streamId, uint8_t numBytes, const void* srcData, int32_t index, uint64_t* result1, uint64_t* result2) {
     cmidi2_ump_sysex_get_packet_of(result1, result2, group, numBytes, srcData, index, CMIDI2_MESSAGE_TYPE_SYSEX8_MDS, 13, true, streamId);
 }
 
@@ -604,10 +609,10 @@ static inline void cmidi2_ump_mds_get_header(uint8_t group, uint8_t mdsId,
 }
 
 // srcData points to exact start of the source data.
-static inline void cmidi2_ump_mds_get_payload_of(uint8_t group, uint8_t mdsId, uint16_t numBytes, void* srcData, uint64_t* result1, uint64_t* result2) {
+static inline void cmidi2_ump_mds_get_payload_of(uint8_t group, uint8_t mdsId, uint16_t numBytes, const void* srcData, uint64_t* result1, uint64_t* result2) {
     uint8_t dst8[16];
     memset(dst8, 0, 16);
-    uint8_t *src8 = (uint8_t*) srcData;
+    const uint8_t *src8 = (const uint8_t*) srcData;
 
     dst8[0] = (CMIDI2_MESSAGE_TYPE_SYSEX8_MDS << 4) + (group & 0xF);
     dst8[1] = CMIDI2_MIXED_DATA_STATUS_PAYLOAD + mdsId;
@@ -643,6 +648,7 @@ static inline void cmidi2_ump_mds_process(uint8_t group, uint8_t mdsId, void* da
 }
 
 
+// --------
 // Strongly-typed(?) UMP.
 // I kind of think those getters are overkill, so I would collect almost use `cmidi2_ump_get_xxx()`
 // as those strongly typed functions, so that those who don't want them can safely ignore them.
@@ -665,7 +671,7 @@ static inline void cmidi2_ump_write128(cmidi2_ump* dst, uint64_t value1, uint64_
     dst[3] = value2 & 0xFFFFFFFF;
 }
 
-static inline uint8_t cmidi2_ump_get_byte_at(cmidi2_ump *ump, uint8_t at) {
+static inline uint8_t cmidi2_ump_get_byte_at(const cmidi2_ump* ump, uint8_t at) {
     ump += at / 4;
     switch (at % 4) {
     case 0: return (*ump & 0xFF000000) >> 24;
@@ -676,210 +682,393 @@ static inline uint8_t cmidi2_ump_get_byte_at(cmidi2_ump *ump, uint8_t at) {
     return 0; // This is unexpected.
 }
 
-static inline uint8_t cmidi2_ump_get_message_type(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_message_type(const cmidi2_ump* ump) {
     return *ump >> 28;
 }
 
-static inline uint8_t cmidi2_ump_get_group(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_message_size_bytes(const cmidi2_ump* ump) {
+    switch (cmidi2_ump_get_message_type(ump)) {
+        case CMIDI2_MESSAGE_TYPE_UTILITY:
+        case CMIDI2_MESSAGE_TYPE_SYSTEM:
+        case CMIDI2_MESSAGE_TYPE_MIDI_1_CHANNEL:
+            return 4;
+        case CMIDI2_MESSAGE_TYPE_SYSEX7:
+        case CMIDI2_MESSAGE_TYPE_MIDI_2_CHANNEL:
+            return 8;
+        case CMIDI2_MESSAGE_TYPE_SYSEX8_MDS:
+            return 16;
+    }
+    return 0; // invalid
+}
+
+static inline uint8_t cmidi2_ump_get_group(const cmidi2_ump* ump) {
     return (*ump >> 24) & 0xF;
 }
 
-static inline uint8_t cmidi2_ump_get_status_code(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_status_code(const cmidi2_ump* ump) {
     return (*ump >> 16) & 0xF0;
 }
 
-static inline uint8_t cmidi2_ump_get_channel(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_channel(const cmidi2_ump* ump) {
     return (*ump >> 16) & 0xF;
 }
 
-static inline uint32_t cmidi2_ump_get_32_to_64(cmidi2_ump* ump) {
+static inline uint32_t cmidi2_ump_get_32_to_64(const cmidi2_ump* ump) {
     return *(ump + 1);
 }
 
-static inline uint16_t cmidi2_ump_get_jr_clock_time(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_jr_clock_time(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 2) << 8) + cmidi2_ump_get_byte_at(ump, 3);
 }
-static inline uint16_t cmidi2_ump_get_jr_timestamp_timestamp(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_jr_timestamp_timestamp(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 2) << 8) + cmidi2_ump_get_byte_at(ump, 3);
 }
 
-static inline uint8_t cmidi2_ump_get_system_message_byte2(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_system_message_byte2(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint8_t cmidi2_ump_get_system_message_byte3(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_system_message_byte3(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
 
-static inline uint8_t cmidi2_ump_get_midi1_byte2(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi1_byte2(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint8_t cmidi2_ump_get_midi1_byte3(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi1_byte3(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
 
-static inline uint8_t cmidi2_ump_get_midi1_note_note(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi1_note_note(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint8_t cmidi2_ump_get_midi1_note_velocity(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi1_note_velocity(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
-static inline uint8_t cmidi2_ump_get_midi1_paf_note(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi1_paf_note(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint8_t cmidi2_ump_get_midi1_paf_data(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi1_paf_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
-static inline uint8_t cmidi2_ump_get_midi1_cc_index(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi1_cc_index(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint8_t cmidi2_ump_get_midi1_cc_data(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi1_cc_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
-static inline uint8_t cmidi2_ump_get_midi1_program_program(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi1_program_program(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint8_t cmidi2_ump_get_midi1_caf_data(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi1_caf_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint16_t cmidi2_ump_get_midi1_pitch_bend_data(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_midi1_pitch_bend_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2) + cmidi2_ump_get_byte_at(ump, 3) * 0x80;
 }
 
-static inline uint8_t cmidi2_ump_get_sysex7_num_bytes(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_sysex7_num_bytes(const cmidi2_ump* ump) {
     return cmidi2_ump_get_channel(ump); // same bits
 }
 
-static inline uint8_t cmidi2_ump_get_midi2_note_note(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_note_note(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint8_t cmidi2_ump_get_midi2_note_attribute_type(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_note_attribute_type(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
-static inline uint16_t cmidi2_ump_get_midi2_note_velocity(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_midi2_note_velocity(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 4) << 8) + (cmidi2_ump_get_byte_at(ump, 5));
 }
-static inline uint16_t cmidi2_ump_get_midi2_note_attribute_data(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_midi2_note_attribute_data(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 6) << 8) + (cmidi2_ump_get_byte_at(ump, 7));
 }
-static inline uint8_t cmidi2_ump_get_midi2_paf_note(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_paf_note(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint32_t cmidi2_ump_get_midi2_paf_data(cmidi2_ump* ump) {
+static inline uint32_t cmidi2_ump_get_midi2_paf_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_32_to_64(ump);
 }
-static inline uint8_t cmidi2_ump_get_midi2_pnrcc_note(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_pnrcc_note(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint8_t cmidi2_ump_get_midi2_pnrcc_index(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_pnrcc_index(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
-static inline uint32_t cmidi2_ump_get_midi2_pnrcc_data(cmidi2_ump* ump) {
+static inline uint32_t cmidi2_ump_get_midi2_pnrcc_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_32_to_64(ump);
 }
-static inline uint8_t cmidi2_ump_get_midi2_pnacc_note(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_pnacc_note(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint8_t cmidi2_ump_get_midi2_pnacc_index(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_pnacc_index(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
-static inline uint32_t cmidi2_ump_get_midi2_pnacc_data(cmidi2_ump* ump) {
+static inline uint32_t cmidi2_ump_get_midi2_pnacc_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_32_to_64(ump);
 }
-static inline uint32_t cmidi2_ump_get_midi2_pn_management_note(cmidi2_ump* ump) {
+static inline uint32_t cmidi2_ump_get_midi2_pn_management_note(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint32_t cmidi2_ump_get_midi2_pn_management_options(cmidi2_ump* ump) {
+static inline uint32_t cmidi2_ump_get_midi2_pn_management_options(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
-static inline uint8_t cmidi2_ump_get_midi2_cc_index(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_cc_index(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint32_t cmidi2_ump_get_midi2_cc_data(cmidi2_ump* ump) {
+static inline uint32_t cmidi2_ump_get_midi2_cc_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_32_to_64(ump);
 }
 // absolute RPN or relative RPN
-static inline uint8_t cmidi2_ump_get_midi2_rpn_msb(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_rpn_msb(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
 // absolute RPN or relative RPN
-static inline uint8_t cmidi2_ump_get_midi2_rpn_lsb(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_rpn_lsb(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
 // absolute RPN or relative RPN
-static inline uint32_t cmidi2_ump_get_midi2_rpn_data(cmidi2_ump* ump) {
+static inline uint32_t cmidi2_ump_get_midi2_rpn_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_32_to_64(ump);
 }
 // absolute NRPN or relative NRPN
-static inline uint8_t cmidi2_ump_get_midi2_nrpn_msb(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_nrpn_msb(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
 // absolute NRPN or relative NRPN
-static inline uint8_t cmidi2_ump_get_midi2_nrpn_lsb(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_nrpn_lsb(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
 // absolute NRPN or relative NRPN
-static inline uint32_t cmidi2_ump_get_midi2_nrpn_data(cmidi2_ump* ump) {
+static inline uint32_t cmidi2_ump_get_midi2_nrpn_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_32_to_64(ump);
 }
-static inline uint8_t cmidi2_ump_get_midi2_program_options(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_program_options(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 3);
 }
-static inline uint8_t cmidi2_ump_get_midi2_program_program(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_program_program(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 4);
 }
-static inline uint8_t cmidi2_ump_get_midi2_program_bank_msb(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_program_bank_msb(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 6));
 }
-static inline uint8_t cmidi2_ump_get_midi2_program_bank_lsb(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_program_bank_lsb(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 7));
 }
-static inline uint32_t cmidi2_ump_get_midi2_caf_data(cmidi2_ump* ump) {
+static inline uint32_t cmidi2_ump_get_midi2_caf_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_32_to_64(ump);
 }
 // either per-note or channel
-static inline uint32_t cmidi2_ump_get_midi2_pitch_bend_data(cmidi2_ump* ump) {
+static inline uint32_t cmidi2_ump_get_midi2_pitch_bend_data(const cmidi2_ump* ump) {
     return cmidi2_ump_get_32_to_64(ump);
 }
-static inline uint8_t cmidi2_ump_get_midi2_pn_pitch_bend_note(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_midi2_pn_pitch_bend_note(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
 
-static inline uint8_t cmidi2_ump_get_sysex8_num_bytes(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_sysex8_num_bytes(const cmidi2_ump* ump) {
     return cmidi2_ump_get_channel(ump); // same bits
 }
-static inline uint8_t cmidi2_ump_get_sysex8_stream_id(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_sysex8_stream_id(const cmidi2_ump* ump) {
     return cmidi2_ump_get_byte_at(ump, 2);
 }
-static inline uint8_t cmidi2_ump_get_mds_mds_id(cmidi2_ump* ump) {
+static inline uint8_t cmidi2_ump_get_mds_mds_id(const cmidi2_ump* ump) {
     return cmidi2_ump_get_channel(ump); // same bits
 }
-static inline uint16_t cmidi2_ump_get_mds_num_chunk_bytes(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_mds_num_chunk_bytes(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 2) << 8) + cmidi2_ump_get_byte_at(ump, 3);
 }
-static inline uint16_t cmidi2_ump_get_mds_num_chunks(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_mds_num_chunks(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 4) << 8) + cmidi2_ump_get_byte_at(ump, 5);
 }
-static inline uint16_t cmidi2_ump_get_mds_chunk_index(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_mds_chunk_index(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 6) << 8) + cmidi2_ump_get_byte_at(ump, 7);
 }
-static inline uint16_t cmidi2_ump_get_mds_manufacturer_id(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_mds_manufacturer_id(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 8) << 8) + cmidi2_ump_get_byte_at(ump, 9);
 }
-static inline uint16_t cmidi2_ump_get_mds_device_id(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_mds_device_id(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 10) << 8) + cmidi2_ump_get_byte_at(ump, 11);
 }
-static inline uint16_t cmidi2_ump_get_mds_sub_id_1(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_mds_sub_id_1(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 12) << 8) + cmidi2_ump_get_byte_at(ump, 13);
 }
-static inline uint16_t cmidi2_ump_get_mds_sub_id_2(cmidi2_ump* ump) {
+static inline uint16_t cmidi2_ump_get_mds_sub_id_2(const cmidi2_ump* ump) {
     return (cmidi2_ump_get_byte_at(ump, 14) << 8) + cmidi2_ump_get_byte_at(ump, 15);
 }
 
+// --------
+// Realtime-safe SysEx8 binary reader
+//
+// The primary end-user facing function is `cmidi2_ump_get_sysex8_data()`, but the
+// function signature needs some explanation as it requires some complicated processing.
+//
+// There can be multiple SysEx8 "streams" that simultaneously run within a UMP stream
+// (e.g. sysex8 start packet for stream #1, sysex8 continue packet for stream #1,
+//  sysex8 start packet for stream #2, sysex8 continue packet for stream #1,
+//  sysex8 continue packet for stream #2, sysex8 complete packet for stream #3,
+//  sysex8 end packet for stream #2, sysex8 end packet for strean #1 ...).
+//
+// Those stream state must be preserved during UMP parsing. It is represented as
+// `cmidi2_ump_binary_read_state` struct.
+//
+// There are handful of usage scenarios where we...
+// - want to handle them all
+// - want to handle only relevant ones
+// - can control what we generate and determine that only one stream can appear so
+//   the context stream is always obvious
+//
+// To handle them all, we need "stream selector". There is a function type
+// `cmidi2_ump_stream_selector_func`, and a function pointer is passed to the entry
+// point `cmidi2_ump_get_sysex8_data()` function.
+//
+// Another control point is where we want to finish parsing sysex8. Whenever a relevant
+// stream is parsed, `cmidi2_ump_get_syex8_data()` calls "continuity checker" function
+// which is typed as `cmidi2_ump_binary_read_continuity_checker_func`.
+// If this function returns true, then it completes parsing, returning the number of
+// the parsed UMPs (in uint32_t length).
+//
+// See `testType5Messages_sysex8_reader_writer()` testcase for the actual usage example.
+//
+
+enum cmidi2_ump_binary_reader_result_code {
+    CMIDI2_BINARY_READER_RESULT_INCOMPLETE = 0,
+    CMIDI2_BINARY_READER_RESULT_COMPLETE = 1,
+    CMIDI2_BINARY_READER_RESULT_NO_SPACE = 2,
+};
+
+typedef struct cmidi2_ump_binary_read_state {
+    void* context;
+    uint8_t *data;
+    size_t dataCapacity;
+    size_t dataSize;
+    bool continueOnCompletion;
+    enum cmidi2_ump_binary_reader_result_code resultCode;
+} cmidi2_ump_binary_read_state;
+
+static inline void cmidi2_ump_binary_read_state_reset(cmidi2_ump_binary_read_state* state) {
+    state->dataSize = 0;
+    state->resultCode = CMIDI2_BINARY_READER_RESULT_INCOMPLETE;
+}
+
+static inline void cmidi2_ump_binary_read_state_init(cmidi2_ump_binary_read_state* state,
+                                                     void* context,
+                                                     uint8_t *dataBuffer,
+                                                     size_t dataCapacity,
+                                                     bool continueOnCompletion) {
+    state->context = context;
+    state->data = dataBuffer;
+    state->dataCapacity = dataCapacity;
+    state->continueOnCompletion = continueOnCompletion;
+    cmidi2_ump_binary_read_state_reset(state);
+}
+
+/// Binary stream selector for cmidi2_ump_get_sysex8_data() function.
+/// If you do not support simultaneous streams, just return a reference to a fixed `cmidi2_ump_binary_read_state` instance.
+/// If the targetSteramId does not indicate the streams the client handles, then it should return NULL.
+/// Note that the resulting state must contain a non-null data and valid dataCapacity i.e. it must be already assigned.
+/// Also note that the function implementation should not try to allocate a new instance of state
+/// - otherwise it will break realtime safety.
+typedef cmidi2_ump_binary_read_state*(*cmidi2_ump_stream_selector_func)(uint8_t targetStreamId, void* context);
+
+/// Binary stream continuity checker for cmidi2_ump_get_sysex8_data() function.
+/// If you do not support simultaneous streams, then it should reset stream state (dataSize etc.) when new stream starts.
+/// Return true to continue parsing, otherwise return false. It is useful to determine whether it
+/// should break or not when a stream is fully read (status code is 3 = CMIDI2_SYSEX_END).
+/// `cmidi2_ump_get_sysex8_data()` can take NULL for this function pointer at `continuityChecker` argument,
+/// then it falls back to the "default" behavior.
+/// By default, it finishes parsing when a stream completed and `continueOnCompletion` was `false`.
+typedef bool(*cmidi2_ump_binary_read_continuity_checker_func)(cmidi2_ump_binary_read_state* stream, cmidi2_ump* ump);
+
+// it is a special copy function that only works with sysex8 memory state at `src` that can access beyond `sizeInBytes`.
+static inline void cmidi2_internal_sysex8_copy_data_byte_swapping(uint8_t* dst, uint8_t srcHead, uint32_t* srcTail, size_t sizeInBytes) {
+    if (sizeInBytes == 0)
+        return;
+
+    // the first byte is at the lowest byte so it is always safe to copy as is.
+    dst[0] = srcHead;
+    uint8_t* d = dst + 1;
+    uint32_t* s = srcTail;
+    sizeInBytes--;
+
+    // copy the rest
+    size_t i = 0;
+    while (i + 3 < sizeInBytes) {
+        uint32_t i32 = *s;
+        d[i++] = i32 >> 24;
+        d[i++] = (i32 >> 16) & 0xFF;
+        d[i++] = (i32 >> 8) & 0xFF;
+        d[i++] = i32 & 0xFF;
+        s++;
+    }
+    for (; i < sizeInBytes; i++)
+        d[i] = s[i + 3 - i % 4];
+}
+
+/// Parse and store sysex8 binary, using some fine-tuned behavioral functions.
+/// Return the number of 32-bit ints (number of `cmidi2_ump`s)
+static inline size_t cmidi2_ump_get_sysex8_data(
+        cmidi2_ump_stream_selector_func streamSelector,
+        void* streamSelectorContext,
+        cmidi2_ump_binary_read_continuity_checker_func continuityChecker,
+        const cmidi2_ump* ump,
+        const size_t umpCapacityInInt) {
+
+    cmidi2_ump *umpPtr = (cmidi2_ump*) ump, *umpEnd = (cmidi2_ump*) ump + umpCapacityInInt;
+    for (;umpPtr < umpEnd; umpPtr += cmidi2_ump_get_message_size_bytes(umpPtr) / sizeof(cmidi2_ump)) {
+        if (cmidi2_ump_get_message_type(umpPtr) != CMIDI2_MESSAGE_TYPE_SYSEX8_MDS)
+            continue;
+        switch (cmidi2_ump_get_status_code(umpPtr)) {
+            case CMIDI2_SYSEX_IN_ONE_UMP:
+            case CMIDI2_SYSEX_START:
+            case CMIDI2_SYSEX_END:
+            case CMIDI2_SYSEX_CONTINUE:
+                break;
+            default:
+                continue; // the only expected value here is MDS (8 or 9)
+        }
+
+        cmidi2_ump_binary_read_state *state = streamSelector(cmidi2_ump_get_sysex8_stream_id(umpPtr), streamSelectorContext);
+        if (state == NULL)
+            continue;
+
+        size_t copySize = cmidi2_ump_get_sysex8_num_bytes(umpPtr) - 1; // SysEx8 size field contains the size byte itself, hence -1.
+        if (state->dataSize + copySize >= state->dataCapacity) {
+            state->resultCode = CMIDI2_BINARY_READER_RESULT_NO_SPACE;
+            return umpPtr - ump;
+        }
+
+        if (cmidi2_util_is_platform_little_endian())
+            // We need to swap data along with byte order for resulting data...
+            cmidi2_internal_sysex8_copy_data_byte_swapping(state->data + state->dataSize, (*umpPtr) & 0xFF, umpPtr + 1, copySize);
+        else
+            memcpy(state->data + state->dataSize, ((uint8_t*) (void*) umpPtr) + 3, copySize);
+
+        state->dataSize += copySize;
+
+        if (continuityChecker != NULL)
+            if (continuityChecker(state, umpPtr))
+                return umpPtr + cmidi2_ump_get_message_size_bytes(umpPtr) / sizeof(cmidi2_ump) - ump; // "break here" is indicated
+
+        // otherwise default continuity checker
+        switch (cmidi2_ump_get_status_code(umpPtr)) {
+            case CMIDI2_SYSEX_IN_ONE_UMP:
+            case CMIDI2_SYSEX_END:
+                state->resultCode = CMIDI2_BINARY_READER_RESULT_COMPLETE;
+                if (state->continueOnCompletion)
+                    return umpPtr + cmidi2_ump_get_message_size_bytes(umpPtr) / sizeof(cmidi2_ump) - ump; // default "break here" condition.
+                break;
+        }
+    }
+    // finished parsing while no stream indicated "break here" for completion.
+    return umpPtr - ump;
+}
+
+// --------
 // sequence iterator
 
 /* byte stream splitter */
 
-static inline void* cmidi2_ump_sequence_next(void* ptr) {
+static inline void* cmidi2_ump_sequence_next(const void* ptr) {
     return (uint8_t*) ptr + cmidi2_ump_get_num_bytes(cmidi2_ump_read_uint32_bytes(ptr));
 }
 
@@ -889,7 +1078,7 @@ static inline void* cmidi2_ump_sequence_next(void* ptr) {
         (iter) < ((uint8_t*) ptr) + numBytes; \
         (iter) = (uint8_t*) cmidi2_ump_sequence_next(iter))
 
-static inline void* cmidi2_ump_sequence_next_le(void* ptr) {
+static inline void* cmidi2_ump_sequence_next_le(const void* ptr) {
     return (uint8_t*) ptr + cmidi2_ump_get_num_bytes(cmidi2_ump_read_uint32_bytes_le(ptr));
 }
 
@@ -898,7 +1087,7 @@ static inline void* cmidi2_ump_sequence_next_le(void* ptr) {
         (iter) < ((uint8_t*) ptr) + numBytes; \
         (iter) = (uint8_t*) cmidi2_ump_sequence_next_le(iter))
 
-static inline void* cmidi2_ump_sequence_next_be(void* ptr) {
+static inline void* cmidi2_ump_sequence_next_be(const void* ptr) {
     return (uint8_t*) ptr + cmidi2_ump_get_num_bytes(cmidi2_ump_read_uint32_bytes_be(ptr));
 }
 
@@ -907,7 +1096,9 @@ static inline void* cmidi2_ump_sequence_next_be(void* ptr) {
         (iter) < ((uint8_t*) ptr) + numBytes; \
         (iter) = (uint8_t*) cmidi2_ump_sequence_next_be(iter))
 
+// --------
 // MIDI CI support.
+// TODO: it still does not support June 2023 updates.
 
 #define CMIDI2_CI_SUB_ID 0xD
 #define CMIDI2_CI_SUB_ID_2_DISCOVERY_INQUIRY 0x70
@@ -1566,8 +1757,8 @@ static enum cmidi2_midi_conversion_result cmidi2_convert_midi1_to_ump(cmidi2_mid
                         return CMIDI2_CONVERSION_RESULT_INVALID_STATUS;
                 }
                 if (!skipEmitUmp) {
-                    auto platEndian = cmidi2_util_is_platform_little_endian() ?                             CMIDI2_TRANSLATOR_LITTLE_ENDIAN : CMIDI2_TRANSLATOR_BIG_ENDIAN;
-                    auto actualEndian = context->ump_serialization_endianness != CMIDI2_TRANSLATOR_DEFAULT_ENDIAN ?
+                    int platEndian = cmidi2_util_is_platform_little_endian() ?                             CMIDI2_TRANSLATOR_LITTLE_ENDIAN : CMIDI2_TRANSLATOR_BIG_ENDIAN;
+                    int actualEndian = context->ump_serialization_endianness != CMIDI2_TRANSLATOR_DEFAULT_ENDIAN ?
                                         context->ump_serialization_endianness : platEndian;
                     if (platEndian != actualEndian)
                         m2 = (((uint64_t) cmidi2_internal_swap_endian(m2 >> 32)) << 32) | cmidi2_internal_swap_endian(m2 & 0xFFFFFFFF);
@@ -1829,6 +2020,156 @@ static enum cmidi2_midi_conversion_result cmidi2_convert_ump_to_midi1(cmidi2_mid
 
     return sysex7_buffer_index > 0 ? CMIDI2_CONVERSION_RESULT_INCOMPLETE_SYSEX7 : CMIDI2_CONVERSION_RESULT_OK;
 }
+
+// UMP forge (like LV2 Atom Forge, but flat and simpler)
+
+typedef struct cmidi2_ump_forge {
+    cmidi2_ump* ump;
+    size_t capacity;
+    size_t offset;
+} cmidi2_ump_forge;
+
+static inline void cmidi2_ump_forge_init(cmidi2_ump_forge *forge, cmidi2_ump* buffer, size_t capacityInBytes)
+{
+    forge->ump = buffer;
+    forge->capacity = capacityInBytes;
+    forge->offset = 0;
+}
+
+static inline bool cmidi2_ump_forge_add_packet_32(cmidi2_ump_forge* forge, uint32_t ump)
+{
+    int size = 4;
+    if (forge->offset + size > forge->capacity)
+        return false;
+    uint8_t* p = (uint8_t*) forge->ump + forge->offset;
+    cmidi2_ump_write32((cmidi2_ump*) p, ump);
+    forge->offset += size;
+    return true;
+}
+
+static inline bool cmidi2_ump_forge_add_packet_64(cmidi2_ump_forge* forge, uint64_t ump)
+{
+    int size = 8;
+    if (forge->offset + size > forge->capacity)
+        return false;
+    uint8_t* p = (uint8_t*) forge->ump + forge->offset;
+    cmidi2_ump_write64((cmidi2_ump*) p, ump);
+    forge->offset += size;
+    return true;
+}
+
+static inline bool cmidi2_ump_forge_add_packet_128(cmidi2_ump_forge* forge, uint64_t ump1, uint64_t ump2)
+{
+    int size = 16;
+    if (forge->offset + size > forge->capacity)
+        return false;
+    uint8_t* p = ((uint8_t*) forge->ump) + forge->offset;
+    cmidi2_ump_write128((cmidi2_ump*) p, ump1, ump2);
+    forge->offset += size;
+    return true;
+}
+
+static inline bool cmidi2_ump_forge_add_single_packet(cmidi2_ump_forge* forge, cmidi2_ump* ump)
+{
+    int size = cmidi2_ump_get_message_size_bytes(ump);
+    if (forge->offset + size > forge->capacity)
+        return false;
+    memcpy((uint8_t*) forge->ump + forge->offset, ump, size);
+    forge->offset += size;
+    return true;
+}
+
+static inline bool cmidi2_ump_forge_add_packets(cmidi2_ump_forge* forge, cmidi2_ump* ump, int32_t size)
+{
+    if (forge->offset + size > forge->capacity)
+        return false;
+    memcpy((uint8_t*) forge->ump + forge->offset, ump, size);
+    forge->offset += size;
+    return true;
+}
+
+// UMP sequence merger
+
+static inline bool cmidi2_internal_ump_merge_sequence_write_delta_time(int32_t timestamp1, int32_t timestamp2,
+                                                             int32_t* lastTimestamp,
+                                                             void* dst, int32_t *dIdx, size_t dstSize) {
+    int32_t deltaTime = (timestamp1 <= timestamp2 ? timestamp1 : timestamp2) - *lastTimestamp;
+    uint8_t jrTSSize = deltaTime / 0x10000 + (deltaTime % 0x10000 ? 1 : 0);
+    if (*dIdx + jrTSSize * 4 > dstSize)
+        return false;
+    for (int32_t dt = deltaTime; dt > 0; dt -= 0x10000) {
+        cmidi2_ump_write32((cmidi2_ump*) ((uint8_t*) dst + *dIdx),
+        cmidi2_ump_jr_timestamp_direct(0, deltaTime > 0xFFFF ? 0xFFFF : deltaTime));
+        *dIdx += 4;
+    }
+    *lastTimestamp += deltaTime;
+    return true;
+}
+
+static inline size_t cmidi2_ump_merge_sequences(cmidi2_ump* dst, size_t dstCapacity,
+                                              cmidi2_ump* seq1, size_t seq1Size,
+                                              cmidi2_ump* seq2, size_t seq2Size) {
+    int32_t dIdx = 0, seq1Idx = 0, seq2Idx = 0;
+    int32_t timestamp1 = 0, timestamp2 = 0, lastTimestamp = 0;
+    while (true) {
+        cmidi2_ump* s1 = (cmidi2_ump*) ((uint8_t*) seq1 + seq1Idx);
+        while (cmidi2_ump_get_message_type(s1) == CMIDI2_MESSAGE_TYPE_UTILITY &&
+               cmidi2_ump_get_status_code(s1) == CMIDI2_JR_TIMESTAMP) {
+            timestamp1 += cmidi2_ump_get_jr_timestamp_timestamp(s1);
+            seq1Idx += 4;
+            if (seq1Idx >= seq1Size)
+                break;
+            s1 = (cmidi2_ump*) ((uint8_t*) seq1 + seq1Idx);
+        }
+        cmidi2_ump* s2 = (cmidi2_ump*) ((uint8_t*) seq2 + seq2Idx);
+        while (cmidi2_ump_get_message_type(s2) == CMIDI2_MESSAGE_TYPE_UTILITY &&
+               cmidi2_ump_get_status_code(s2) == CMIDI2_JR_TIMESTAMP) {
+            timestamp2 += cmidi2_ump_get_jr_timestamp_timestamp(s2);
+            seq2Idx += 4;
+            if (seq2Idx >= seq2Size)
+                break;
+            s2 = (cmidi2_ump*) ((uint8_t*) seq2 + seq2Idx);
+        }
+        if (seq1Idx >= seq1Size || seq2Idx >= seq2Size)
+            break;
+        if (!cmidi2_internal_ump_merge_sequence_write_delta_time(
+                timestamp1, timestamp2, &lastTimestamp, dst, &dIdx, dstCapacity))
+            break;
+
+        if (timestamp1 <= timestamp2) {
+            cmidi2_ump* sp = (cmidi2_ump*) ((uint8_t*) seq1 + seq1Idx);
+            uint8_t size = cmidi2_ump_get_message_size_bytes(sp);
+            if (size == 0)
+                return dIdx; // invalid bytes
+            memcpy((uint8_t*) dst + dIdx, sp, size);
+            seq1Idx += size;
+            dIdx += size;
+        } else {
+            cmidi2_ump* sp = (cmidi2_ump*) ((uint8_t*) seq2 + seq2Idx);
+            uint8_t size = cmidi2_ump_get_message_size_bytes(sp);
+            if (size == 0)
+                return dIdx; // invalid bytes
+            memcpy((uint8_t*) dst + dIdx, sp, size);
+            seq2Idx += size;
+            dIdx += size;
+        }
+    }
+    if (!cmidi2_internal_ump_merge_sequence_write_delta_time(
+            timestamp1, timestamp2, &lastTimestamp, dst, &dIdx, dstCapacity))
+        return dIdx;
+    if (seq1Idx < seq1Size && dIdx + seq1Size - seq1Idx < dstCapacity) {
+        cmidi2_ump* sp = (cmidi2_ump*) ((uint8_t*) seq1 + seq1Idx);
+        memcpy((uint8_t*) dst + dIdx, sp, seq1Size - seq1Idx);
+        dIdx += seq1Size - seq1Idx;
+    }
+    if (seq2Idx < seq2Size && dIdx + seq2Size - seq2Idx < dstCapacity) {
+        cmidi2_ump* sp = (cmidi2_ump*) ((uint8_t*) seq2 + seq2Idx);
+        memcpy((uint8_t*) dst + dIdx, sp, seq2Size - seq2Idx);
+        dIdx += seq2Size - seq2Idx;
+    }
+    return dIdx;
+}
+
 
 #ifdef __cplusplus
 }

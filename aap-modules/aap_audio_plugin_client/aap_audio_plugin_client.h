@@ -12,5 +12,6 @@ license: GPLv3
 END_JUCE_MODULE_DECLARATION
 */
 
+#include "cmidi2.h"
 #include "aap/android-audio-plugin.h"
 #include "juceaap_audio_plugin_format.h"
