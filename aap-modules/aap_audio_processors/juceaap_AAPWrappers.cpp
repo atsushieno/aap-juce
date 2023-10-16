@@ -109,6 +109,10 @@ public:
     }
 #endif
 
+    AndroidAudioPluginHost& getHost() { return host; }
+
+    const char* getPluginId() { return plugin_unique_id; }
+
     juce::OwnedArray<aap_parameter_info_t> aapParams{};
     juce::HashMap<int32_t,int32_t> aapParamIdToEnumIndex{};
     juce::OwnedArray<aap_parameter_enum_t> aapEnums{};
@@ -656,30 +660,9 @@ public:
         return juce_processor->getNumPrograms();
     }
 
-    int32_t getPresetDataSize(int32_t index) {
-        // There is no way in JUCE to retrieve data size of a preset program without once setting it as current...
-        auto bak = juce_processor->getCurrentProgram();
-        juce_processor->setCurrentProgram(index);
-        MemoryBlock mb{};
-        juce_processor->getCurrentProgramStateInformation(mb);
-        auto ret = mb.getSize();
-        juce_processor->setCurrentProgram(bak);
-        return ret;
-    }
-
-    void getPreset(int32_t index, bool skipBinary, aap_preset_t* preset) {
-        // There is no way in JUCE to retrieve data size of a preset program without once setting it as current...
-        // And we need getcurrentProgramStateInformation() anyways, so skipBinary does not really optimize a lot...
-        auto bak = juce_processor->getCurrentProgram();
+    void getPreset(int32_t index, aap_preset_t* preset) {
+        preset->id = index;
         juce_processor->getProgramName(index).copyToUTF8(preset->name, AAP_PRESETS_EXTENSION_MAX_NAME_LENGTH);
-        juce_processor->setCurrentProgram(index);
-        MemoryBlock mb{};
-        juce_processor->getCurrentProgramStateInformation(mb);
-        if (!skipBinary)
-            mb.copyTo(preset->data, 0, preset->data_size);
-        if (preset->data_size > (int32_t) mb.getSize())
-            preset->data_size = (int32_t) mb.getSize();
-        juce_processor->setCurrentProgram(bak);
     }
 
     int32_t getPresetIndex() {
@@ -783,14 +766,9 @@ int32_t juce_aap_wrapper_get_preset_count(aap_presets_extension_t* ext, AndroidA
     return wrapper->getPresetCount();
 }
 
-int32_t juce_aap_wrapper_get_preset_data_size(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index) {
+void juce_aap_wrapper_get_preset(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index, aap_preset_t *preset, aapxs_completion_callback, void*) {
     auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
-    return wrapper->getPresetDataSize(index);
-}
-
-void juce_aap_wrapper_get_preset(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index, bool skipBinary, aap_preset_t *preset) {
-    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
-    return wrapper->getPreset(index, skipBinary, preset);
+    return wrapper->getPreset(index, preset);
 }
 
 int32_t juce_aap_wrapper_get_preset_index(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin) {
@@ -830,6 +808,13 @@ aap_parameter_enum_t juceaap_get_enumeration(aap_parameters_extension_t* ext, An
     return wrapper->getAAPEnumeration(parameterId, enumIndex);
 }
 
+aap_plugin_info_t juceaap_get_plugin_info(AndroidAudioPlugin* plugin) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    auto* host = &wrapper->getHost();
+    auto hostExt = (aap_host_plugin_info_extension_t*) host->get_extension(host, AAP_PLUGIN_INFO_EXTENSION_URI);
+    return hostExt->get(hostExt, host, wrapper->getPluginId());
+}
+
 aap_parameters_extension_t parameters_ext{nullptr,
                                           juceaap_get_parameter_count,
                                           juceaap_get_parameter,
@@ -860,7 +845,6 @@ void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
         if (!presets_ext_map[plugin]) {
             aap_presets_extension_t newInstance{nullptr,
                                                 juce_aap_wrapper_get_preset_count,
-                                                juce_aap_wrapper_get_preset_data_size,
                                                 juce_aap_wrapper_get_preset,
                                                 juce_aap_wrapper_get_preset_index,
                                                 juce_aap_wrapper_set_preset_index};
@@ -889,6 +873,7 @@ AndroidAudioPlugin *juceaap_instantiate(
     ret->process = juceaap_process;
     ret->deactivate = juceaap_deactivate;
     ret->get_extension = juceaap_get_extension;
+    ret->get_plugin_info = juceaap_get_plugin_info;
 
     return ret;
 }
