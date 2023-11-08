@@ -509,7 +509,6 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         // that processes instancing and invoke user callback (PluginCreationCallback).
         std::function<void(int32_t,std::string&)> aapCallback = [this, callback](int32_t instanceID, std::string& error) {
             auto androidInstance = android_host->getInstanceById(instanceID);
-            ((RemotePluginInstance*) androidInstance)->configurePorts();
 
             callback(std::make_unique<AndroidAudioPluginInstance>(androidInstance), error);
         };

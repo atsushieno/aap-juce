@@ -91,7 +91,8 @@ public:
     }
 
     inline void setStateInformation(const void *data, int sizeInBytes) override {
-        native->getStandardExtensions().setState(data, (size_t) sizeInBytes);
+        aap_state_t state{const_cast<void *>(data), static_cast<size_t>(sizeInBytes)};
+        native->getStandardExtensions().setState(state);
     }
 
     void fillInPluginDescription(PluginDescription &description) const override;
