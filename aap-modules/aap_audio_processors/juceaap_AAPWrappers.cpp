@@ -766,9 +766,11 @@ int32_t juce_aap_wrapper_get_preset_count(aap_presets_extension_t* ext, AndroidA
     return wrapper->getPresetCount();
 }
 
-void juce_aap_wrapper_get_preset(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index, aap_preset_t *preset, aapxs_completion_callback, void*) {
+void juce_aap_wrapper_get_preset(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index, aap_preset_t *preset, aapxs_completion_callback callback, void* callbackContext) {
     auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
-    return wrapper->getPreset(index, preset);
+    wrapper->getPreset(index, preset);
+    if (callback)
+        callback(callbackContext, plugin);
 }
 
 int32_t juce_aap_wrapper_get_preset_index(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin) {

@@ -162,7 +162,8 @@ int generate_aap_metadata(const char *aapMetadataFullPath, const char *library =
         portXml->setAttribute("name",
                               inChannels.getChannelTypeName(inChannels.getTypeOfChannel(i)));
     }
-    if (true) { // Not checking `filter->acceptsMidi()` as parameter changes are sent via MIDI2 in port.
+    // We will populate MIDI ports anyways, but such auto-populated ports will have "System" names.
+    if (filter->acceptsMidi()) {
         auto portXml = topLevelPortsElement->createNewChildElement("port");
         portXml->setAttribute("direction", "input");
         portXml->setAttribute("content", "midi2");
