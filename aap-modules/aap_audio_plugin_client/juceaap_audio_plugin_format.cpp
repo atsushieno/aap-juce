@@ -365,9 +365,9 @@ void AndroidAudioPluginInstance::processBlock(AudioBuffer<float> &audioBuffer,
 bool AndroidAudioPluginInstance::hasMidiPort(bool isInput) const {
     for (int i = 0; i < native->getNumPorts(); i++) {
         auto p = native->getPort(i);
-        if (p->getPortDirection() ==
-            (isInput ? AAP_PORT_DIRECTION_INPUT : AAP_PORT_DIRECTION_OUTPUT) &&
-                (p->getContentType() == AAP_CONTENT_TYPE_MIDI || p->getContentType() == AAP_CONTENT_TYPE_MIDI2))
+        if (p->getPortDirection() == (isInput ? AAP_PORT_DIRECTION_INPUT : AAP_PORT_DIRECTION_OUTPUT) &&
+            (p->getContentType() == AAP_CONTENT_TYPE_MIDI || p->getContentType() == AAP_CONTENT_TYPE_MIDI2) &&
+            strstr(p->getName(), "System MIDI") == nullptr)
             return true;
     }
     return false;
