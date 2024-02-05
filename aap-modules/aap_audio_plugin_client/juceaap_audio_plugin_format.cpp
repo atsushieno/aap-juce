@@ -382,6 +382,10 @@ public:
         auto height = screen.getHeight() < 400 ? screen.getHeight() : 400;
         setBounds(0, 0, width, height);
     }
+
+    virtual ~AndroidAudioProcessorEditor() {
+        getAudioProcessor()->editorBeingDeleted(this);
+    }
 };
 
 class AndroidNativeAudioProcessorEditor : public AndroidAudioProcessorEditor {
