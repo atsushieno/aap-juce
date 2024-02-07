@@ -1,0 +1,19 @@
+diff --git a/modules/juce_gui_basics/native/juce_Windowing_android.cpp b/modules/juce_gui_basics/native/juce_Windowing_android.cpp
+index 1fadc42a5..85b18fc6a 100644
+--- a/modules/juce_gui_basics/native/juce_Windowing_android.cpp
++++ b/modules/juce_gui_basics/native/juce_Windowing_android.cpp
+@@ -2890,12 +2890,12 @@ const int KeyPress::rewindKey               = extendedKeyModifier + 72;
+       DECLARE_JNI_CLASS (JavaActivity, JUCE_PUSH_NOTIFICATIONS_ACTIVITY)
+      #undef JNI_CLASS_MEMBERS
+ 
+-     static void JNICALL appNewIntent (JNIEnv*, jobject /*activity*/, jobject intentData)
++     static void JNICALL JNIEXPORT appNewIntent (JNIEnv*, jobject /*activity*/, jobject intentData)
+      {
+          juce_handleNotificationIntent (static_cast<void*> (intentData));
+      }
+ 
+-     static void JNICALL appOnResume (JNIEnv*, jobject)
++     static void JNICALL JNIEXPORT appOnResume (JNIEnv*, jobject)
+      {
+          juce_handleOnResume();
+      }
