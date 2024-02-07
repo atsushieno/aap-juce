@@ -104,7 +104,6 @@ Now open `external/xenos/CMakeLists.txt` in your text editor and add the followi
 ```
 # begin AAP specifics -->  
   
-# They are needed in desktop too, for generate-aap-metadata.  
 include_directories(  
   "${AAP_DIR}/include"  
 )  
@@ -144,56 +143,9 @@ target_link_libraries(${APP_NAME}
 # <-- end AAP specifics
 ```
 
-### Generate aap_metadata.xml
+### Create aap_metadata.xml for the new port
 
-<ins>Starting aap-juce a31c7c7 (0.4.7+), we don't have to "generate" `aap_metadata.xml` anymore, practically. The only task that is against humanity was parameter list generation, and it can be skipped now. It will be dynamically built at instantiation time. Note that you still have to create `aap_metadata.xml` and fill its metadata.</ins>
-
-Now, we have to generate `aap_metadata.xml` for the target project (Xenos this time). It can be automated by:
-
-```
-make update-aap-metadata-cmake
-```
-
-It will build the desktop version of the target plugin shared code, with the changes for AAP in CMakeLists.txt, and then build a metadata exporter console tool. Although it will fail:
-
-```
-(...)
-Static libraries for Darwin are xenos_artefacts/libxenos_SharedCode.a libAudioPluginData.a
-building aap-metadata-generator tool...
-clang: error: no such file or directory: 'libAudioPluginData.a'
-make: *** [update-aap-metadata-cmake] Error 1
-```
-
-It is *anticipated*. This happens because `Makefile` lists all the relevant static library files to link but it is so far for the copied project (PeakEater this time). To *guess* which static library files are built for your target project, run this:
-
-```
-# Replace `xenos` with your actual target.
-find external/xenos/build-desktop -name *.a
-# You will need find external/xenos/build-desktop**/*.a on zsh
-```
-
-You will find some `*.a` files. They are the required app static libraries to link. On this Xenos example, you would find:
-
-```
-external/xenos/build-desktop/Xenos_artefacts/libXenos_SharedCode.a
-external/xenos/build-desktop/libGuiAppData.a
-```
-
-So, open `Makefile` (again) and make changes to the `APP_SHARED_CODE_LIBS=...` line.
-
-```
-make update-aap-metadata-cmake
-```
-
-This time you will see successful result:
-
-```
-(...)
-Static libraries for Darwin are xenos_artefacts/libxenos_SharedCode.a libGuiAppData.a
-building aap-metadata-generator tool...
-Done.
-done.
-```
+An AAP plugin needs its own metadata description file `aap_metadata.xml`. It needs to be in an XML file that can be consumed by Android Service framework (to query metadata without instantiating the Service itself, we are forced to use XML). Copy `aap_metadata.xml` into the new port, at `app/src/main/res/xml` directory, and make necessary changes to the file so that it indicates the correct names for the porting target (otherwise the new port will be advertising wrong plugin name, developer name, copyright, etc...).
 
 ### Make sure that the plugin app code builds for Android
 

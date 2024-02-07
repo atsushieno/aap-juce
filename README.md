@@ -110,7 +110,15 @@ It is because the application somehow fails to bootstrap (call to `com.rmsl.juce
 Another typical problem is that it fails to load the plugin shared library. It is due to missing shared library within the apk, inconsistent `aap_metadata.xml` description (either `library` or `entrypoint` attribute), or missing entrypoint function symbol in the shared library (which must not be `visibility=hidden`).
 
 
+### Creating aap_metadata.xml
+
+Starting aap-core 0.7.7 along with its parameters extension v2.1, it supports dynamic parameter population by code, and aap-juce fully makes use of it. This feature makes `aap_metadata.xml` simply editable by human beings i.e. you can just copy existing `aap_metadata.xml` from other project and replace "names" in it.
+
+It used to be "generated automatically". The next section explained that, but it is totally passable anymore.
+
 ### Generating and updating aap_metadata.xml
+
+NOTE: this only applies to aap-juce 0.4.8 or earlier. The generator is not part of the build anymore. You can however still try to build and use it by making changes to aap-juce codebase. The build tasks in [the old `Makefile.common`](https://github.com/atsushieno/aap-juce/blob/135477ef53b1e6585463eebb92d5e06db62674e9/Makefile.common#L191) and [`generate-metadata.sh`](https://github.com/atsushieno/aap-juce/blob/135477ef53b1e6585463eebb92d5e06db62674e9/generate-metadata.sh#L1) would be helpful.
 
 This only applies to plugins (hosts do not need it).
 

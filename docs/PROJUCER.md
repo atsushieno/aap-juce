@@ -24,8 +24,7 @@ And if you *indeed* need to perform this process (you usually don't), run `make 
 
 In any case, before performing this task, you need this "modified" version of the `.jucer` file. This work is too verbose to explain here. I wrote the details later in this README ("Rewriting .jucer file for AAP").
 
-Once you are done with the modified .jucer file, you still need `aap_metadata.xml` for your project. IF everything works fine, it can be achieved by `make update-aap-metadata` or `make update-aap-metadata-cmake` to generate it (explained later too), but it requires independent desktop build and may often fail, depending on your project. **It is much easier if you manually fill the metadata**. If you still decided to run the generator, then copy it somewhere with some identical name, typically under `apps`.
-`make copy-and-patch-app-sources` will copy it if the file is appropriately specified in `Makefile` and it indeed exists.
+Once you are done with the modified .jucer file, you still need `aap_metadata.xml` for your project. As of aap-juce 0.5.0, you are supposed to create the file manually - it would be actually copying the file from some existing project, and adjust the metadata content for your need. For Projucer-based projects, it is usually placed at `apps/XXX.aap_metadata.xml` (where `XXX` should be your project name).
 
 After these tasks, you are ready to run `make copy-and-patch-app-sources` for your own port.
 
@@ -51,10 +50,6 @@ There are related build scripts and Makefile targets:
 
 - `copy-and-patch-app-sources` : since we patch the sources but do not want to leave the app source tree dirty, we first copy the app sources, and then apply the patch to them (if exists). This has to be done once before running Projucer.
 - `projuce-app` : this executes `Projucer --resave` and then replaces some of the files that Projucer generated with whtaeever we actually need.
-- `update-aap-metadata` : it is NOT part of ordinary build step. Whenever app porting maintainer updates the sources, they should run this process to automatically update `aap_metadata.xml`.
-  - It internally builds Linux or Mac desktop version of the imported application, and then builds `aap-metadata-importer` tool, linking the "shared code" of the application, and at last runs it to generate `aap_metadata.xml`.
-  - `aap_metadata.xml` is generated at the imported application top directory, so porting maintainer is supposed to copy it to the app source directory that would also contain `override.*.jucer` and the source patch (if any).
-  - `build-desktop.sh` is used to accomplish this task.
 
 `make projuce-app` will rewrite some files that Projucer --resave has generated, namely:
 
@@ -68,12 +63,12 @@ At this state, the build script is not flexible enough to make them further cust
 
 ### difference between normal JUCE Android app and JUCE-AAP Android app
 
-Projucer can generate Android apps, and we basically make use of it.
+Projucer can generate Android apps, and we can still use of it.
 Although its feature is quite insufficient, we don't expect it to generate the entire set of the required files with sufficient information. Projucer is basically not well-suited tool to do that job.
 We (at least on our ports) copy our own support files into the apps instead, namely the top-level `build.gradle`, `gradle-properties` and `settings.gradle` etc.
 It is mostly about AAP dependencies.
 
-We also don't expect that the original `.jucer` files can be simply patched by simple diff tool, so we have an entire `.jucer` file to override for each sample project.
+For Projucer based projects, we also don't expect that the original `.jucer` files can be simply patched by simple diff tool, so we have an entire `.jucer` file to override for each sample project.
 They resolve various relative paths to AAP includes and libs.
 Both Projucer and Android Gradle Plugin lack sufficient support to decently resolve them.
 
