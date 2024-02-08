@@ -96,7 +96,6 @@ fi
 # Projucer is too inflexible to generate required content.
 echo "Manifest template is $MANIFEST_TEMPLATE"
 cp $MANIFEST_TEMPLATE Builds/Android/app/src/main/AndroidManifest.xml
-sed -i $SED_I_ARGS -e "s/@@@ PACKAGE_NAME @@@/org.androidaudioplugin.ports.juce.$APPNAMELOWER/" -- Builds/Android/app/src/main/AndroidManifest.xml || exit 1
 
 echo "-------- Post-projucer file list for $APPNAME: --------"
 find .
