@@ -39,7 +39,7 @@ extern "C" { int juce_aap_wrapper_last_error_code{0}; }
 //  IF exists JUCE MIDI input buffer -> AAP MIDI input port nIn+nOut
 //  IF exists JUCE MIDI output buffer -> AAP MIDI output port last
 
-class JuceAAPWrapper : juce::AudioPlayHead {
+class JuceAAPWrapper : juce::AudioPlayHead, juce::AudioProcessorListener {
     AndroidAudioPlugin *aap;
     const char *plugin_unique_id;
     int sample_rate;
@@ -87,6 +87,8 @@ public:
         juce_processor = createPluginFilter();
 
         buildParameterList();
+
+        juce_processor->addListener(this);
     }
 
     virtual ~JuceAAPWrapper() {
@@ -184,6 +186,17 @@ public:
                 p.default_value = juce_processor->getParameter(i);
                 aapParams.add(new aap_parameter_info_t(p));
             }
+        }
+    }
+
+    // juce::AudioProcessorListener implementation
+    void audioProcessorParameterChanged(juce::AudioProcessor* processor, int parameterIndex, float newValue) override {
+    }
+    void audioProcessorChanged(juce::AudioProcessor* processor, const juce::AudioProcessorListener::ChangeDetails &details) override {
+        if (details.parameterInfoChanged) {
+            auto ext = (aap_parameters_host_extension_t *) host.get_extension(&host, AAP_PARAMETERS_EXTENSION_URI);
+            if (ext)
+                ext->notify_parameters_changed(ext, &host);
         }
     }
 
