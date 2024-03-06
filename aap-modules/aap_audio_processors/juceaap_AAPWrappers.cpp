@@ -192,6 +192,14 @@ public:
     // juce::AudioProcessorListener implementation
     void audioProcessorParameterChanged(juce::AudioProcessor* processor, int parameterIndex, float newValue) override {
     }
+
+#if JUCEAAP_AUDIO_PROCESSOR_CHANGE_DETAILS_UNAVAILABLE
+    void audioProcessorChanged(juce::AudioProcessor* processor) override {
+        auto ext = (aap_parameters_host_extension_t *) host.get_extension(&host, AAP_PARAMETERS_EXTENSION_URI);
+        if (ext)
+            ext->notify_parameters_changed(ext, &host);
+    }
+#else
     void audioProcessorChanged(juce::AudioProcessor* processor, const juce::AudioProcessorListener::ChangeDetails &details) override {
         if (details.parameterInfoChanged) {
             auto ext = (aap_parameters_host_extension_t *) host.get_extension(&host, AAP_PARAMETERS_EXTENSION_URI);
@@ -199,6 +207,7 @@ public:
                 ext->notify_parameters_changed(ext, &host);
         }
     }
+#endif
 
     void allocateBuffer(aap_buffer_t *aapBuffer) {
         if (!aapBuffer) {
