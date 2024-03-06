@@ -481,8 +481,8 @@ public:
                             auto data = cmidi2_ump_get_midi2_pitch_bend_data(ump);
                             juce_midi_messages.addEvent(
                                     MidiMessage(statusByte,
-                                                (uint8_t) (data >> 25) & 0x7F,
-                                                (uint8_t) (data >> 18) & 0x7F),
+                                                (uint8_t) (data >> 18) & 0x7F,
+                                                (uint8_t) (data >> 25) & 0x7F),
                                     sampleNumber);
                         } break;
                     }
