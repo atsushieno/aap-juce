@@ -101,7 +101,7 @@ build-app-cmake:
 			echo "sdk.dir=$(HOME)/Android/Sdk" > local.properties ; \
 		fi ; \
 	fi
-	if [ -f $(APP_ICON) ] ; then \
+	if [ -f '$(APP_ICON)' ] ; then \
 		mkdir -p $(ANDROID_DIR)/app/src/main/res/drawable ; \
 		cp $(APP_ICON) $(ANDROID_DIR)/app/src/main/res/drawable/ic_launcher.png ; \
 	fi
