@@ -2,6 +2,7 @@
 #include <ctime>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "aap/android-audio-plugin.h"
+#include "aap/core/host/plugin-host.h"
 #include "aap/unstable/logging.h"
 #include "aap/ext/presets.h"
 #include "aap/ext/state.h"
@@ -208,6 +209,17 @@ public:
         }
     }
 #endif
+
+    void addAndroidView(void* parentLinearLayout) {
+        auto creator = [&] {
+            auto editor = juce_processor->createEditorIfNeeded();
+            editor->addToDesktop(0, parentLinearLayout);
+        };
+        if (juce::MessageManager::getInstance()->isThisTheMessageThread())
+            creator();
+        else
+            juce::MessageManager::callAsync(creator);
+    }
 
     void allocateBuffer(aap_buffer_t *aapBuffer) {
         if (!aapBuffer) {
@@ -928,3 +940,14 @@ extern "C" AndroidAudioPluginFactory *GetJuceAAPFactory() {
     return &juceaap_factory;
 }
 
+extern "C"
+JNIEXPORT void JNICALL
+Java_org_androidaudioplugin_juce_JuceAudioProcessorEditorView_addAndroidComponentPeerViewTo(
+        JNIEnv *env, jclass clazz, jlong pluginServiceNative, jstring plugin_id, jint instanceId,
+        jobject parentLinearLayout) {
+    auto service = (aap::PluginService *) pluginServiceNative;
+    auto instance = service->getLocalInstance(instanceId);
+    auto plugin = instance->getPlugin();
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    wrapper->addAndroidView(parentLinearLayout);
+}
