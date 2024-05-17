@@ -26,6 +26,8 @@ using namespace juce;
 extern juce::AudioProcessor *
 createPluginFilter(); // it is defined in each Audio plugin project (by Projucer).
 
+extern "C" void juce_juceEventsAndroidStartApp();
+
 extern "C" { int juce_aap_wrapper_last_error_code{0}; }
 
 #define JUCEAAP_SUCCESS 0
@@ -213,6 +215,7 @@ public:
     void addAndroidView(void* parentLinearLayout) {
         auto creator = [&] {
             auto editor = juce_processor->createEditorIfNeeded();
+            editor->setVisible(true);
             editor->addToDesktop(0, parentLinearLayout);
         };
         if (juce::MessageManager::getInstance()->isThisTheMessageThread())
@@ -936,7 +939,7 @@ struct AndroidAudioPluginFactory juceaap_factory{
         nullptr
 };
 
-extern "C" AndroidAudioPluginFactory *GetJuceAAPFactory() {
+JNIEXPORT extern "C" AndroidAudioPluginFactory *GetJuceAAPFactory() {
     return &juceaap_factory;
 }
 
@@ -945,6 +948,7 @@ JNIEXPORT void JNICALL
 Java_org_androidaudioplugin_juce_JuceAudioProcessorEditorView_addAndroidComponentPeerViewTo(
         JNIEnv *env, jclass clazz, jlong pluginServiceNative, jstring plugin_id, jint instanceId,
         jobject parentLinearLayout) {
+    juce_juceEventsAndroidStartApp();
     auto service = (aap::PluginService *) pluginServiceNative;
     auto instance = service->getLocalInstance(instanceId);
     auto plugin = instance->getPlugin();
