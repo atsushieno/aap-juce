@@ -1,27 +1,29 @@
 diff --git a/modules/juce_core/native/juce_Threads_android.cpp b/modules/juce_core/native/juce_Threads_android.cpp
-index efbf3a9f6..099e67fb5 100644
+index 68967499c..e94d3e5ea 100644
 --- a/modules/juce_core/native/juce_Threads_android.cpp
 +++ b/modules/juce_core/native/juce_Threads_android.cpp
-@@ -269,7 +269,7 @@ private:
+@@ -269,7 +269,8 @@ private:
  
  //==============================================================================
  #if JUCE_MODULE_AVAILABLE_juce_events && JUCE_ANDROID
 -void juce_juceEventsAndroidStartApp();
 +extern "C" void juce_juceEventsAndroidStartApp();
++void juce_ensureEventsLoopStarted();
  #endif
  
  void Thread::initialiseJUCE (void* jniEnv, void* context)
-@@ -303,7 +303,7 @@ void Thread::initialiseJUCE (void* jniEnv, void* context)
+@@ -303,7 +304,8 @@ void Thread::initialiseJUCE (void* jniEnv, void* context)
          JuceActivityWatcher::getInstance();
  
         #if JUCE_MODULE_AVAILABLE_juce_events && JUCE_ANDROID
 -        juce_juceEventsAndroidStartApp();
 +        //juce_juceEventsAndroidStartApp();
++        juce_ensureEventsLoopStarted();
         #endif
      }
  }
 diff --git a/modules/juce_events/native/juce_Messaging_android.cpp b/modules/juce_events/native/juce_Messaging_android.cpp
-index 8062840f2..84f1c7679 100644
+index 7cf749f95..86fe6816a 100644
 --- a/modules/juce_events/native/juce_Messaging_android.cpp
 +++ b/modules/juce_events/native/juce_Messaging_android.cpp
 @@ -288,8 +288,8 @@ private:
@@ -35,3 +37,15 @@ index 8062840f2..84f1c7679 100644
  {
      auto dllPath = juce_getExecutableFile().getFullPathName();
      auto addr = reinterpret_cast<juce::JUCEApplicationBase*(*)()> (DynamicLibrary (dllPath)
+@@ -299,4 +299,11 @@ void juce_juceEventsAndroidStartApp()
+         JuceAppLifecycle::getInstance (addr);
+ }
+ 
++void juce_ensureEventsLoopStarted()
++{
++    // This ensures that event loop exists and it's on Android's main thread.
++    // Note that to ensure that it is the main thread, it must be indeed invoked as such e.g. at androidx.startup.
++    MessageManager::getInstance();
++}
++
+ } // namespace juce

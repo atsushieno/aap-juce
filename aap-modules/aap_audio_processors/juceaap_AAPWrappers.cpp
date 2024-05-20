@@ -86,7 +86,8 @@ public:
 #endif
         plugin_unique_id = pluginUniqueId == nullptr ? nullptr : strdup(pluginUniqueId);
 
-        juce::MessageManager::getInstance(); // ensure that we have a message loop.
+        // Note that if we did not have invoked MessageManager::getInstance() until here, it will crash.
+        // It must have been done at initialiseJUCE().
         juce_processor = createPluginFilter();
 
         buildParameterList();
