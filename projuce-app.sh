@@ -39,7 +39,8 @@ else
 fi
 
 # Fixup Android project
-echo "rootProject.name='$APPNAME'" > Builds/Android/settings.gradle
+cp settings-head.gradle Builds/Android/settings.gradle
+echo "rootProject.name='$APPNAME'" >> Builds/Android/settings.gradle
 echo "include ':app'" >> Builds/Android/settings.gradle
 cp $CURDIR/projuce-app-template/gradle.properties Builds/Android/gradle.properties
 cp $CURDIR/projuce-app-template/libs.versions.toml Builds/Android/gradle/libs.versions.toml
