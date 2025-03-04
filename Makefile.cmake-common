@@ -62,15 +62,15 @@ $(JUCE_DIR)/.stamp-juce:
 	for patch in $(JUCE_PATCHES) ; do \
 		echo "JUCE patch: $${patch}" ; \
 		if [ '$${patch}' != '' ] ; then \
-			cd $(JUCE_DIR) && git apply $${patch} ; \
+			cd $(JUCE_DIR) && git apply $${patch} --ignore-space-change ; \
 		fi ; \
 	done
 	echo "For CMake build we need another standard patch..."
 	if [ "$(AAP_JUCE_CMAKE_SKIP_DEFAULT_PATCHES)" == "" ] ; then \
 	if [ "$(AAP_JUCE_CMAKE_PATCH_HOSTING)" != "" ] ; then \
-		cd $(JUCE_DIR) && git apply $(AAP_JUCE_DIR)/JUCE-support-Android-CMake-hosting.patch ; \
+		cd $(JUCE_DIR) && git apply $(AAP_JUCE_DIR)/JUCE-support-Android-CMake-hosting.patch --ignore-space-change ; \
 	else \
-		cd $(JUCE_DIR) && git apply $(AAP_JUCE_DIR)/JUCE-support-Android-CMake.patch ; \
+		cd $(JUCE_DIR) && git apply $(AAP_JUCE_DIR)/JUCE-support-Android-CMake.patch --ignore-space-change ; \
 	fi ; \
 	fi
 	touch $(JUCE_DIR)/.stamp-juce
