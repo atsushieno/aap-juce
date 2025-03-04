@@ -1,0 +1,20 @@
+diff --git a/modules/juce_gui_basics/native/juce_Windowing_mac.mm b/modules/juce_gui_basics/native/juce_Windowing_mac.mm
+index ad459d483..32949d1b3 100644
+--- a/modules/juce_gui_basics/native/juce_Windowing_mac.mm
++++ b/modules/juce_gui_basics/native/juce_Windowing_mac.mm
+@@ -529,10 +529,15 @@ static Image createNSWindowSnapshot (NSWindow* nsWindow)
+         #define JUCE_DEPRECATION_IGNORED 1
+        #endif
+ 
++        /*
+         CGImageRef screenShot = CGWindowListCreateImage (CGRectNull,
+                                                          kCGWindowListOptionIncludingWindow,
+                                                          (CGWindowID) [nsWindow windowNumber],
+                                                          kCGWindowImageBoundsIgnoreFraming);
++         */
++        // Not supported anymore
++        jassertfalse;
++        CGImageRef screenShot = nullptr;
+ 
+        #if JUCE_DEPRECATION_IGNORED
+         JUCE_END_IGNORE_WARNINGS_GCC_LIKE
