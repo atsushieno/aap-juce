@@ -125,7 +125,7 @@ $(JUCE_DIR)/.stamp-juce:
 	for patch in $(JUCE_PATCHES) ; do \
 		echo "JUCE patch: $${patch}" ; \
 		if [ '$${patch}' != '' ] ; then \
-			cd $(JUCE_DIR) && patch -i $${patch} -p $(JUCE_PATCH_DEPTH) -l ; \
+			cd $(JUCE_DIR) && git apply $${patch} ; \
 		fi ; \
 	done
 	touch $(JUCE_DIR)/.stamp-juce
