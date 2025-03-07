@@ -79,7 +79,7 @@ patch-app-cmake: $(APP_SRC_DIR)/.stamp-app
 
 $(APP_SRC_DIR)/.stamp-app:
 	if [ $(PATCH_FILE) ] ; then \
-	cd $(APP_SRC_DIR) && patch -i $(PATCH_FILE) -p$(PATCH_DEPTH) -l ; \
+	cd $(APP_SRC_DIR) && git apply $(PATCH_FILE) --ignore-space-change ; \
 	touch $(APP_SRC_DIR)/.stamp-app ; \
 	fi
 
