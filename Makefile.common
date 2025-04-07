@@ -99,7 +99,7 @@ $(PROJUCER_BIN_DARWIN):
 .PHONY:
 build-aap:
 	if [ ! -f $(AAP_DIR)/local.properties ] ; then \
-		if [ "`uname`" == "Darwin" ] ; then \
+		if [ "`uname`" = "Darwin" ] ; then \
 			echo "sdk.dir=$(HOME)/Library/Android/sdk" > $(AAP_DIR)/local.properties ; \
 		else \
 			echo "sdk.dir=$(HOME)/Android/Sdk" > $(AAP_DIR)/local.properties ; \

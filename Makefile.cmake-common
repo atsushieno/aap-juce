@@ -66,7 +66,7 @@ $(JUCE_DIR)/.stamp-juce:
 		fi ; \
 	done
 	echo "For CMake build we need another standard patch..."
-	if [ "$(AAP_JUCE_CMAKE_SKIP_DEFAULT_PATCHES)" == "" ] ; then \
+	if [ "$(AAP_JUCE_CMAKE_SKIP_DEFAULT_PATCHES)" = "" ] ; then \
 	if [ "$(AAP_JUCE_CMAKE_PATCH_HOSTING)" != "" ] ; then \
 		PREV_DIR=$(PWD) && cd $(JUCE_DIR) && git apply $(AAP_JUCE_DIR)/JUCE-support-Android-CMake-hosting.patch --ignore-space-change && cd $(PREV_DIR) ; \
 	else \
@@ -85,7 +85,7 @@ $(APP_SRC_DIR)/.stamp-app:
 
 build-aap-core:
 	if [ ! -f $(AAP_DIR)/local.properties ] ; then \
-		if [ "`uname`" == "Darwin" ] ; then \
+		if [ "`uname`" = "Darwin" ] ; then \
 			echo "sdk.dir=$(HOME)/Library/Android/sdk" > $(AAP_DIR)/local.properties ; \
 		else \
 			echo "sdk.dir=$(HOME)/Android/Sdk" > $(AAP_DIR)/local.properties ; \
@@ -95,7 +95,7 @@ build-aap-core:
 
 build-app-cmake:
 	if [ ! -f local.properties ] ; then \
-		if [ "`uname`" == "Darwin" ] ; then \
+		if [ "`uname`" = "Darwin" ] ; then \
 			echo "sdk.dir=$(HOME)/Library/Android/sdk" > local.properties ; \
 		else \
 			echo "sdk.dir=$(HOME)/Android/Sdk" > local.properties ; \
