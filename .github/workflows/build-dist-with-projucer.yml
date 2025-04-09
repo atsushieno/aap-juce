@@ -5,6 +5,7 @@ on:
 
 jobs:
   linux-build:
+    if: false
     name: build on linux
     runs-on: ubuntu-24.04
     permissions:
@@ -45,20 +46,9 @@ jobs:
                  libjack-jackd2-dev ladspa-sdk doxygen \
                  graphviz cmake ninja-build
     - name: build
-      run: xvfb-run -a --server-args="-screen 0 1280x800x24 -ac -nolisten tcp -dpi 96 +extension RANDR" make MINIMIZE_INTERMEDIATES=1 build dist
-    - name: upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: dist
-        path: dist
-    - name: Create Release
-      uses: ncipollo/release-action@v1
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        artifacts: dist/*
+      run: xvfb-run -a --server-args="-screen 0 1280x800x24 -ac -nolisten tcp -dpi 96 +extension RANDR" make build dist
 
   osx-build:
-    if: false
     name: build on osx
     runs-on: macos-14
     steps:
@@ -89,6 +79,14 @@ jobs:
       run: |
         brew install doxygen pkg-config cmake coreutils ninja graphviz
     - name: build
-      run: make MINIMIZE_INTERMEDIATES=1 build dist
-      env:
-        ANDROID_SDK_ROOT: /Users/runner/Library/Android/sdk
+      run: make build dist
+    - name: upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist
+    - name: Create Release
+      uses: ncipollo/release-action@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        artifacts: dist/*
