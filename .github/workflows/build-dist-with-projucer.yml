@@ -5,6 +5,7 @@ on:
 
 jobs:
   linux-build:
+    if: false
     name: build on linux
     runs-on: ubuntu-24.04
     permissions:
@@ -60,7 +61,6 @@ jobs:
   osx-build:
     name: build on osx
     runs-on: macos-14
-    if: false
     steps:
     - name: checkout
       uses: actions/checkout@v4
