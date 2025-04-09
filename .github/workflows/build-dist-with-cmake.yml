@@ -51,16 +51,6 @@ jobs:
                  graphviz cmake ninja-build
     - name: build
       run: make build dist
-    - name: upload-artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: dist
-        path: dist
-    - name: Create Release
-      uses: ncipollo/release-action@v1
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        artifacts: dist/*
 
   osx-build:
     name: build on osx
@@ -94,6 +84,14 @@ jobs:
       run: |
         brew install doxygen pkg-config cmake coreutils ninja graphviz
     - name: build
-      run: make MINIMIZE_INTERMEDIATES=1 build dist
-      env:
-        ANDROID_SDK_ROOT: /Users/runner/Library/Android/sdk
+      run: make build dist
+    - name: upload-artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist
+    - name: Create Release
+      uses: ncipollo/release-action@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        artifacts: dist/*
