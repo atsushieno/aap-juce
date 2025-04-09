@@ -39,12 +39,12 @@ else
 fi
 
 # Fixup Android project
-cp settings-head.gradle Builds/Android/settings.gradle
+cp $CURDIR/settings-head.gradle Builds/Android/settings.gradle
 echo "rootProject.name='$APPNAME'" >> Builds/Android/settings.gradle
 echo "include ':app'" >> Builds/Android/settings.gradle
 cp $CURDIR/projuce-app-template/gradle.properties Builds/Android/gradle.properties
 cp $CURDIR/projuce-app-template/libs.versions.toml Builds/Android/gradle/libs.versions.toml
-cp $CURDIR/projuce-app-template/gradle-wrapper.properties Builds/Android/gradle/wrapper/gradle-wrapper.properties
+cp $CURDIR/projuce-app-template/gradle-wrapper.* Builds/Android/gradle/wrapper/
 cp $CURDIR/projuce-app-template/proguard-rules.pro Builds/Android/app/proguard-rules.pro
 # Projucer is too inflexible to generate required content for top-level file.
 cp $CURDIR/projuce-app-template/build.gradle Builds/Android/build.gradle
