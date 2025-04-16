@@ -110,8 +110,9 @@ build-aap:
 .PHONY:
 dist:
 	mkdir -p $(DIST_DIR)
-	cp  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/apk/debug_/debug/*.apk  $(DIST_DIR)/$(APP_NAME)-debug.apk
-	cp  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/bundle/release_Release/app-release_-release.aab  $(DIST_DIR)/$(APP_NAME)-release.aab
+	# either of those paths...
+	cp  $(APP_BUILD_DIR)/*/Android/app/build/outputs/apk/debug_/debug/*.apk $(APP_BUILD_DIR)/*/Android/app/build/outputs/apk/debug/*.apk $(DIST_DIR)/$(APP_NAME)-debug.apk
+	cp  $(APP_BUILD_DIR)/*/Android/app/build/outputs/bundle/release_Release/app-release_-release.aab $(APP_BUILD_DIR)/*/Android/app/build/outputs/bundle/*.aab $(DIST_DIR)/$(APP_NAME)-release.aab
 
 
 .PHONY:
