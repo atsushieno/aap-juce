@@ -82,7 +82,7 @@ jobs:
         key: ${{ runner.os }}-gradle-caches
     - name: install deps
       run: |
-        brew install doxygen pkg-config cmake coreutils ninja graphviz
+        brew install doxygen pkg-config coreutils ninja graphviz
     - name: build
       run: make build dist
     - name: upload-artifact
