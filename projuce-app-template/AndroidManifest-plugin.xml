@@ -22,8 +22,9 @@
       </intent-filter>
     </activity>
     <service
-	android:name="org.androidaudioplugin.AudioPluginService"
-	android:label="@string/app_name"
+        android:name="org.androidaudioplugin.AudioPluginService"
+        android:label="@string/app_name"
+        android:foregroundServiceType="mediaPlayback"
         android:exported="true">
       <intent-filter>
         <action android:name="org.androidaudioplugin.AudioPluginService.V3"/>

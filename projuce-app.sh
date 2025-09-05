@@ -58,6 +58,9 @@ sed -i $SED_I_ARGS -e "s/c++_static/c++_shared/" -- Builds/Android/app/build.gra
 sed -i $SED_I_ARGS -e "s/repositories {/ndkVersion libs.versions.ndk.get() \n    buildFeatures { prefab true }\n    repositories {/" -- Builds/Android/app/build.gradle
 sed -i $SED_I_ARGS -e "s/android {/android {\n    namespace \"org.androidaudioplugin.ports.juce.$APPNAMELOWER\"\n    /" -- Builds/Android/app/build.gradle
 sed -i $SED_I_ARGS -e "s/apply plugin:/apply plugin: \"kotlin-android\"\napply plugin:/" -- Builds/Android/app/build.gradle
+sed -i $SED_I_ARGS -e "s/compileSdkVersion .*/compileSdkVersion libs.versions.android.compileSdk.get().toInteger()/" -- Builds/Android/app/build.gradle
+sed -i $SED_I_ARGS -e "s/targetSdkVersion .*/targetSdkVersion libs.versions.android.targetSdk.get().toInteger()/" -- Builds/Android/app/build.gradle
+sed -i $SED_I_ARGS -e "s/minSdkVersion .*/minSdkVersion libs.versions.android.minSdk.get().toInteger()/" -- Builds/Android/app/build.gradle
 
 # app/CMakeLists.txt needs further tweaks
 echo "find_package(androidaudioplugin REQUIRED CONFIG)" >> Builds/Android/app/CMakeLists.txt
