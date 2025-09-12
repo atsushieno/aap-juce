@@ -133,10 +133,10 @@ public:
                 info.min_value = range.start;
             if (std::isnormal(range.end) || range.end == 0.0)
                 info.max_value = range.end;
-            if (std::isnormal(ranged->getDefaultValue()) || ranged->getDefaultValue() == 0.0)
-                info.default_value = range.convertTo0to1(ranged->getDefaultValue());
         }
-        else if (std::isnormal(para->getDefaultValue()))
+        if (std::isnormal(para->getDefaultValue()))
+            info.default_value = para->getDefaultValue();
+        else
             info.default_value = para->getDefaultValue();
         auto names = para->getAllValueStrings();
         if (!names.isEmpty()) {
