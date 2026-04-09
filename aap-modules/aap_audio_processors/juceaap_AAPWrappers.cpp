@@ -623,7 +623,7 @@ public:
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
         play_head_position.setTimeInSamples(*play_head_position.getTimeInSamples() + audioBuffer->num_frames(*audioBuffer));
         auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames(*audioBuffer) / sample_rate;
-        play_head_position.setPpqPosition(*play_head_position.getPpqPosition() + *play_head_position.getBpm() / 60 * 4 * thisTimeInSeconds);
+        play_head_position.setPpqPosition(*play_head_position.getPpqPosition() + *play_head_position.getBpm() / 60 * thisTimeInSeconds);
 #else
         auto numFrames = audioBuffer->num_frames(*audioBuffer);
         if (frameCount > numFrames) {
@@ -633,7 +633,7 @@ public:
         play_head_position.timeInSamples += frameCount;
         auto thisTimeInSeconds = 1.0 * frameCount / sample_rate;
         play_head_position.timeInSeconds += thisTimeInSeconds;
-        play_head_position.ppqPosition += play_head_position.bpm / 60 * 4 * thisTimeInSeconds;
+        play_head_position.ppqPosition += play_head_position.bpm / 60 * thisTimeInSeconds;
 #endif
 
         // There isn't anything we can send to AAP MIDI2 output port if it does not exist, so far.
