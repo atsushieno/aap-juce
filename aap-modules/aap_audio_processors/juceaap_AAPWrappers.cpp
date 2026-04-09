@@ -278,7 +278,7 @@ public:
         play_head_position.setTimeInSeconds(0.0);
         play_head_position.setPpqPosition(0.0);
         play_head_position.setPpqPositionOfLastBarStart(0.0);
-        play_head_position.setTimeSignature({4, 4});
+        play_head_position.setTimeSignature(juce::AudioPlayHead::TimeSignature{4, 4});
 #else
         play_head_position.resetToDefault();
         play_head_position.bpm = 120;
