@@ -678,6 +678,7 @@ public:
                 free((void *) state.data);
             state.data = calloc(mb.getSize(), 1);
         }
+        state.data_size = mb.getSize();
         memcpy((void *) state.data, mb.begin(), mb.getSize());
         result->data_size = state.data_size;
         result->data = state.data;
