@@ -626,10 +626,10 @@ public:
 #endif
 
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
-        play_head_position.setTimeInSamples(play_head_position.getTimeInSamples().value_or(0) + audioBuffer->num_frames(*audioBuffer));
+        play_head_position.setTimeInSamples(play_head_position.getTimeInSamples().orFallback(0) + audioBuffer->num_frames(*audioBuffer));
         auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames(*audioBuffer) / sample_rate;
-        play_head_position.setTimeInSeconds(play_head_position.getTimeInSeconds().value_or(0.0) + thisTimeInSeconds);
-        play_head_position.setPpqPosition(play_head_position.getPpqPosition().value_or(0.0) + play_head_position.getBpm().value_or(120.0) / 60 * thisTimeInSeconds);
+        play_head_position.setTimeInSeconds(play_head_position.getTimeInSeconds().orFallback(0.0) + thisTimeInSeconds);
+        play_head_position.setPpqPosition(play_head_position.getPpqPosition().orFallback(0.0) + play_head_position.getBpm().orFallback(120.0) / 60 * thisTimeInSeconds);
 #else
         auto numFrames = audioBuffer->num_frames(*audioBuffer);
         if (frameCount > numFrames) {
