@@ -367,8 +367,10 @@ public:
 
             auto channel = cmidi2_ump_get_channel(ump);
             auto statusByte = statusCode | channel;
-            MidiMessage m;
-            int32_t sampleNumber = (positionInJRTimestamp * 1.0 / 31250.0) / sample_rate;
+            int32_t sampleNumber = static_cast<int32_t>(
+                    (positionInJRTimestamp * 1.0 / 31250.0) * sample_rate);
+            if (sampleNumber < 0)
+                sampleNumber = 0;
 
             switch (messageType) {
                 case CMIDI2_MESSAGE_TYPE_MIDI_1_CHANNEL:
@@ -427,17 +429,21 @@ public:
                                     sampleNumber);
                         } break;
                         case CMIDI2_STATUS_NOTE_OFF:
-                        case CMIDI2_STATUS_NOTE_ON:
+                        case CMIDI2_STATUS_NOTE_ON: {
+                            auto velocity16 = cmidi2_ump_get_midi2_note_velocity(ump);
+                            auto velocity7 = static_cast<uint8_t>(velocity16 / 0x200);
                             juce_midi_messages.addEvent(
-                                    MidiMessage(statusCode,
+                                    MidiMessage(statusByte,
                                                 cmidi2_ump_get_midi2_note_note(ump),
-                                                cmidi2_ump_get_midi2_note_velocity(ump) /
-                                                0x200),
+                                                statusCode == CMIDI2_STATUS_NOTE_ON && velocity16 > 0 && velocity7 == 0
+                                                        ? static_cast<uint8_t>(1)
+                                                        : velocity7),
                                     sampleNumber);
                             break;
+                        }
                         case CMIDI2_STATUS_PAF:
                             juce_midi_messages.addEvent(
-                                    MidiMessage(statusCode,
+                                    MidiMessage(statusByte,
                                                 cmidi2_ump_get_midi2_note_note(ump),
                                                 (uint8_t) (cmidi2_ump_get_midi2_paf_data(ump) /
                                                            0x2000000)),
@@ -445,7 +451,7 @@ public:
                             break;
                         case CMIDI2_STATUS_CC:
                             juce_midi_messages.addEvent(
-                                    MidiMessage(statusCode,
+                                    MidiMessage(statusByte,
                                                 cmidi2_ump_get_midi2_cc_index(ump),
                                                 (uint8_t) (cmidi2_ump_get_midi2_cc_data(ump) /
                                                            0x2000000)),
@@ -927,4 +933,3 @@ struct AndroidAudioPluginFactory juceaap_factory{
 extern "C" AndroidAudioPluginFactory *GetJuceAAPFactory() {
     return &juceaap_factory;
 }
-
