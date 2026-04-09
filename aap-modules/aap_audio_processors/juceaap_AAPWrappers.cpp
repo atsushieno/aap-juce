@@ -371,6 +371,9 @@ public:
                     (positionInJRTimestamp * 1.0 / 31250.0) * sample_rate);
             if (sampleNumber < 0)
                 sampleNumber = 0;
+            auto numFrames = audioBuffer->num_frames(*audioBuffer);
+            if (numFrames > 0 && sampleNumber >= numFrames)
+                sampleNumber = numFrames - 1;
 
             switch (messageType) {
                 case CMIDI2_MESSAGE_TYPE_MIDI_1_CHANNEL:
