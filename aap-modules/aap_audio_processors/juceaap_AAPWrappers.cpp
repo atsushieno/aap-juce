@@ -571,9 +571,14 @@ public:
         outMidiBuf->length = dstBufSize;
     }
 
-    void resetJuceChannels(aap_buffer_t *audioBuffer) {
+    void resetJuceChannels(aap_buffer_t *audioBuffer, int32_t frameCount) {
         int nOut = juce_processor->getMainBusNumOutputChannels();
         int nIn = juce_processor->getMainBusNumInputChannels();
+        auto numFrames = audioBuffer->num_frames(*audioBuffer);
+        if (frameCount > numFrames) {
+            aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "frameCount is bigger than numFrames from aap_buffer_t.");
+            frameCount = numFrames;
+        }
 
         for (int i = 0; i < audioBuffer->num_ports(*audioBuffer); i++) {
             // Assign JUCE out channel buffer ONLY IF it is not assigned for inputs.
@@ -586,7 +591,7 @@ public:
                 juce_channels[iterIn->second] = (float*) audioBuffer->get_buffer(*audioBuffer, i);
         }
 
-        juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), audioBuffer->num_frames(*audioBuffer));
+        juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), frameCount);
     }
 
     const char *AAP_JUCE_TRACE_SECTION_NAME = "aap-juce_process";
@@ -601,7 +606,12 @@ public:
             ATrace_beginSection(AAP_JUCE_TRACE_SECTION_NAME);
         }
 #endif
-        resetJuceChannels(audioBuffer);
+        auto numFrames = audioBuffer->num_frames(*audioBuffer);
+        if (frameCount > numFrames) {
+            aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "frameCount is bigger than numFrames from aap_buffer_t.");
+            frameCount = numFrames;
+        }
+        resetJuceChannels(audioBuffer, frameCount);
 
         if (aap_midi2_in_port >= 0)
             processMidiInputs(audioBuffer);
@@ -626,16 +636,11 @@ public:
 #endif
 
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
-        play_head_position.setTimeInSamples(play_head_position.getTimeInSamples().orFallback(0) + audioBuffer->num_frames(*audioBuffer));
-        auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames(*audioBuffer) / sample_rate;
+        play_head_position.setTimeInSamples(play_head_position.getTimeInSamples().orFallback(0) + frameCount);
+        auto thisTimeInSeconds = 1.0 * frameCount / sample_rate;
         play_head_position.setTimeInSeconds(play_head_position.getTimeInSeconds().orFallback(0.0) + thisTimeInSeconds);
         play_head_position.setPpqPosition(play_head_position.getPpqPosition().orFallback(0.0) + play_head_position.getBpm().orFallback(120.0) / 60 * thisTimeInSeconds);
 #else
-        auto numFrames = audioBuffer->num_frames(*audioBuffer);
-        if (frameCount > numFrames) {
-            aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "frameCount is bigger than numFrames from aap_buffer_t.");
-            frameCount = numFrames;
-        }
         play_head_position.timeInSamples += frameCount;
         auto thisTimeInSeconds = 1.0 * frameCount / sample_rate;
         play_head_position.timeInSeconds += thisTimeInSeconds;
