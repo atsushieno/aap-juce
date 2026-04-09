@@ -404,7 +404,7 @@ public:
                                     sampleNumber);
                             juce_midi_messages.addEvent(
                                     MidiMessage(CMIDI2_STATUS_CC + channel,
-                                                CMIDI2_CC_DTE_MSB,
+                                                CMIDI2_CC_DTE_LSB,
                                                 (uint8_t) (data >> 18) & 0x7F),
                                     sampleNumber);
                         } break;
@@ -427,7 +427,7 @@ public:
                                     sampleNumber);
                             juce_midi_messages.addEvent(
                                     MidiMessage(CMIDI2_STATUS_CC + channel,
-                                                CMIDI2_CC_DTE_MSB,
+                                                CMIDI2_CC_DTE_LSB,
                                                 (uint8_t) (data >> 18) & 0x7F),
                                     sampleNumber);
                         } break;
