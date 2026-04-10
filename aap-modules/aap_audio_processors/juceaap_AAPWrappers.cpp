@@ -323,7 +323,7 @@ public:
                                            *raw, *(raw + 1), *(raw + 2), *(raw + 3));
     }
 
-    void processMidiInputs(aap_buffer_t *audioBuffer) {
+    void processMidiInputs(aap_buffer_t *audioBuffer, int32_t frameCount) {
 
         sysex_offset = 0;
         auto midiInBuf = (AAPMidiBufferHeader*) audioBuffer->get_buffer(*audioBuffer, aap_midi2_in_port);
@@ -376,9 +376,8 @@ public:
                     (positionInJRTimestamp * 1.0 / 31250.0) * sample_rate);
             if (sampleNumber < 0)
                 sampleNumber = 0;
-            auto numFrames = audioBuffer->num_frames(*audioBuffer);
-            if (numFrames > 0 && sampleNumber >= numFrames)
-                sampleNumber = numFrames - 1;
+            if (frameCount > 0 && sampleNumber >= frameCount)
+                sampleNumber = frameCount - 1;
 
             switch (messageType) {
                 case CMIDI2_MESSAGE_TYPE_MIDI_1_CHANNEL:
@@ -614,7 +613,7 @@ public:
         resetJuceChannels(audioBuffer, frameCount);
 
         if (aap_midi2_in_port >= 0)
-            processMidiInputs(audioBuffer);
+            processMidiInputs(audioBuffer, frameCount);
 
         // process data by the JUCE plugin
 #if ANDROID
