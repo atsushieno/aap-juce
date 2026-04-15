@@ -99,7 +99,7 @@ $(PROJUCER_BIN_DARWIN):
 .PHONY:
 build-aap:
 	if [ ! -f $(AAP_DIR)/local.properties ] ; then \
-		if [ "`uname`" == "Darwin" ] ; then \
+		if [ "`uname`" = "Darwin" ] ; then \
 			echo "sdk.dir=$(HOME)/Library/Android/sdk" > $(AAP_DIR)/local.properties ; \
 		else \
 			echo "sdk.dir=$(HOME)/Android/Sdk" > $(AAP_DIR)/local.properties ; \
@@ -110,8 +110,9 @@ build-aap:
 .PHONY:
 dist:
 	mkdir -p $(DIST_DIR)
-	cp  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/apk/debug_/debug/*.apk  $(DIST_DIR)/$(APP_NAME)-debug.apk
-	cp  $(APP_BUILD_DIR)/Builds/Android/app/build/outputs/bundle/release_Release/app-release_-release.aab  $(DIST_DIR)/$(APP_NAME)-release.aab
+	# either of those paths...
+	cp  $(APP_BUILD_DIR)/*/Android/app/build/outputs/apk/debug_/debug/*.apk  $(DIST_DIR)/$(APP_NAME)-debug.apk || cp $(APP_BUILD_DIR)/*/Android/app/build/outputs/apk/debug/*.apk $(DIST_DIR)/$(APP_NAME)-debug.apk
+	cp  $(APP_BUILD_DIR)/*/Android/app/build/outputs/bundle/release_Release/app-release_-release.aab $(DIST_DIR)/$(APP_NAME)-release.aab || cp $(APP_BUILD_DIR)/*/Android/app/build/outputs/bundle/*.aab $(DIST_DIR)/$(APP_NAME)-release.aab
 
 
 .PHONY:
@@ -125,7 +126,7 @@ $(JUCE_DIR)/.stamp-juce:
 	for patch in $(JUCE_PATCHES) ; do \
 		echo "JUCE patch: $${patch}" ; \
 		if [ '$${patch}' != '' ] ; then \
-			cd $(JUCE_DIR) && patch -i $${patch} -p $(JUCE_PATCH_DEPTH) -l ; \
+			cd $(JUCE_DIR) && git apply $${patch} --ignore-space-change ; \
 		fi ; \
 	done
 	touch $(JUCE_DIR)/.stamp-juce

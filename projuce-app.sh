@@ -39,11 +39,12 @@ else
 fi
 
 # Fixup Android project
-echo "rootProject.name='$APPNAME'" > Builds/Android/settings.gradle
+cp $CURDIR/settings-head.gradle Builds/Android/settings.gradle
+echo "rootProject.name='$APPNAME'" >> Builds/Android/settings.gradle
 echo "include ':app'" >> Builds/Android/settings.gradle
 cp $CURDIR/projuce-app-template/gradle.properties Builds/Android/gradle.properties
 cp $CURDIR/projuce-app-template/libs.versions.toml Builds/Android/gradle/libs.versions.toml
-cp $CURDIR/projuce-app-template/gradle-wrapper.properties Builds/Android/gradle/wrapper/gradle-wrapper.properties
+cp $CURDIR/projuce-app-template/gradle-wrapper.* Builds/Android/gradle/wrapper/
 cp $CURDIR/projuce-app-template/proguard-rules.pro Builds/Android/app/proguard-rules.pro
 # Projucer is too inflexible to generate required content for top-level file.
 cp $CURDIR/projuce-app-template/build.gradle Builds/Android/build.gradle
@@ -57,6 +58,9 @@ sed -i $SED_I_ARGS -e "s/c++_static/c++_shared/" -- Builds/Android/app/build.gra
 sed -i $SED_I_ARGS -e "s/repositories {/ndkVersion libs.versions.ndk.get() \n    buildFeatures { prefab true }\n    repositories {/" -- Builds/Android/app/build.gradle
 sed -i $SED_I_ARGS -e "s/android {/android {\n    namespace \"org.androidaudioplugin.ports.juce.$APPNAMELOWER\"\n    /" -- Builds/Android/app/build.gradle
 sed -i $SED_I_ARGS -e "s/apply plugin:/apply plugin: \"kotlin-android\"\napply plugin:/" -- Builds/Android/app/build.gradle
+sed -i $SED_I_ARGS -e "s/compileSdkVersion .*/compileSdkVersion libs.versions.android.compileSdk.get().toInteger()/" -- Builds/Android/app/build.gradle
+sed -i $SED_I_ARGS -e "s/targetSdkVersion .*/targetSdkVersion libs.versions.android.targetSdk.get().toInteger()/" -- Builds/Android/app/build.gradle
+sed -i $SED_I_ARGS -e "s/minSdkVersion .*/minSdkVersion libs.versions.android.minSdk.get().toInteger()/" -- Builds/Android/app/build.gradle
 
 # app/CMakeLists.txt needs further tweaks
 echo "find_package(androidaudioplugin REQUIRED CONFIG)" >> Builds/Android/app/CMakeLists.txt

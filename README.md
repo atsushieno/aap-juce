@@ -15,7 +15,7 @@ At this state, this repository itself is almost only about a set of build script
 
 ## Why JUCE for AAP?
 
-JUCE is a popular cross-platform, cross-plugin-format audio development framework.
+JUCE is a popular cross-platform, multi-plugin-format audio development framework.
 JUCE itself does not support AAP, but it can be extended by additional modules.
 JUCE also supports Android (you can even run UI), which makes things closer to actual app production.
 Still, JUCE is not designed to be extensible *enough*, additional code to support AAP is needed in each app.
@@ -32,15 +32,15 @@ Note that JUCE plugins are usually designed for desktop and not meant to be usab
 
 ## How to try it out?
 
-You would have to build and install each host and/or plugin from source so far, or look for the APKs from the build artifacts zip archives from successful GitHub Actions workflow runs. They could be installed via [AAP APK Installer](https://github.com/atsushieno/aap-ci-package-installer).
+You would have to build and install each host and/or plugin from source so far, or look for the APKs from the build artifacts zip archives from successful GitHub Actions workflow runs. They could be installed via [AAP APK Installer](https://github.com/atsushieno/aap-ci-package-installer). Note that not all plugins are updated and there can be incompatible AAP protocol versions of the plugins, or outdated to not work properly on newer Android platforms.
 
 You need a host app and a plugin to try at least one plugin via one host. This repository does not contain any application within itself.
 
-The host can be either `aaphostsample` in aap-core repo, a project [aap-juce-simple-host](https://github.com/atsushieno/aap-juce-simple-host) that is somewhat tailored for AAP and mobile UI, or `AudioPluginHost` in [aap-juce-plugin-host](https://github.com/atsushieno/aap-juce-plugin-host) repo (which is JUCE AudioPluginHost with AAP support).
+The host can be either `aaphostsample` in aap-core repo, a project [aap-juce-simple-host](https://github.com/atsushieno/aap-juce-simple-host) that is somewhat tailored for AAP and mobile UI, or `AudioPluginHost` in [aap-juce-plugin-host-cmake](https://github.com/atsushieno/aap-juce-plugin-host) repo (which is JUCE AudioPluginHost with AAP support).
 
-The plugin can be either `aapbarebonepluginsample` in aap-core repo (more stable), or any plugin on the [AAP Wiki](https://github.com/atsushieno/aap-core/wiki/List-of-AAP-plugins-and-hosts).
+The plugin can be either `aappluginsample` in aap-core repo (more stable), or any plugin on the [AAP Wiki](https://github.com/atsushieno/aap-core/wiki/List-of-AAP-plugins-and-hosts).
 
-For those `aap-juce-*` repositories, `make` will build them.
+For those `aap-juce-*` repositories, `make` will build them. (`Makefile` does not sound cool, but it is at least distinct from `CMakeLists.txt` for Android app itself...)
 
 For JUCE apps that use Projucer, JUCE Android apps are generated and built under `Builds/Android/app/build/outputs/` in each app directory.
 Though we typically use Android Studio and open `Builds/Android` and then run or debug there, once top-level `make` ran successfully.
@@ -81,6 +81,12 @@ You would normally have no choice, the original project would be either of those
 In either approach, you end up with an Android Studio (Gradle) project that you can open on Android Studio (or stick to Gradle to build and adb to install, like we do on CI).
 
 There are many aap-juce based apps that could be used as reference/template projects. See the list of plugins on the AAP Wiki.
+
+### Patching
+
+In most aap-juce-* apps, I created `aap-juce-support.patch` that (for each app) contains a set of changes as in patch files. In `Makefile`, there is `PATCH_FILE` variable that indicates one single patch file. It usually points to that `aap-juce-support.patch`.
+
+IF the build system is Projucer, there is an additional variable called `PATCH_DEPTH` which is used with `patch` tool as: `patch -i [aap-juce-support.patch] -p [PATCH_DEPTH]`. For CMake projects -p 1 should suffice so I used `git apply` which does not take patch depth instead.
 
 ### Making application itself build for Android
 

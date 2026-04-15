@@ -4,6 +4,7 @@
 	android:versionName="1.0">
   <uses-permission android:name="android.permission.RECORD_AUDIO"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
   <application
 	android:allowBackup="true" android:label="@string/app_name"
 	android:supportsRtl="true" android:name="com.rmsl.juce.JuceApp"
@@ -22,8 +23,9 @@
       </intent-filter>
     </activity>
     <service
-	android:name="org.androidaudioplugin.AudioPluginService"
-	android:label="@string/app_name"
+        android:name="org.androidaudioplugin.AudioPluginService"
+        android:label="@string/app_name"
+        android:foregroundServiceType="mediaPlayback"
         android:exported="true">
       <intent-filter>
         <action android:name="org.androidaudioplugin.AudioPluginService.V3"/>

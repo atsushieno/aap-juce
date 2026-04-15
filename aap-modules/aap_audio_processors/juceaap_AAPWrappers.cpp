@@ -137,10 +137,10 @@ public:
                 info.min_value = range.start;
             if (std::isnormal(range.end) || range.end == 0.0)
                 info.max_value = range.end;
-            if (std::isnormal(ranged->getDefaultValue()) || ranged->getDefaultValue() == 0.0)
-                info.default_value = range.convertTo0to1(ranged->getDefaultValue());
         }
-        else if (std::isnormal(para->getDefaultValue()))
+        if (std::isnormal(para->getDefaultValue()))
+            info.default_value = para->getDefaultValue();
+        else
             info.default_value = para->getDefaultValue();
         auto names = para->getAllValueStrings();
         if (!names.isEmpty()) {
@@ -290,6 +290,11 @@ public:
 
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
         play_head_position.setBpm(120);
+        play_head_position.setTimeInSamples(0);
+        play_head_position.setTimeInSeconds(0.0);
+        play_head_position.setPpqPosition(0.0);
+        play_head_position.setPpqPositionOfLastBarStart(0.0);
+        play_head_position.setTimeSignature(juce::AudioPlayHead::TimeSignature{4, 4});
 #else
         play_head_position.resetToDefault();
         play_head_position.bpm = 120;
@@ -334,7 +339,7 @@ public:
                                            *raw, *(raw + 1), *(raw + 2), *(raw + 3));
     }
 
-    void processMidiInputs(aap_buffer_t *audioBuffer) {
+    void processMidiInputs(aap_buffer_t *audioBuffer, int32_t frameCount) {
 
         sysex_offset = 0;
         auto midiInBuf = (AAPMidiBufferHeader*) audioBuffer->get_buffer(*audioBuffer, aap_midi2_in_port);
@@ -383,8 +388,12 @@ public:
 
             auto channel = cmidi2_ump_get_channel(ump);
             auto statusByte = statusCode | channel;
-            MidiMessage m;
-            int32_t sampleNumber = (positionInJRTimestamp * 1.0 / 31250.0) / sample_rate;
+            int32_t sampleNumber = static_cast<int32_t>(
+                    (positionInJRTimestamp * 1.0 / 31250.0) * sample_rate);
+            if (sampleNumber < 0)
+                sampleNumber = 0;
+            if (frameCount > 0 && sampleNumber >= frameCount)
+                sampleNumber = frameCount - 1;
 
             switch (messageType) {
                 case CMIDI2_MESSAGE_TYPE_MIDI_1_CHANNEL:
@@ -415,7 +424,7 @@ public:
                                     sampleNumber);
                             juce_midi_messages.addEvent(
                                     MidiMessage(CMIDI2_STATUS_CC + channel,
-                                                CMIDI2_CC_DTE_MSB,
+                                                CMIDI2_CC_DTE_LSB,
                                                 (uint8_t) (data >> 18) & 0x7F),
                                     sampleNumber);
                         } break;
@@ -438,22 +447,26 @@ public:
                                     sampleNumber);
                             juce_midi_messages.addEvent(
                                     MidiMessage(CMIDI2_STATUS_CC + channel,
-                                                CMIDI2_CC_DTE_MSB,
+                                                CMIDI2_CC_DTE_LSB,
                                                 (uint8_t) (data >> 18) & 0x7F),
                                     sampleNumber);
                         } break;
                         case CMIDI2_STATUS_NOTE_OFF:
-                        case CMIDI2_STATUS_NOTE_ON:
+                        case CMIDI2_STATUS_NOTE_ON: {
+                            auto velocity16 = cmidi2_ump_get_midi2_note_velocity(ump);
+                            auto velocity7 = static_cast<uint8_t>(velocity16 / 0x200);
                             juce_midi_messages.addEvent(
-                                    MidiMessage(statusCode,
+                                    MidiMessage(statusByte,
                                                 cmidi2_ump_get_midi2_note_note(ump),
-                                                cmidi2_ump_get_midi2_note_velocity(ump) /
-                                                0x200),
+                                                statusCode == CMIDI2_STATUS_NOTE_ON && velocity16 > 0 && velocity7 == 0
+                                                        ? static_cast<uint8_t>(1)
+                                                        : velocity7),
                                     sampleNumber);
                             break;
+                        }
                         case CMIDI2_STATUS_PAF:
                             juce_midi_messages.addEvent(
-                                    MidiMessage(statusCode,
+                                    MidiMessage(statusByte,
                                                 cmidi2_ump_get_midi2_note_note(ump),
                                                 (uint8_t) (cmidi2_ump_get_midi2_paf_data(ump) /
                                                            0x2000000)),
@@ -461,7 +474,7 @@ public:
                             break;
                         case CMIDI2_STATUS_CC:
                             juce_midi_messages.addEvent(
-                                    MidiMessage(statusCode,
+                                    MidiMessage(statusByte,
                                                 cmidi2_ump_get_midi2_cc_index(ump),
                                                 (uint8_t) (cmidi2_ump_get_midi2_cc_data(ump) /
                                                            0x2000000)),
@@ -573,9 +586,14 @@ public:
         outMidiBuf->length = dstBufSize;
     }
 
-    void resetJuceChannels(aap_buffer_t *audioBuffer) {
+    void resetJuceChannels(aap_buffer_t *audioBuffer, int32_t frameCount) {
         int nOut = juce_processor->getMainBusNumOutputChannels();
         int nIn = juce_processor->getMainBusNumInputChannels();
+        auto numFrames = audioBuffer->num_frames(*audioBuffer);
+        if (frameCount > numFrames) {
+            aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "frameCount is bigger than numFrames from aap_buffer_t.");
+            frameCount = numFrames;
+        }
 
         for (int i = 0; i < audioBuffer->num_ports(*audioBuffer); i++) {
             // Assign JUCE out channel buffer ONLY IF it is not assigned for inputs.
@@ -588,7 +606,7 @@ public:
                 juce_channels[iterIn->second] = (float*) audioBuffer->get_buffer(*audioBuffer, i);
         }
 
-        juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), audioBuffer->num_frames(*audioBuffer));
+        juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), frameCount);
     }
 
     const char *AAP_JUCE_TRACE_SECTION_NAME = "aap-juce_process";
@@ -603,10 +621,15 @@ public:
             ATrace_beginSection(AAP_JUCE_TRACE_SECTION_NAME);
         }
 #endif
-        resetJuceChannels(audioBuffer);
+        auto numFrames = audioBuffer->num_frames(*audioBuffer);
+        if (frameCount > numFrames) {
+            aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "frameCount is bigger than numFrames from aap_buffer_t.");
+            frameCount = numFrames;
+        }
+        resetJuceChannels(audioBuffer, frameCount);
 
         if (aap_midi2_in_port >= 0)
-            processMidiInputs(audioBuffer);
+            processMidiInputs(audioBuffer, frameCount);
 
         // process data by the JUCE plugin
 #if ANDROID
@@ -628,19 +651,15 @@ public:
 #endif
 
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
-        play_head_position.setTimeInSamples(*play_head_position.getTimeInSamples() + audioBuffer->num_frames(*audioBuffer));
-        auto thisTimeInSeconds = 1.0 * audioBuffer->num_frames(*audioBuffer) / sample_rate;
-        play_head_position.setPpqPosition(*play_head_position.getPpqPosition() + *play_head_position.getBpm() / 60 * 4 * thisTimeInSeconds);
+        play_head_position.setTimeInSamples(play_head_position.getTimeInSamples().orFallback(0) + frameCount);
+        auto thisTimeInSeconds = 1.0 * frameCount / sample_rate;
+        play_head_position.setTimeInSeconds(play_head_position.getTimeInSeconds().orFallback(0.0) + thisTimeInSeconds);
+        play_head_position.setPpqPosition(play_head_position.getPpqPosition().orFallback(0.0) + play_head_position.getBpm().orFallback(120.0) / 60 * thisTimeInSeconds);
 #else
-        auto numFrames = audioBuffer->num_frames(*audioBuffer);
-        if (frameCount > numFrames) {
-            aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "frameCount is bigger than numFrames from aap_buffer_t.");
-            frameCount = numFrames;
-        }
         play_head_position.timeInSamples += frameCount;
         auto thisTimeInSeconds = 1.0 * frameCount / sample_rate;
         play_head_position.timeInSeconds += thisTimeInSeconds;
-        play_head_position.ppqPosition += play_head_position.bpm / 60 * 4 * thisTimeInSeconds;
+        play_head_position.ppqPosition += play_head_position.bpm / 60 * thisTimeInSeconds;
 #endif
 
         // There isn't anything we can send to AAP MIDI2 output port if it does not exist, so far.
@@ -685,6 +704,7 @@ public:
                 free((void *) state.data);
             state.data = calloc(mb.getSize(), 1);
         }
+        state.data_size = mb.getSize();
         memcpy((void *) state.data, mb.begin(), mb.getSize());
         result->data_size = state.data_size;
         result->data = state.data;
