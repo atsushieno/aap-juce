@@ -216,6 +216,12 @@ public:
     void addAndroidView(void* parentLinearLayout) {
         auto creator = [&] {
             auto editor = juce_processor->createEditorIfNeeded();
+            if (editor == nullptr)
+                return;
+
+            if (editor->isOnDesktop())
+                editor->removeFromDesktop();
+
             editor->setVisible(true);
             editor->addToDesktop(0, parentLinearLayout);
         };
