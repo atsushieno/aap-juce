@@ -1,0 +1,100 @@
+diff --git a/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java b/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
+index ba277fc283..7586f381e6 100644
+--- a/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
++++ b/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
+@@ -179,6 +179,20 @@ public final class ComponentPeerView extends ViewGroup
+     private native void handleMouseUp (long host, int index, float x, float y, long time);
+     private native void handleAccessibilityHover (long host, int action, float x, float y, long time);
+ 
++    private float getScreenX (MotionEvent event, int index)
++    {
++        int point[] = new int[2];
++        getLocationOnScreen (point);
++        return event.getX (index) + point[0];
++    }
++
++    private float getScreenY (MotionEvent event, int index)
++    {
++        int point[] = new int[2];
++        getLocationOnScreen (point);
++        return event.getY (index) + point[1];
++    }
++
+     @Override
+     public boolean onTouchEvent (MotionEvent event)
+     {
+@@ -191,27 +205,24 @@ public final class ComponentPeerView extends ViewGroup
+         switch (action & MotionEvent.ACTION_MASK)
+         {
+             case MotionEvent.ACTION_DOWN:
+-                handleMouseDown (host, event.getPointerId (0), event.getRawX(), event.getRawY(), time);
++                handleMouseDown (host, event.getPointerId (0), getScreenX (event, 0), getScreenY (event, 0), time);
+                 return true;
+ 
+             case MotionEvent.ACTION_CANCEL:
+             case MotionEvent.ACTION_UP:
+-                handleMouseUp (host, event.getPointerId (0), event.getRawX(), event.getRawY(), time);
++                handleMouseUp (host, event.getPointerId (0), getScreenX (event, 0), getScreenY (event, 0), time);
+                 return true;
+ 
+             case MotionEvent.ACTION_MOVE:
+             {
+-                handleMouseDrag (host, event.getPointerId (0), event.getRawX(), event.getRawY(), time);
++                handleMouseDrag (host, event.getPointerId (0), getScreenX (event, 0), getScreenY (event, 0), time);
+ 
+                 int n = event.getPointerCount();
+ 
+                 if (n > 1)
+                 {
+-                    int point[] = new int[2];
+-                    getLocationOnScreen (point);
+-
+                     for (int i = 1; i < n; ++i)
+-                        handleMouseDrag (host, event.getPointerId (i), event.getX (i) + point[0], event.getY (i) + point[1], time);
++                        handleMouseDrag (host, event.getPointerId (i), getScreenX (event, i), getScreenY (event, i), time);
+                 }
+ 
+                 return true;
+@@ -223,14 +234,11 @@ public final class ComponentPeerView extends ViewGroup
+ 
+                 if (i == 0)
+                 {
+-                    handleMouseUp (host, event.getPointerId (0), event.getRawX(), event.getRawY(), time);
++                    handleMouseUp (host, event.getPointerId (0), getScreenX (event, 0), getScreenY (event, 0), time);
+                 }
+                 else
+                 {
+-                    int point[] = new int[2];
+-                    getLocationOnScreen (point);
+-
+-                    handleMouseUp (host, event.getPointerId (i), event.getX (i) + point[0], event.getY (i) + point[1], time);
++                    handleMouseUp (host, event.getPointerId (i), getScreenX (event, i), getScreenY (event, i), time);
+                 }
+                 return true;
+             }
+@@ -241,14 +249,11 @@ public final class ComponentPeerView extends ViewGroup
+ 
+                 if (i == 0)
+                 {
+-                    handleMouseDown (host, event.getPointerId (0), event.getRawX(), event.getRawY(), time);
++                    handleMouseDown (host, event.getPointerId (0), getScreenX (event, 0), getScreenY (event, 0), time);
+                 }
+                 else
+                 {
+-                    int point[] = new int[2];
+-                    getLocationOnScreen (point);
+-
+-                    handleMouseDown (host, event.getPointerId (i), event.getX (i) + point[0], event.getY (i) + point[1], time);
++                    handleMouseDown (host, event.getPointerId (i), getScreenX (event, i), getScreenY (event, i), time);
+                 }
+                 return true;
+             }
+@@ -265,7 +270,7 @@ public final class ComponentPeerView extends ViewGroup
+     {
+         if (accessibilityManager.isTouchExplorationEnabled())
+         {
+-            handleAccessibilityHover (host, event.getActionMasked(), event.getRawX(), event.getRawY(), event.getEventTime());
++            handleAccessibilityHover (host, event.getActionMasked(), getScreenX (event, 0), getScreenY (event, 0), event.getEventTime());
+             return true;
+         }
+ 
