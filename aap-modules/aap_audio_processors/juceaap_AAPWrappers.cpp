@@ -64,6 +64,8 @@ class JuceAAPWrapper : juce::AudioPlayHead, juce::AudioProcessorListener {
 #else
     juce::AudioPlayHead::CurrentPositionInfo play_head_position;
 #endif
+    int android_preferred_view_width{0};
+    int android_preferred_view_height{0};
 
 public:
     JuceAAPWrapper(AndroidAudioPlugin *plugin, const char *pluginUniqueId, int sampleRate,
@@ -229,6 +231,48 @@ public:
             creator();
         else
             juce::MessageManager::callAsync(creator);
+    }
+
+    void getAndroidViewPreferredSize(int& width, int& height) {
+        if (android_preferred_view_width > 0 && android_preferred_view_height > 0) {
+            width = android_preferred_view_width;
+            height = android_preferred_view_height;
+            return;
+        }
+
+        struct Query {
+            JuceAAPWrapper* wrapper;
+            int width{0};
+            int height{0};
+        } query{this};
+
+        auto querySize = [](void* userData) -> void* {
+            auto* q = static_cast<Query*>(userData);
+            auto editor = q->wrapper->juce_processor->createEditorIfNeeded();
+            if (editor == nullptr)
+                return nullptr;
+
+            auto scale = 1.0;
+            if (auto* display = Desktop::getInstance().getDisplays().getPrimaryDisplay())
+                scale = display->scale;
+
+            q->width = roundToInt(editor->getWidth() * scale);
+            q->height = roundToInt(editor->getHeight() * scale);
+            return nullptr;
+        };
+
+        if (juce::MessageManager::getInstance()->isThisTheMessageThread())
+            querySize(&query);
+        else
+            juce::MessageManager::getInstance()->callFunctionOnMessageThread(querySize, &query);
+
+        if (query.width > 0 && query.height > 0) {
+            android_preferred_view_width = query.width;
+            android_preferred_view_height = query.height;
+        }
+
+        width = android_preferred_view_width;
+        height = android_preferred_view_height;
     }
 
     void allocateBuffer(aap_buffer_t *aapBuffer) {
@@ -981,4 +1025,25 @@ Java_org_androidaudioplugin_juce_JuceAudioProcessorEditorView_addAndroidComponen
     auto plugin = instance->getPlugin();
     auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
     wrapper->addAndroidView(parentLinearLayout);
+}
+
+extern "C"
+JNIEXPORT jintArray JNICALL
+Java_org_androidaudioplugin_juce_JuceAudioPluginViewFactory_getPreferredSize(
+        JNIEnv *env, jclass clazz, jlong pluginServiceNative, jstring plugin_id, jint instanceId) {
+    juce_juceEventsAndroidStartApp();
+    auto service = (aap::PluginService *) pluginServiceNative;
+    auto instance = service->getLocalInstance(instanceId);
+    auto plugin = instance->getPlugin();
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+
+    int width = 0;
+    int height = 0;
+    if (wrapper != nullptr)
+        wrapper->getAndroidViewPreferredSize(width, height);
+
+    jint values[2] = {width, height};
+    auto result = env->NewIntArray(2);
+    env->SetIntArrayRegion(result, 0, 2, values);
+    return result;
 }
