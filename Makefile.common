@@ -116,7 +116,7 @@ dist:
 
 
 .PHONY:
-build-target-app: patch-juce-sources copy-and-patch-app-sources projuce-app do-build-target-android
+build-target-app: copy-and-patch-app-sources patch-juce-sources projuce-app do-build-target-android
 
 .PHONY:
 patch-juce-sources: $(JUCE_DIR)/.stamp-juce
@@ -142,6 +142,9 @@ $(APP_COPY_DIR)/.stamp: \
 		$(APP_COPY_DIR)  $(PATCH_FILE)  $(PATCH_DEPTH)  $(APP_CUSTOM_JUCER) $(APP_BUILD_DIR)
 	if [ ! -e $(APP_COPY_DIR)/aap-modules ] ; then \
 		ln -s $(AAP_JUCE_DIR)/aap-modules $(APP_COPY_DIR)/aap-modules ; \
+	fi
+	if [ ! -e $(APP_COPY_DIR)/modules ] ; then \
+		ln -s $(JUCE_DIR)/modules $(APP_COPY_DIR)/modules ; \
 	fi
 	if [ ! -e $(APP_COPY_DIR)/juce-modules ] ; then \
 		ln -s $(JUCE_DIR)/modules $(APP_COPY_DIR)/juce-modules ; \
