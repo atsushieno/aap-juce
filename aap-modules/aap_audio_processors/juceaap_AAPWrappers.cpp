@@ -431,7 +431,7 @@ public:
             auto statusCode = cmidi2_ump_get_status_code(ump);
             if (messageType == CMIDI2_MESSAGE_TYPE_UTILITY) {
                 // Should we also cover JR Clock? how?
-                if (statusCode == CMIDI2_JR_TIMESTAMP)
+                if (statusCode == CMIDI2_UTILITY_STATUS_JR_TIMESTAMP)
                     positionInJRTimestamp += cmidi2_ump_get_jr_timestamp_timestamp(ump);
                 continue;
             }

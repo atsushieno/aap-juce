@@ -125,8 +125,7 @@ void AndroidAudioPluginInstance::preProcessBuffers(AudioBuffer<float> &audioBuff
                 double timestampSeconds = timestamp * secondsPerFrameJUCE;
                 int32_t timestampTicks = (int32_t) (timestampSeconds / oneTick);
                 do {
-                    *(dstI + dstIntIndex) = cmidi2_ump_jr_timestamp_direct(
-                            0, (uint32_t)(timestampTicks) % 62500); // 2 sec.
+                    *(dstI + dstIntIndex) = cmidi2_ump_jr_timestamp_direct((uint32_t)(timestampTicks) % 62500); // 2 sec.
                     timestampTicks -= 62500;
                     dstIntIndex++;
                 } while (timestampTicks > 0);
