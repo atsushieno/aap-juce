@@ -377,22 +377,55 @@ class AndroidAudioProcessorEditor : public AudioProcessorEditor {
 public:
     AndroidAudioProcessorEditor(AudioProcessor *audioProcessor)
             : AudioProcessorEditor(audioProcessor) {
-        auto screen = Desktop::getInstance().getDisplays().getPrimaryDisplay()->userArea;
-        auto width = screen.getWidth() < 600 ? screen.getWidth() : 600;
-        auto height = screen.getHeight() < 400 ? screen.getHeight() : 400;
-        setBounds(0, 0, width, height);
+        setBounds(getDefaultEditorBounds());
     }
 
     virtual ~AndroidAudioProcessorEditor() {
         getAudioProcessor()->editorBeingDeleted(this);
+    }
+
+protected:
+    static Rectangle<int> getDefaultEditorBounds() {
+        auto screen = getPrimaryDisplayUserArea();
+        auto width = screen.getWidth() < 600 ? screen.getWidth() : 600;
+        auto height = screen.getHeight() < 400 ? screen.getHeight() : 400;
+        return {0, 0, width, height};
+    }
+
+    static Rectangle<int> getNativeEditorBounds() {
+        auto screen = getPrimaryDisplayUserArea();
+        return {0, 0, jmax(1, screen.getWidth()), jmax(1, screen.getHeight())};
+    }
+
+    static Rectangle<int> toAndroidPixelBounds(Rectangle<int> bounds) {
+        auto scale = getPrimaryDisplayScale();
+        return {
+            roundToInt(bounds.getX() * scale),
+            roundToInt(bounds.getY() * scale),
+            roundToInt(bounds.getWidth() * scale),
+            roundToInt(bounds.getHeight() * scale)
+        };
+    }
+
+protected:
+    static Rectangle<int> getPrimaryDisplayUserArea() {
+        if (auto* display = Desktop::getInstance().getDisplays().getPrimaryDisplay())
+            return display->userArea;
+        return {0, 0, 600, 400};
+    }
+
+    static double getPrimaryDisplayScale() {
+        if (auto* display = Desktop::getInstance().getDisplays().getPrimaryDisplay())
+            return jmax(1.0, display->scale);
+        return 1.0;
     }
 };
 
 class AndroidNativeAudioProcessorEditor : public AndroidAudioProcessorEditor {
 public:
     AndroidNativeAudioProcessorEditor(AudioProcessor *audioProcessor, aap::RemotePluginInstance* native)
-            : AndroidAudioProcessorEditor(audioProcessor) {
-        auto instance = (aap::RemotePluginInstance*) native;
+            : AndroidAudioProcessorEditor(audioProcessor),
+              instance((aap::RemotePluginInstance*) native) {
         // We have to make sure to instantiate SurfaceView, which is done at this call.
         instance->prepareSurfaceControlForRemoteNativeUI();
         // Then, before trying to connect to SurfaceControlViewHost, we have to ensure to have client display ID.
@@ -400,12 +433,57 @@ public:
         auto nativeView = instance->getRemoteNativeView();
         auto aView = new AndroidViewComponent();
         aView->setView(nativeView);
-        aView->setBounds(getBounds());
+        nativeViewComponent = aView;
         this->addAndMakeVisible(aView);
-        // Now displayID is ready.
-        auto bounds = getBounds();
-        instance->connectRemoteNativeView(bounds.getWidth(), bounds.getHeight());
+        resized();
+        updatePreferredBoundsAndConnect();
     }
+
+    void resized() override {
+        if (nativeViewComponent)
+            nativeViewComponent->setBounds(getLocalBounds());
+    }
+
+private:
+    void updatePreferredBoundsAndConnect() {
+        Component::SafePointer<AndroidNativeAudioProcessorEditor> safeThis { this };
+        auto* remoteInstance = instance;
+
+        Thread::launch([safeThis, remoteInstance] {
+            int32_t preferredWidth = 0;
+            int32_t preferredHeight = 0;
+            auto preferredBounds = getDefaultEditorBounds();
+
+            if (remoteInstance != nullptr &&
+                remoteInstance->getRemoteNativeViewPreferredSize(preferredWidth, preferredHeight) &&
+                preferredWidth > 0 && preferredHeight > 0) {
+                auto screen = getPrimaryDisplayUserArea();
+                auto scale = getPrimaryDisplayScale();
+                auto width = jlimit(1, screen.getWidth(), roundToInt(preferredWidth / scale));
+                auto height = jlimit(1, screen.getHeight(), roundToInt(preferredHeight / scale));
+                preferredBounds = {0, 0, width, height};
+            }
+
+            MessageManager::callAsync([safeThis, preferredBounds] {
+                if (safeThis != nullptr)
+                    safeThis->applyBoundsAndConnect(preferredBounds);
+            });
+        });
+    }
+
+    void applyBoundsAndConnect(Rectangle<int> bounds) {
+        if (connected)
+            return;
+        connected = true;
+        setSize(bounds.getWidth(), bounds.getHeight());
+        resized();
+        auto androidBounds = toAndroidPixelBounds(getBounds());
+        instance->connectRemoteNativeView(androidBounds.getWidth(), androidBounds.getHeight());
+    }
+
+    aap::RemotePluginInstance* instance{};
+    AndroidViewComponent* nativeViewComponent{};
+    bool connected{false};
 };
 
 class AndroidWebAudioProcessorEditor : public AndroidAudioProcessorEditor {
