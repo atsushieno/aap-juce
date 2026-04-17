@@ -425,6 +425,7 @@ class AndroidNativeAudioProcessorEditor : public AndroidAudioProcessorEditor {
 public:
     AndroidNativeAudioProcessorEditor(AudioProcessor *audioProcessor, aap::RemotePluginInstance* native)
             : AndroidAudioProcessorEditor(audioProcessor),
+              preferredSizeThread(*this),
               instance((aap::RemotePluginInstance*) native) {
         // We have to make sure to instantiate SurfaceView, which is done at this call.
         instance->prepareSurfaceControlForRemoteNativeUI();
@@ -439,35 +440,59 @@ public:
         updatePreferredBoundsAndConnect();
     }
 
+    ~AndroidNativeAudioProcessorEditor() override {
+        if (nativeViewComponent != nullptr)
+            nativeViewComponent->setView(nullptr);
+
+        preferredSizeThread.stopThread(-1);
+    }
+
     void resized() override {
         if (nativeViewComponent)
             nativeViewComponent->setBounds(getLocalBounds());
     }
 
 private:
+    class PreferredSizeThread : public Thread {
+    public:
+        explicit PreferredSizeThread(AndroidNativeAudioProcessorEditor& ownerEditor)
+                : Thread("AAP native UI preferred size query"),
+                  owner(ownerEditor) {
+        }
+
+        void run() override {
+            owner.updatePreferredBoundsAndConnectOnWorker();
+        }
+
+    private:
+        AndroidNativeAudioProcessorEditor& owner;
+    };
+
     void updatePreferredBoundsAndConnect() {
+        preferredSizeThread.startThread();
+    }
+
+    void updatePreferredBoundsAndConnectOnWorker() {
         Component::SafePointer<AndroidNativeAudioProcessorEditor> safeThis { this };
         auto* remoteInstance = instance;
 
-        Thread::launch([safeThis, remoteInstance] {
-            int32_t preferredWidth = 0;
-            int32_t preferredHeight = 0;
-            auto preferredBounds = getDefaultEditorBounds();
+        int32_t preferredWidth = 0;
+        int32_t preferredHeight = 0;
+        auto preferredBounds = getDefaultEditorBounds();
 
-            if (remoteInstance != nullptr &&
-                remoteInstance->getRemoteNativeViewPreferredSize(preferredWidth, preferredHeight) &&
-                preferredWidth > 0 && preferredHeight > 0) {
-                auto screen = getPrimaryDisplayUserArea();
-                auto scale = getPrimaryDisplayScale();
-                auto width = jlimit(1, screen.getWidth(), roundToInt(preferredWidth / scale));
-                auto height = jlimit(1, screen.getHeight(), roundToInt(preferredHeight / scale));
-                preferredBounds = {0, 0, width, height};
-            }
+        if (remoteInstance != nullptr &&
+            remoteInstance->getRemoteNativeViewPreferredSize(preferredWidth, preferredHeight) &&
+            preferredWidth > 0 && preferredHeight > 0) {
+            auto screen = getPrimaryDisplayUserArea();
+            auto scale = getPrimaryDisplayScale();
+            auto width = jlimit(1, screen.getWidth(), roundToInt(preferredWidth / scale));
+            auto height = jlimit(1, screen.getHeight(), roundToInt(preferredHeight / scale));
+            preferredBounds = {0, 0, width, height};
+        }
 
-            MessageManager::callAsync([safeThis, preferredBounds] {
-                if (safeThis != nullptr)
-                    safeThis->applyBoundsAndConnect(preferredBounds);
-            });
+        MessageManager::callAsync([safeThis, preferredBounds] {
+            if (safeThis.getComponent() != nullptr)
+                safeThis->applyBoundsAndConnect(preferredBounds);
         });
     }
 
@@ -481,6 +506,7 @@ private:
         instance->connectRemoteNativeView(androidBounds.getWidth(), androidBounds.getHeight());
     }
 
+    PreferredSizeThread preferredSizeThread;
     aap::RemotePluginInstance* instance{};
     AndroidViewComponent* nativeViewComponent{};
     bool connected{false};
