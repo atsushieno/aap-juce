@@ -1,0 +1,132 @@
+diff --git a/modules/juce_gui_basics/native/juce_android_Windowing.cpp b/modules/juce_gui_basics/native/juce_android_Windowing.cpp
+index 48dfbe4a45..3e3d76d8b6 100644
+--- a/modules/juce_gui_basics/native/juce_android_Windowing.cpp
++++ b/modules/juce_gui_basics/native/juce_android_Windowing.cpp
+@@ -629,10 +629,10 @@ public:
+     }
+ 
+     //==============================================================================
+-    void handleMouseDownCallback (int index, Point<float> sysPos, int64 time)
+-    {
+-        lastMousePos = sysPos / scale;
+-        auto pos = globalToLocal (lastMousePos);
++    void handleMouseDownCallback (int index, Point<float> sysPos, int64 time)
++    {
++        lastMousePos = sysPos / scale;
++        auto pos = getMouseCallbackLocalPosition (lastMousePos);
+ 
+         // this forces a mouse-enter/up event, in case for some reason we didn't get a mouse-up before.
+         handleMouseEvent (MouseInputSource::InputSourceType::touch,
+@@ -648,10 +648,10 @@ public:
+             handleMouseDragCallback (index, sysPos, time);
+     }
+ 
+-    void handleMouseDragCallback (int index, Point<float> sysPos, int64 time)
+-    {
+-        lastMousePos = sysPos / scale;
+-        auto pos = globalToLocal (lastMousePos);
++    void handleMouseDragCallback (int index, Point<float> sysPos, int64 time)
++    {
++        lastMousePos = sysPos / scale;
++        auto pos = getMouseCallbackLocalPosition (lastMousePos);
+ 
+         jassert (index < 64);
+         touchesDown = (touchesDown | (1 << (index & 63)));
+@@ -668,10 +668,10 @@ public:
+                           index);
+     }
+ 
+-    void handleMouseUpCallback (int index, Point<float> sysPos, int64 time)
+-    {
+-        lastMousePos = sysPos / scale;
+-        auto pos = globalToLocal (lastMousePos);
++    void handleMouseUpCallback (int index, Point<float> sysPos, int64 time)
++    {
++        lastMousePos = sysPos / scale;
++        auto pos = getMouseCallbackLocalPosition (lastMousePos);
+ 
+         jassert (index < 64);
+         touchesDown = (touchesDown & ~(1 << (index & 63)));
+@@ -694,13 +694,18 @@ public:
+         handleKeyPress (k, static_cast<juce_wchar> (kc));
+     }
+ 
+-    void handleKeyUpCallback (int /*k*/, int /*kc*/)
+-    {
+-    }
+-
+-    void handleBackButtonCallback()
+-    {
+-        bool handled = false;
++    void handleKeyUpCallback (int /*k*/, int /*kc*/)
++    {
++    }
++
++    Point<float> getMouseCallbackLocalPosition (Point<float> pos)
++    {
++        return viewGroupIsWindow ? globalToLocal (pos) : pos;
++    }
++
++    void handleBackButtonCallback()
++    {
++        bool handled = false;
+ 
+         if (auto* app = JUCEApplicationBase::getInstance())
+             handled = app->backButtonPressed();
+diff --git a/modules/juce_opengl/native/juce_OpenGLExtensions.h b/modules/juce_opengl/native/juce_OpenGLExtensions.h
+index 4f75ae5b75..800aaf3d66 100644
+--- a/modules/juce_opengl/native/juce_OpenGLExtensions.h
++++ b/modules/juce_opengl/native/juce_OpenGLExtensions.h
+@@ -83,7 +83,13 @@ namespace juce
+     X (glCheckFramebufferStatus) \
+     X (glFramebufferTexture2D) \
+     X (glFramebufferRenderbuffer) \
+-    X (glGetFramebufferAttachmentParameteriv)
++    X (glGetFramebufferAttachmentParameteriv) \
++    X (glTransformFeedbackVaryings) \
++    X (glBeginTransformFeedback) \
++    X (glEndTransformFeedback) \
++    X (glBindBufferBase) \
++    X (glMapBufferRange) \
++    X (glUnmapBuffer)
+ 
+ /** @internal This macro contains a list of GL extension functions that need to be dynamically loaded on Windows/Linux.
+     @see OpenGLExtensionFunctions
+diff --git a/modules/juce_opengl/native/juce_OpenGL_android.h b/modules/juce_opengl/native/juce_OpenGL_android.h
+index 19f3da34a2..fd576486b0 100644
+--- a/modules/juce_opengl/native/juce_OpenGL_android.h
++++ b/modules/juce_opengl/native/juce_OpenGL_android.h
+@@ -109,10 +109,7 @@ public:
+                              AndroidViewGroup.addView, surfaceView.get());
+ 
+         // initialise the geometry of the view
+-        auto bounds = component.getTopLevelComponent()->getLocalArea (&component, component.getLocalBounds());
+-        bounds *= component.getDesktopScaleFactor();
+-
+-        updateWindowPosition (bounds);
++        updateWindowPosition (component.getTopLevelComponent()->getLocalArea (&component, component.getLocalBounds()));
+         hasInitialised = true;
+     }
+ 
+diff --git a/modules/juce_opengl/opengl/juce_OpenGLContext.cpp b/modules/juce_opengl/opengl/juce_OpenGLContext.cpp
+index fce1b76342..106e004d25 100644
+--- a/modules/juce_opengl/opengl/juce_OpenGLContext.cpp
++++ b/modules/juce_opengl/opengl/juce_OpenGLContext.cpp
+@@ -357,7 +357,7 @@ public:
+                 transform = AffineTransform::scale ((float) newArea.getWidth()  / (float) localBounds.getWidth(),
+                                                     (float) newArea.getHeight() / (float) localBounds.getHeight());
+ 
+-                nativeContext->updateWindowPosition (peer->getAreaCoveredBy (component));
++                nativeContext->updateWindowPosition (peer->getComponent().getLocalArea (&component, component.getLocalBounds()));
+ 
+                 if (canTriggerUpdate)
+                     invalidateAll();
+@@ -861,7 +861,7 @@ public:
+                 c->handleResize();
+ 
+             if (auto* peer = comp.getTopLevelComponent()->getPeer())
+-                context.nativeContext->updateWindowPosition (peer->getAreaCoveredBy (comp));
++                context.nativeContext->updateWindowPosition (peer->getComponent().getLocalArea (&comp, comp.getLocalBounds()));
+         }
+     }
+ 

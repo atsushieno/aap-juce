@@ -1,0 +1,43 @@
+diff --git a/modules/juce_gui_basics/native/juce_android_Windowing.cpp b/modules/juce_gui_basics/native/juce_android_Windowing.cpp
+index 48dfbe4a45..727c5e9bed 100644
+--- a/modules/juce_gui_basics/native/juce_android_Windowing.cpp
++++ b/modules/juce_gui_basics/native/juce_android_Windowing.cpp
+@@ -632,7 +632,7 @@ public:
+     void handleMouseDownCallback (int index, Point<float> sysPos, int64 time)
+     {
+         lastMousePos = sysPos / scale;
+-        auto pos = globalToLocal (lastMousePos);
++        auto pos = getMouseCallbackLocalPosition (lastMousePos);
+ 
+         // this forces a mouse-enter/up event, in case for some reason we didn't get a mouse-up before.
+         handleMouseEvent (MouseInputSource::InputSourceType::touch,
+@@ -651,7 +651,7 @@ public:
+     void handleMouseDragCallback (int index, Point<float> sysPos, int64 time)
+     {
+         lastMousePos = sysPos / scale;
+-        auto pos = globalToLocal (lastMousePos);
++        auto pos = getMouseCallbackLocalPosition (lastMousePos);
+ 
+         jassert (index < 64);
+         touchesDown = (touchesDown | (1 << (index & 63)));
+@@ -671,7 +671,7 @@ public:
+     void handleMouseUpCallback (int index, Point<float> sysPos, int64 time)
+     {
+         lastMousePos = sysPos / scale;
+-        auto pos = globalToLocal (lastMousePos);
++        auto pos = getMouseCallbackLocalPosition (lastMousePos);
+ 
+         jassert (index < 64);
+         touchesDown = (touchesDown & ~(1 << (index & 63)));
+@@ -698,6 +698,11 @@ public:
+     {
+     }
+ 
++    Point<float> getMouseCallbackLocalPosition (Point<float> pos)
++    {
++        return viewGroupIsWindow ? globalToLocal (pos) : pos;
++    }
++
+     void handleBackButtonCallback()
+     {
+         bool handled = false;
