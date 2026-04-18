@@ -1,0 +1,66 @@
+diff --git a/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java b/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
+index 70e7e140c7..0a6bf7d67b 100644
+--- a/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
++++ b/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
+@@ -169,6 +169,20 @@ public final class ComponentPeerView extends ViewGroup
+     private static native void handleMouseUp (long host, int index, float x, float y, long time);
+     private static native void handleAccessibilityHover (long host, int action, float x, float y, long time);
+ 
++    private float getScreenX (MotionEvent event, int index)
++    {
++        int point[] = new int[2];
++        getLocationOnScreen (point);
++        return event.getX (index) + point[0];
++    }
++
++    private float getScreenY (MotionEvent event, int index)
++    {
++        int point[] = new int[2];
++        getLocationOnScreen (point);
++        return event.getY (index) + point[1];
++    }
++
+     @FunctionalInterface
+     private interface MouseHandler
+     {
+@@ -178,7 +192,7 @@ public final class ComponentPeerView extends ViewGroup
+     void handleMultiPointerEvent (MotionEvent event, MouseHandler callback)
+     {
+         long time = event.getEventTime();
+-        callback.handle (host, event.getPointerId (0), event.getRawX(), event.getRawY(), time);
++        callback.handle (host, event.getPointerId (0), getScreenX (event, 0), getScreenY (event, 0), time);
+ 
+         int n = event.getPointerCount();
+ 
+@@ -199,7 +213,7 @@ public final class ComponentPeerView extends ViewGroup
+ 
+         if (i == 0)
+         {
+-            callback.handle (host, event.getPointerId (0), event.getRawX(), event.getRawY(), time);
++            callback.handle (host, event.getPointerId (0), getScreenX (event, 0), getScreenY (event, 0), time);
+         }
+         else
+         {
+@@ -222,11 +236,11 @@ public final class ComponentPeerView extends ViewGroup
+         switch (action & MotionEvent.ACTION_MASK)
+         {
+             case MotionEvent.ACTION_DOWN:
+-                handleMouseDown (host, event.getPointerId (0), event.getRawX(), event.getRawY(), time);
++                handleMouseDown (host, event.getPointerId (0), getScreenX (event, 0), getScreenY (event, 0), time);
+                 return true;
+ 
+             case MotionEvent.ACTION_UP:
+-                handleMouseUp (host, event.getPointerId (0), event.getRawX(), event.getRawY(), time);
++                handleMouseUp (host, event.getPointerId (0), getScreenX (event, 0), getScreenY (event, 0), time);
+                 return true;
+ 
+             case MotionEvent.ACTION_CANCEL:
+@@ -257,7 +271,7 @@ public final class ComponentPeerView extends ViewGroup
+     {
+         if (accessibilityManager.isTouchExplorationEnabled())
+         {
+-            handleAccessibilityHover (host, event.getActionMasked(), event.getRawX(), event.getRawY(), event.getEventTime());
++            handleAccessibilityHover (host, event.getActionMasked(), getScreenX (event, 0), getScreenY (event, 0), event.getEventTime());
+             return true;
+         }
+ 
