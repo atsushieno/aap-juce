@@ -26,7 +26,19 @@ using namespace juce;
 extern juce::AudioProcessor *
 createPluginFilter(); // it is defined in each Audio plugin project (by Projucer).
 
-namespace juce { void juce_ensureEventsLoopStarted(); }
+#if ANDROID
+namespace juce { void juce_ensureEventsLoopStarted() __attribute__((weak)); }
+#endif
+
+static void juceaap_ensureEventsLoopStarted() {
+#if ANDROID
+    if (juce::juce_ensureEventsLoopStarted != nullptr) {
+        juce::juce_ensureEventsLoopStarted();
+        return;
+    }
+#endif
+    juce::MessageManager::getInstance();
+}
 
 extern "C" { int juce_aap_wrapper_last_error_code{0}; }
 
@@ -1032,7 +1044,7 @@ JNIEXPORT void JNICALL
 Java_org_androidaudioplugin_juce_JuceAudioProcessorEditorView_addAndroidComponentPeerViewTo(
         JNIEnv *env, jclass clazz, jlong pluginServiceNative, jstring plugin_id, jint instanceId,
         jobject parentLinearLayout) {
-    juce_ensureEventsLoopStarted();
+    juceaap_ensureEventsLoopStarted();
     auto service = (aap::PluginService *) pluginServiceNative;
     auto instance = service->getLocalInstance(instanceId);
     auto plugin = instance->getPlugin();
@@ -1044,7 +1056,7 @@ extern "C"
 JNIEXPORT jintArray JNICALL
 Java_org_androidaudioplugin_juce_JuceAudioPluginViewFactory_getPreferredSize(
         JNIEnv *env, jclass clazz, jlong pluginServiceNative, jstring plugin_id, jint instanceId) {
-    juce_ensureEventsLoopStarted();
+    juceaap_ensureEventsLoopStarted();
     auto service = (aap::PluginService *) pluginServiceNative;
     auto instance = service->getLocalInstance(instanceId);
     auto plugin = instance->getPlugin();
