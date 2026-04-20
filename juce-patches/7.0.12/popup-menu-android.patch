@@ -1,7 +1,8 @@
 diff --git a/modules/juce_gui_basics/menus/juce_PopupMenu.cpp b/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
+index f70ac16b55..6305dba89f 100644
 --- a/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
 +++ b/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
-@@ -378,10 +378,23 @@
+@@ -378,9 +378,24 @@ struct MenuWindow final : public Component
              if (shouldDisableAccessibility)
                  setAccessible (false);
 
@@ -27,4 +28,7 @@ diff --git a/modules/juce_gui_basics/menus/juce_PopupMenu.cpp b/modules/juce_gui
 +                          | ComponentPeer::windowIgnoresKeyPresses
 +                          | lf.getMenuWindowFlags());
 +#endif
++
              Desktop::getInstance().addGlobalMouseListener (this);
+         }
+
