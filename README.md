@@ -2,23 +2,24 @@
 
 This repo is the place where we have the common JUCE integration support modules for [aap-core](https://github.com/atsushieno/aap-core) (AAP), for both plugins and hosts.
 
-The entire AAP framework is on early development phase and not ready for any serious consumption yet.
-Everything is subject to change. Contributions are welcome but please bear in mind, documentation is poor and source code is ugly yet. We have GitHub discussions for AAP enabled at [aap-core](https://github.com/atsushieno/aap-core/discussions/landing) so please feel free to shoot your questions, if any.
+The entire AAP framework is still on early development phase and not in production quality yet. Expect app crashes in both plugins and hosts.
+
+We partially care about backward compatibility, but everything is still subject to change. Contributions are welcome but please bear in mind, documentation is poor and source code is ugly yet. We have GitHub discussions for AAP enabled at [aap-core](https://github.com/atsushieno/aap-core/discussions/landing) so please feel free to shoot your questions, if any.
 
 ## Existing ports
 
-This repository used to contain a handful of sample projects, but to avoid bloat core library repository, they are split from here and have their own repositories. Now they are listed at [AAP Wiki](https://github.com/atsushieno/aap-core/wiki/List-of-AAP-plugins-and-hosts).
+We have lots of JUCE plugins ported to AAP already. They are listed at [AAP Wiki](https://github.com/atsushieno/aap-core/wiki/List-of-AAP-plugins-and-hosts).
 
 aap-juce-plugin-host can enumerate the installed AAP plugins on the system (not limited to aap-juce ones), and instantiate each plugin.
 
-At this state, this repository itself is almost only about a set of build scripts that lets you port your (or others') JUCE audio plugins and hosts to AAP world. And probably more importantly, this README.
+At this state, this repository itself is almost about a set of build scripts that lets you port your (or others') JUCE audio plugins and hosts to AAP world, as well as a bunch of JUCE patches to make it realize. And probably more importantly, this README.
 
 ## Why JUCE for AAP?
 
 JUCE is a popular cross-platform, multi-plugin-format audio development framework.
 JUCE itself does not support AAP, but it can be extended by additional modules.
 JUCE also supports Android (you can even run UI), which makes things closer to actual app production.
-Still, JUCE is not designed to be extensible *enough*, additional code to support AAP is needed in each app.
+Still, JUCE is not designed to be extensible *enough*, additional code to support AAP is needed in each app. And when it comes to GUI support, many apps are not quite ready for Android.
 
 While JUCE itself is useful to develop plugin formats like AAP, it is designed to be independent of any other audio development toolkits and frameworks. We stick to minimum dependencies, at least on the public API surface.
 
@@ -26,9 +27,9 @@ JUCE API is stable-ish, while AAP API is not. So if anyone wants to get audio pl
 
 Note that JUCE plugins are usually designed for desktop and not meant to be usable on mobiles. In particular -
 
-- their UIs are usually useless on mobile.
+- their UIs usually don't build, and/or are usually useless on mobile.
 - those plugins that lets user pick up local files would not fit well with Android paradigm.
-- Some plugins would expose performance issues too.
+- they frequently expose performance issues too.
 
 ## How to try it out?
 
@@ -36,13 +37,13 @@ You would have to build and install each host and/or plugin from source so far, 
 
 You need a host app and a plugin to try at least one plugin via one host. This repository does not contain any application within itself.
 
-The host can be either `aaphostsample` in aap-core repo, a project [aap-juce-simple-host](https://github.com/atsushieno/aap-juce-simple-host) that is somewhat tailored for AAP and mobile UI, or `AudioPluginHost` in [aap-juce-plugin-host-cmake](https://github.com/atsushieno/aap-juce-plugin-host) repo (which is JUCE AudioPluginHost with AAP support).
+The host can be either `aaphostsample` in aap-core repo, a project [aap-juce-simple-host](https://github.com/atsushieno/aap-juce-simple-host) that is somewhat tailored for AAP and mobile UI, `AudioPluginHost` in [aap-juce-plugin-host-cmake](https://github.com/atsushieno/aap-juce-plugin-host) repo (which is JUCE AudioPluginHost with AAP support), or [UAPMD](https://github.com/atsushieno/uapmd). Since JUCE hosts themselves are not really reliable as JUCE is in general not well designed and tailored for Android, @atsushieno recommends UAPMD as the most reliable native host application as of 2026.
 
-The plugin can be either `aappluginsample` in aap-core repo (more stable), or any plugin on the [AAP Wiki](https://github.com/atsushieno/aap-core/wiki/List-of-AAP-plugins-and-hosts).
+The plugin can be either `aappluginsample` in aap-core repo (useless, but less likely to crash), or any plugin on the [AAP Wiki](https://github.com/atsushieno/aap-core/wiki/List-of-AAP-plugins-and-hosts).
 
 For those `aap-juce-*` repositories, `make` will build them. (`Makefile` does not sound cool, but it is at least distinct from `CMakeLists.txt` for Android app itself...)
 
-For JUCE apps that use Projucer, JUCE Android apps are generated and built under `Builds/Android/app/build/outputs/` in each app directory.
+For JUCE apps that still use Projucer (we often scrap them and create `CMakeLists.txt` by ourselves in our ports), JUCE Android apps are generated and built under `Builds/Android/app/build/outputs/` in each app directory.
 Though we typically use Android Studio and open `Builds/Android` and then run or debug there, once top-level `make` ran successfully.
 
 For those projects that use CMake, it is `app/build/outputs`.
@@ -79,14 +80,15 @@ Since Projucer support needs quite a lot of more documentation, we have consolid
 To port existing plugins, or even with a new project, you will either follow the CMake way, or the Projucer way.
 You would normally have no choice, the original project would be either of those already, but CMake is much easier and much more intuitive to deal with. With Projucer, you will have to generate project every time you make changes to the project.
 In either approach, you end up with an Android Studio (Gradle) project that you can open on Android Studio (or stick to Gradle to build and adb to install, like we do on CI).
+Note that those Projucer-based projects won't expose usefull project structure so that those C++ sources won't show up. Only valid CMake setup provides them.
 
 There are many aap-juce based apps that could be used as reference/template projects. See the list of plugins on the AAP Wiki.
 
 ### Patching
 
-In most aap-juce-* apps, I created `aap-juce-support.patch` that (for each app) contains a set of changes as in patch files. In `Makefile`, there is `PATCH_FILE` variable that indicates one single patch file. It usually points to that `aap-juce-support.patch`.
+In most aap-juce-* apps, we created `aap-juce-support.patch` that (for each app) contains a set of changes as in patch files. In `Makefile`, there is `PATCH_FILE` variable that indicates one single patch file. It usually points to that `aap-juce-support.patch`.
 
-IF the build system is Projucer, there is an additional variable called `PATCH_DEPTH` which is used with `patch` tool as: `patch -i [aap-juce-support.patch] -p [PATCH_DEPTH]`. For CMake projects -p 1 should suffice so I used `git apply` which does not take patch depth instead.
+IF the build system is Projucer, there is an additional variable called `PATCH_DEPTH` which is used with `patch` tool as: `patch -i [aap-juce-support.patch] -p [PATCH_DEPTH]`. For CMake projects -p 1 should suffice so we used `git apply` which does not take patch depth instead.
 
 ### Making application itself build for Android
 
@@ -163,20 +165,20 @@ It is mostly taken care by `projuce-app.sh`.
 CMake is preferred, but it is not officially supported by JUCE so far either.
 However the impact of the changes is small so that they can be manually fixed.
 
-We plan to juce_emscripten for future integration with wasm UI builds.
-
 ### difference between normal JUCE Android app and JUCE-AAP Android app
 
 We have a lot of works for Projucer-based projects here, but things are much simpler for CMake support. We simply use our own app template with slight changes and reference to `CMakeLists.txt` from the app that is being ported.
 
-### GUI limitation
+### Integrating `juce::AudioProcessorEditor` (GUI)
 
-aap-core since 0.7.7 provides preliminary native plugin-process GUI functionality, but since JUCE GUI does not work as a standalone `View`, unlike Jetpack Compose,or Flutter, it is impossible to reuse existing desktop UI at the moment. JUCE plugins even invalidates whatever `Activity` we specify at `AndroidManifest.xml` and launches its own `JuceActivity` instead. It is a brutal behavior, but we cannot fix without a various patching effort.
+aap-core since 0.7.7 provides preliminary native plugin-process GUI functionality, but since JUCE GUI does not work as a standalone `View`, unlike Jetpack Compose, or Flutter, it is impossible to reuse existing desktop UI without tweaking JUCE to some extent. JUCE plugins even invalidates whatever `Activity` we specify at `AndroidManifest.xml` and launches its own `JuceActivity` instead. It is a brutal behavior, and we need a handful of patches to fix this.
 
-At the moment, you are encouraged to build a dedicated mobile UI for JUCE based plugins, without `juce_gui_basics`. Or push JUCE team to improve their GUI support to make it just work as `View`.
+For further JUCE GUI integration, see [docs/JUCE_GUI_SUPPORT.md](docs/JUCE_GUI_SUPPORT.md).
 
 
 ## Using AddressSanitizer on aap-juce apps
+
+Update (2026): it was written when ASan was not deprecated. Google now recommends HWAsan which seems to have quite different setup. So read this section as outdated.
 
 It is tricky to set up ASAN for aap-juce apps, especially for those projects that use Projucer (as it regenerates the projects every time you re-save .jucer).
 
@@ -196,4 +198,4 @@ For more details on AAP tracing, read the [aap-core documentation](https://githu
 
 ## Code origin and license
 
-This repository itself is licensed under the GPLv3 license.
+This repository itself is licensed under the AGPLv3 license (in sync with JUCE itself).
