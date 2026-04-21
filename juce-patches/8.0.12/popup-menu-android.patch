@@ -1,0 +1,29 @@
+diff --git a/modules/juce_gui_basics/menus/juce_PopupMenu.cpp b/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
+index b723773b3d..8e03a5d7c9 100644
+--- a/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
++++ b/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
+@@ -392,9 +392,24 @@ struct MenuWindow final : public Component
+             if (shouldDisableAccessibility)
+                 setAccessible (false);
+ 
++#if JUCE_ANDROID
++            {
++                Component* parentComp = options.getParentComponent();
++                if (parentComp == nullptr) parentComp = parent;
++                if (parentComp == nullptr) parentComp = options.getTargetComponent();
++                void* nativeHandle = nullptr;
++                if (parentComp != nullptr)
++                    if (auto* peer = parentComp->getTopLevelComponent()->getPeer())
++                        nativeHandle = peer->getNativeHandle();
++                addToDesktop (ComponentPeer::windowIsTemporary
++                              | ComponentPeer::windowIgnoresKeyPresses
++                              | lf.getMenuWindowFlags(), nativeHandle);
++            }
++#else
+             addToDesktop (ComponentPeer::windowIsTemporary
+                           | ComponentPeer::windowIgnoresKeyPresses
+                           | lf.getMenuWindowFlags());
++#endif
+         }
+ 
+         // Using a global mouse listener means that we get notifications about all mouse events.
