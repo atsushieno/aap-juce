@@ -12,12 +12,13 @@ index 370e5eb003..4806cc9f8d 100644
  #endif
  
  void Thread::initialiseJUCE (void* jniEnv, void* context)
-@@ -331,7 +332,8 @@ void Thread::initialiseJUCE (void* jniEnv, void* context)
+@@ -331,7 +332,9 @@ void Thread::initialiseJUCE (void* jniEnv, void* context)
          JuceActivityWatcher::getInstance();
  
         #if JUCE_MODULE_AVAILABLE_juce_events && JUCE_ANDROID
 -        juce_juceEventsAndroidStartApp();
-+        //juce_juceEventsAndroidStartApp();
++        // AAP plugins may initialize JUCE from a non-launcher Android component.
++        // In that case we only want the message loop, not the standalone JUCE app bootstrap.
 +        juce_ensureEventsLoopStarted();
         #endif
      }
@@ -36,15 +37,15 @@ index 2034d06fa7..734d85873a 100644
 +extern "C" void juce_juceEventsAndroidStartApp()
  {
      auto dllPath = juce_getExecutableFile().getFullPathName();
-     auto addr = reinterpret_cast<juce::JUCEApplicationBase* (*)()> (DynamicLibrary (dllPath)
+    auto addr = reinterpret_cast<juce::JUCEApplicationBase*(*)()> (DynamicLibrary (dllPath)
 @@ -285,4 +285,11 @@ void juce_juceEventsAndroidStartApp()
          JuceAppLifecycle::getInstance (addr);
  }
  
 +void juce_ensureEventsLoopStarted()
 +{
-+    // This ensures that event loop exists and it is on Android main thread.
-+    // Invoke at androidx.startup to guarantee main thread execution.
++    // This is used by the AAP JUCE bridge so AndroidX Startup can prepare the
++    // JUCE message manager on the main thread without launching the standalone app.
 +    MessageManager::getInstance();
 +}
 +

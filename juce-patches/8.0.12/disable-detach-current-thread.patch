@@ -1,0 +1,17 @@
+diff --git a/modules/juce_core/native/juce_Threads_android.cpp b/modules/juce_core/native/juce_Threads_android.cpp
+index d1e16bad22..9762efbe45 100644
+--- a/modules/juce_core/native/juce_Threads_android.cpp
++++ b/modules/juce_core/native/juce_Threads_android.cpp
+@@ -365,9 +365,10 @@ bool Thread::createNativeThread (Priority)
+             void* env = nullptr;
+             androidJNIJavaVM->GetEnv (&env, JNI_VERSION_1_2);
+ 
++            // LAMESPACE: disabled: see the code comment on getEnv() for details.
+             // only detach if we have actually been attached
+-            if (env != nullptr)
+-                androidJNIJavaVM->DetachCurrentThread();
++            //if (env != nullptr)
++            //    androidJNIJavaVM->DetachCurrentThread();
+         }
+ 
+         return nullptr;

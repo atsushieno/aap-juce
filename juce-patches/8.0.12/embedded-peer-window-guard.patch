@@ -1,0 +1,50 @@
+diff --git a/modules/juce_gui_basics/native/juce_Windowing_android.cpp b/modules/juce_gui_basics/native/juce_Windowing_android.cpp
+index 29aa446cd5..f9ac2435c8 100644
+--- a/modules/juce_gui_basics/native/juce_Windowing_android.cpp
++++ b/modules/juce_gui_basics/native/juce_Windowing_android.cpp
+@@ -1400,15 +1400,16 @@ public:
+             env->CallVoidMethod (viewGroup, AndroidViewManager.updateViewLayout, view.get(), windowLayoutParams.get());
+         }
+ 
+-        auto activity = getCurrentOrMainActivity();
+-
+-        const LocalRef window { env->CallObjectMethod (activity, AndroidActivity.getWindow) };
+-        const LocalRef decorView { env->CallObjectMethod (window, AndroidWindow.getDecorView) };
+-        const auto listener = CreateJavaInterface (new ViewWindowInsetsListener,
+-                                                   "android/view/View$OnApplyWindowInsetsListener");
+-        env->CallVoidMethod (decorView,
+-                             AndroidView.setOnApplyWindowInsetsListener,
+-                             listener.get());
++        if (auto activity = getCurrentOrMainActivity())
++        {
++            const LocalRef window { env->CallObjectMethod (activity, AndroidActivity.getWindow) };
++            const LocalRef decorView { env->CallObjectMethod (window, AndroidWindow.getDecorView) };
++            const auto listener = CreateJavaInterface (new ViewWindowInsetsListener,
++                                                       "android/view/View$OnApplyWindowInsetsListener");
++            env->CallVoidMethod (decorView,
++                                 AndroidView.setOnApplyWindowInsetsListener,
++                                 listener.get());
++        }
+ 
+         if (isFocused())
+             handleFocusGain();
+@@ -1418,12 +1419,13 @@ public:
+     {
+         auto* env = getEnv();
+ 
+-        auto activity = getCurrentOrMainActivity();
+-
+-        const LocalRef window { env->CallObjectMethod (activity, AndroidActivity.getWindow) };
+-        const LocalRef decorView { env->CallObjectMethod (window, AndroidWindow.getDecorView) };
+-
+-        env->CallVoidMethod (decorView, AndroidView.setOnApplyWindowInsetsListener, (jobject) nullptr);
++        if (auto activity = getCurrentOrMainActivity())
++        {
++            const LocalRef window { env->CallObjectMethod (activity, AndroidActivity.getWindow) };
++            const LocalRef decorView { env->CallObjectMethod (window, AndroidWindow.getDecorView) };
++
++            env->CallVoidMethod (decorView, AndroidView.setOnApplyWindowInsetsListener, (jobject) nullptr);
++        }
+ 
+         env->CallVoidMethod (view, ComponentPeerView.clear);
+         frontWindow = nullptr;
