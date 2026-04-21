@@ -1,5 +1,5 @@
 diff --git a/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java b/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
-index 70e7e140c7..0a6bf7d67b 100644
+index 70e7e140c7..bf66c12807 100644
 --- a/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
 +++ b/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
 @@ -169,6 +169,20 @@ public final class ComponentPeerView extends ViewGroup
@@ -64,3 +64,13 @@ index 70e7e140c7..0a6bf7d67b 100644
              return true;
          }
  
+@@ -802,8 +816,7 @@ public final class ComponentPeerView extends ViewGroup
+                 if (visible)
+                 {
+                     controller.show (WindowInsets.Type.systemBars());
+-                    controller.setSystemBarsBehavior (31 <= Build.VERSION.SDK_INT ? BEHAVIOR_DEFAULT
+-                                                                                  : BEHAVIOR_SHOW_BARS_BY_SWIPE);
++                    controller.setSystemBarsBehavior (BEHAVIOR_DEFAULT);
+                 }
+                 else
+                 {
