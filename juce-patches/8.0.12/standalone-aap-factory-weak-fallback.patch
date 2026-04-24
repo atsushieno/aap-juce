@@ -1,0 +1,24 @@
+diff --git a/modules/juce_audio_plugin_client/juce_audio_plugin_client_Standalone.cpp b/modules/juce_audio_plugin_client/juce_audio_plugin_client_Standalone.cpp
+index 06b3d091a5..0000000000 100644
+--- a/modules/juce_audio_plugin_client/juce_audio_plugin_client_Standalone.cpp
++++ b/modules/juce_audio_plugin_client/juce_audio_plugin_client_Standalone.cpp
+@@ -229,7 +229,19 @@ Image JUCE_CALLTYPE juce_getIAAHostIcon (int size)
+ #else
+  JUCE_CREATE_APPLICATION_DEFINE (juce::StandaloneFilterApp)
+ #endif
++
++// AAP: ensure GetJuceAAPFactoryStandalone is always exported on Android when
++// the Standalone format is built, even if the plugin sets
++// JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP=1 but never invokes
++// START_JUCE_APPLICATION (so JUCE_CREATE_APPLICATION_DEFINE never expands).
++// Declared weak so a strong definition emitted by the patched
++// JUCE_CREATE_APPLICATION_DEFINE macro still wins when present.
++#if JUCE_ANDROID
++ extern "C" void* GetJuceAAPFactory();
++ extern "C" __attribute((visibility("default"))) __attribute((weak))
++ void* GetJuceAAPFactoryStandalone() { return GetJuceAAPFactory(); }
++#endif
+
+ #if ! JUCE_USE_CUSTOM_PLUGIN_STANDALONE_ENTRYPOINT
+  JUCE_MAIN_FUNCTION_DEFINITION
+ #endif
