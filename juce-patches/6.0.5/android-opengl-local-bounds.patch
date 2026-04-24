@@ -1,22 +1,3 @@
-diff --git a/modules/juce_opengl/native/juce_OpenGLExtensions.h b/modules/juce_opengl/native/juce_OpenGLExtensions.h
-index 4f75ae5b75..800aaf3d66 100644
---- a/modules/juce_opengl/native/juce_OpenGLExtensions.h
-+++ b/modules/juce_opengl/native/juce_OpenGLExtensions.h
-@@ -83,7 +83,13 @@ namespace juce
-     X (glCheckFramebufferStatus) \
-     X (glFramebufferTexture2D) \
-     X (glFramebufferRenderbuffer) \
--    X (glGetFramebufferAttachmentParameteriv)
-+    X (glGetFramebufferAttachmentParameteriv) \
-+    X (glTransformFeedbackVaryings) \
-+    X (glBeginTransformFeedback) \
-+    X (glEndTransformFeedback) \
-+    X (glBindBufferBase) \
-+    X (glMapBufferRange) \
-+    X (glUnmapBuffer)
- 
- /** @internal This macro contains a list of GL extension functions that need to be dynamically loaded on Windows/Linux.
-     @see OpenGLExtensionFunctions
 diff --git a/modules/juce_opengl/native/juce_OpenGL_android.h b/modules/juce_opengl/native/juce_OpenGL_android.h
 index 19f3da34a2..fd576486b0 100644
 --- a/modules/juce_opengl/native/juce_OpenGL_android.h
