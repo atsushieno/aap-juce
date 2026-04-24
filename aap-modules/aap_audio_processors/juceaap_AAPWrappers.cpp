@@ -1,5 +1,6 @@
 
 #include <ctime>
+#include <mutex>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "aap/android-audio-plugin.h"
 #include "aap/core/host/plugin-host.h"
@@ -70,6 +71,13 @@ class JuceAAPWrapper : juce::AudioPlayHead, juce::AudioProcessorListener {
     std::map<int32_t,int32_t> aap_to_juce_portmap_in{};
     std::map<int32_t,int32_t> aap_to_juce_portmap_out{};
     std::map<int32_t,int32_t> portmap_juce_to_aap_out{};
+
+    struct PendingParameterChange {
+        uint16_t index{0};
+        float value{0};
+    };
+    std::mutex pending_parameter_changes_lock{};
+    std::vector<PendingParameterChange> pending_parameter_changes{};
 
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
     juce::AudioPlayHead::PositionInfo play_head_position;
@@ -209,6 +217,7 @@ public:
 
     // juce::AudioProcessorListener implementation
     void audioProcessorParameterChanged(juce::AudioProcessor* processor, int parameterIndex, float newValue) override {
+        enqueueParameterChange(parameterIndex, newValue);
     }
 
 #if JUCEAAP_AUDIO_PROCESSOR_CHANGE_DETAILS_UNAVAILABLE
@@ -406,6 +415,78 @@ public:
     uint8_t sysex_buffer[4096];
     int32_t sysex_offset{0};
 
+    void enqueueParameterChange(int parameterIndex, float newValue) {
+        if (parameterIndex < 0 || parameterIndex > UINT16_MAX)
+            return;
+
+        std::lock_guard<std::mutex> lock(pending_parameter_changes_lock);
+        pending_parameter_changes.push_back(PendingParameterChange{static_cast<uint16_t>(parameterIndex), newValue});
+    }
+
+    void enqueueChangedParameters(const std::vector<float>& oldValues) {
+        auto parameters = juce_processor->getParameterTree().getParameters(true);
+        if (!parameters.isEmpty()) {
+            for (int i = 0; i < parameters.size() && i < oldValues.size(); i++) {
+                auto* param = parameters[i];
+                if (param == nullptr)
+                    continue;
+                auto newValue = param->getValue();
+                if (newValue != oldValues[i])
+                    enqueueParameterChange(param->getParameterIndex(), newValue);
+            }
+            return;
+        }
+
+        for (int i = 0, n = juce_processor->getNumParameters(); i < n && i < oldValues.size(); i++) {
+            auto newValue = juce_processor->getParameter(i);
+            if (newValue != oldValues[i])
+                enqueueParameterChange(i, newValue);
+        }
+    }
+
+    std::vector<float> snapshotParameterValues() {
+        std::vector<float> values;
+        auto parameters = juce_processor->getParameterTree().getParameters(true);
+        if (!parameters.isEmpty()) {
+            values.reserve(parameters.size());
+            for (auto* param : parameters)
+                values.push_back(param != nullptr ? param->getValue() : 0);
+            return values;
+        }
+
+        auto count = juce_processor->getNumParameters();
+        values.reserve(count);
+        for (int i = 0; i < count; i++)
+            values.push_back(juce_processor->getParameter(i));
+        return values;
+    }
+
+    void flushParameterChanges(aap_buffer_t* buffer) {
+        if (aap_midi2_out_port < 0)
+            return;
+
+        if ((uint32_t) aap_midi2_out_port >= buffer->num_ports(*buffer))
+            return;
+
+        std::vector<PendingParameterChange> changes;
+        if (!pending_parameter_changes_lock.try_lock())
+            return;
+        changes.swap(pending_parameter_changes);
+        pending_parameter_changes_lock.unlock();
+
+        if (changes.empty())
+            return;
+
+        auto* outMidiBuf = (AAPMidiBufferHeader*) buffer->get_buffer(*buffer, aap_midi2_out_port);
+        auto* umpDst = (uint32_t*) (void*) ((uint8_t*) outMidiBuf + sizeof(AAPMidiBufferHeader) + outMidiBuf->length);
+
+        for (auto& change : changes) {
+            aapMidi2ParameterSysex8(umpDst, umpDst + 1, umpDst + 2, umpDst + 3,
+                                    0, 0, 0, 0, change.index, change.value);
+            umpDst += 4;
+            outMidiBuf->length += 16;
+        }
+    }
 
     bool readMidi2Parameter(uint8_t *group, uint8_t* channel, uint8_t* key, uint8_t* extra,
                             uint16_t *index, float *value, cmidi2_ump* ump) {
@@ -626,6 +707,9 @@ public:
 
     void processMidiOutputs(aap_buffer_t* buffer) {
         // This part is not really verified... we need some JUCE plugin that generates some outputs.
+        if (aap_midi2_out_port < 0)
+            return;
+
         void *dst = buffer->get_buffer(*buffer, aap_midi2_out_port);
         auto outMidiBuf = (AAPMidiBufferHeader*) dst;
         auto umpDst = (cmidi2_ump*) ((uint8_t*) dst + sizeof(AAPMidiBufferHeader));
@@ -638,27 +722,41 @@ public:
                 // sysex
                 memcpy(sysex_buffer, data + eventPos, eventSize);
                 auto numPackets = cmidi2_ump_sysex7_get_num_packets(eventSize);
-                for (int i = 0; i < numPackets; i++)
+                for (int i = 0; i < numPackets; i++) {
                     cmidi2_ump_write64(umpDst, cmidi2_ump_sysex7_get_packet_of(
                             0, i + 1 < numPackets ? 6 : eventSize % 6,
                             (void *) (data + eventPos + i * 6), i));
-                umpDst += 2;
+                    umpDst += 2;
+                    dstBufSize += 8;
+                }
             } else if (data[eventPos] > 0xF0) {
                 cmidi2_ump_write32(umpDst, cmidi2_ump_system_message(
                         0, data[eventPos],
                         eventSize > 1 ? data[eventPos + 1] : 0,
                         eventSize > 2 ? data[eventPos + 2] : 0));
                 umpDst++;
+                dstBufSize += 4;
             } else {
                 cmidi2_ump_write32(umpDst, cmidi2_ump_midi1_message(
                         0, data[eventPos] & 0xF0, data[eventPos] & 0xF,
                         eventSize > 1 ? data[eventPos + 1] : 0,
                         eventSize > 2 ? data[eventPos + 2] : 0));
                 umpDst++;
+                dstBufSize += 4;
             }
-            dstBufSize += eventSize;
         }
         outMidiBuf->length = dstBufSize;
+    }
+
+    void clearMidiOutput(aap_buffer_t* buffer) {
+        if (aap_midi2_out_port < 0)
+            return;
+
+        if ((uint32_t) aap_midi2_out_port >= buffer->num_ports(*buffer))
+            return;
+
+        auto* outMidiBuf = (AAPMidiBufferHeader*) buffer->get_buffer(*buffer, aap_midi2_out_port);
+        outMidiBuf->length = 0;
     }
 
     void resetJuceChannels(aap_buffer_t *audioBuffer, int32_t frameCount) {
@@ -737,9 +835,12 @@ public:
         play_head_position.ppqPosition += play_head_position.bpm / 60 * thisTimeInSeconds;
 #endif
 
+        clearMidiOutput(audioBuffer);
+
         // There isn't anything we can send to AAP MIDI2 output port if it does not exist, so far.
         if (juce_processor->producesMidi())
-            processMidiOutputs(buffer);
+            processMidiOutputs(audioBuffer);
+        flushParameterChanges(audioBuffer);
 
         int numAudioIns = juce_processor->getMainBusNumInputChannels();
         int numAudioOuts = juce_processor->getMainBusNumOutputChannels();
@@ -786,7 +887,9 @@ public:
     }
 
     void setState(aap_state_t *input) {
+        auto oldValues = snapshotParameterValues();
         juce_processor->setStateInformation(input->data, input->data_size);
+        enqueueChangedParameters(oldValues);
     }
 
     int32_t getPresetCount() {
