@@ -1,5 +1,5 @@
 diff --git a/modules/juce_gui_basics/native/juce_mac_Windowing.mm b/modules/juce_gui_basics/native/juce_mac_Windowing.mm
-index a314ba95a..f28afc127 100644
+index a314ba95a4..f28afc1277 100644
 --- a/modules/juce_gui_basics/native/juce_mac_Windowing.mm
 +++ b/modules/juce_gui_basics/native/juce_mac_Windowing.mm
 @@ -555,10 +555,10 @@ static Image createNSWindowSnapshot (NSWindow* nsWindow)
