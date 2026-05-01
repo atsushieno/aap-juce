@@ -895,19 +895,23 @@ public:
     }
 
     int32_t getPresetCount() {
+        juceaap_ensureEventsLoopStarted();
         return juce_processor->getNumPrograms();
     }
 
     void getPreset(int32_t index, aap_preset_t* preset) {
+        juceaap_ensureEventsLoopStarted();
         preset->id = index;
         juce_processor->getProgramName(index).copyToUTF8(preset->name, AAP_PRESETS_EXTENSION_MAX_NAME_LENGTH);
     }
 
     int32_t getPresetIndex() {
+        juceaap_ensureEventsLoopStarted();
         return juce_processor->getCurrentProgram();
     }
 
     void setPresetIndex(int32_t index) {
+        juceaap_ensureEventsLoopStarted();
         juce_processor->setCurrentProgram(index);
     }
 
