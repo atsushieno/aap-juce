@@ -872,6 +872,7 @@ public:
     }
 
     void getState(aap_state_t *result) {
+        juceaap_ensureEventsLoopStarted();
         MemoryBlock mb;
         mb.reset();
         juce_processor->getStateInformation(mb);
@@ -887,6 +888,7 @@ public:
     }
 
     void setState(aap_state_t *input) {
+        juceaap_ensureEventsLoopStarted();
         auto oldValues = snapshotParameterValues();
         juce_processor->setStateInformation(input->data, input->data_size);
         enqueueChangedParameters(oldValues);
