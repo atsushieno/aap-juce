@@ -160,8 +160,8 @@ public:
             if (std::isnormal(range.end) || range.end == 0.0)
                 info.max_value = range.end;
         }
-        if (std::isnormal(para->getDefaultValue()))
-            info.default_value = para->getDefaultValue();
+        if (ranged)
+            info.default_value = range.convertFrom0to1(para->getDefaultValue());
         else
             info.default_value = para->getDefaultValue();
         auto names = para->getAllValueStrings();
@@ -169,7 +169,8 @@ public:
             aapParamIdToEnumIndex.set(info.stable_id, aapEnums.size());
             for (auto name : names) {
                 aap_parameter_enum_t e;
-                e.value = para->getValueForText(name);
+                auto enumValue = para->getValueForText(name);
+                e.value = ranged ? range.convertFrom0to1(enumValue) : enumValue;
                 strncpy(e.name, name.toRawUTF8(), sizeof(e.name));
                 aapEnums.add(new aap_parameter_enum_t(e));
             }
@@ -489,7 +490,7 @@ public:
     }
 
     bool readMidi2Parameter(uint8_t *group, uint8_t* channel, uint8_t* key, uint8_t* extra,
-                            uint16_t *index, float *value, cmidi2_ump* ump) {
+                            uint16_t *index, uint32_t *value, cmidi2_ump* ump) {
         auto raw = (uint32_t*) ump;
         return aapReadMidi2ParameterSysex8(group, channel, key, extra, index, value,
                                            *raw, *(raw + 1), *(raw + 2), *(raw + 3));
@@ -508,16 +509,17 @@ public:
 
             uint8_t paramGroup, paramChannel, paramKey{0}, paramExtra{0};
             uint16_t paramId;
-            float paramValue;
+            uint32_t paramValue;
             if (readMidi2Parameter(&paramGroup, &paramChannel, &paramKey, &paramExtra, &paramId, &paramValue, ump)) {
+                auto normalizedValue = (float) aapParameterUint32ToNormalized(paramValue);
                 auto param = juce_processor->getParameterTree().getParameters(true)[paramId];
                 if (param != nullptr) {
-                    param->setValue(paramValue);
-                    param->sendValueChangedMessageToListeners (paramValue);
+                    param->setValue(normalizedValue);
+                    param->sendValueChangedMessageToListeners (normalizedValue);
                 }
                 else
                     // The processor is as traditional as not providing parameter tree. We have to resort to traditional API.
-                    juce_processor->setParameter(paramId, paramValue);
+                    juce_processor->setParameter(paramId, normalizedValue);
                 continue;
             }
         }
