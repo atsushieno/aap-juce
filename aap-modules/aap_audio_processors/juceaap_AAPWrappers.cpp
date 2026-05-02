@@ -78,6 +78,7 @@ class JuceAAPWrapper : juce::AudioPlayHead, juce::AudioProcessorListener {
     };
     std::mutex pending_parameter_changes_lock{};
     std::vector<PendingParameterChange> pending_parameter_changes{};
+    std::vector<float> last_parameter_values{};
 
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
     juce::AudioPlayHead::PositionInfo play_head_position;
@@ -115,6 +116,7 @@ public:
         buildParameterList();
 
         juce_processor->addListener(this);
+        last_parameter_values = snapshotParameterValues();
     }
 
     virtual ~JuceAAPWrapper() {
@@ -146,12 +148,15 @@ public:
     juce::OwnedArray<aap_parameter_enum_t> aapEnums{};
 
     void registerParameter(juce::String path, juce::AudioProcessorParameter* para) {
-        aap_parameter_info_t info;
+        aap_parameter_info_t info{};
         strncpy(info.path, path.toRawUTF8(), sizeof(info.path));
         info.stable_id = static_cast<int16_t>(para->getParameterIndex());
         auto nameMax = sizeof(info.display_name);
         const char* paramName = para->getName((int32_t) nameMax).toRawUTF8();
         strncpy(info.display_name, paramName, nameMax);
+        info.min_value = 0.0;
+        info.max_value = 1.0;
+        info.default_value = para->getDefaultValue();
         auto ranged = dynamic_cast<juce::RangedAudioParameter *>(para);
         auto range = ranged ? ranged->getNormalisableRange() : juce::NormalisableRange<float>{};
         if (ranged) {
@@ -159,16 +164,13 @@ public:
                 info.min_value = range.start;
             if (std::isnormal(range.end) || range.end == 0.0)
                 info.max_value = range.end;
-        }
-        if (ranged)
             info.default_value = range.convertFrom0to1(para->getDefaultValue());
-        else
-            info.default_value = para->getDefaultValue();
+        }
         auto names = para->getAllValueStrings();
         if (!names.isEmpty()) {
             aapParamIdToEnumIndex.set(info.stable_id, aapEnums.size());
             for (auto name : names) {
-                aap_parameter_enum_t e;
+                aap_parameter_enum_t e{};
                 auto enumValue = para->getValueForText(name);
                 e.value = ranged ? range.convertFrom0to1(enumValue) : enumValue;
                 strncpy(e.name, name.toRawUTF8(), sizeof(e.name));
@@ -205,7 +207,7 @@ public:
             // Some classic plugins (such as OB-Xd) do not return parameter objects.
             // They still return parameter names, so we can still generate AAP parameters.
             for (int i = 0, n = juce_processor->getNumParameters(); i < n; i++) {
-                aap_parameter_info_t p;
+                aap_parameter_info_t p{};
                 p.stable_id = (int16_t) i;
                 strncpy(p.display_name, juce_processor->getParameterName(i).toRawUTF8(), sizeof(p.display_name));
                 p.min_value = 0.0;
@@ -219,16 +221,21 @@ public:
     // juce::AudioProcessorListener implementation
     void audioProcessorParameterChanged(juce::AudioProcessor* processor, int parameterIndex, float newValue) override {
         enqueueParameterChange(parameterIndex, newValue);
+        updateTrackedParameterValue(parameterIndex, newValue);
     }
 
 #if JUCEAAP_AUDIO_PROCESSOR_CHANGE_DETAILS_UNAVAILABLE
     void audioProcessorChanged(juce::AudioProcessor* processor) override {
+        enqueueChangedParameters(last_parameter_values);
+        last_parameter_values = snapshotParameterValues();
         auto ext = (aap_parameters_host_extension_t *) host.get_extension(&host, AAP_PARAMETERS_EXTENSION_URI);
         if (ext)
             ext->notify_parameters_changed(ext, &host);
     }
 #else
     void audioProcessorChanged(juce::AudioProcessor* processor, const juce::AudioProcessorListener::ChangeDetails &details) override {
+        enqueueChangedParameters(last_parameter_values);
+        last_parameter_values = snapshotParameterValues();
         if (details.parameterInfoChanged) {
             auto ext = (aap_parameters_host_extension_t *) host.get_extension(&host, AAP_PARAMETERS_EXTENSION_URI);
             if (ext)
@@ -445,6 +452,29 @@ public:
         }
     }
 
+    void updateTrackedParameterValue(int parameterIndex, float newValue) {
+        auto parameters = juce_processor->getParameterTree().getParameters(true);
+        if (!parameters.isEmpty()) {
+            for (int i = 0; i < parameters.size(); i++) {
+                auto* param = parameters[i];
+                if (param == nullptr || param->getParameterIndex() != parameterIndex)
+                    continue;
+                if (i >= last_parameter_values.size())
+                    last_parameter_values = snapshotParameterValues();
+                else
+                    last_parameter_values[(size_t) i] = newValue;
+                return;
+            }
+        }
+
+        if (parameterIndex < 0)
+            return;
+        if ((size_t) parameterIndex >= last_parameter_values.size())
+            last_parameter_values = snapshotParameterValues();
+        else
+            last_parameter_values[(size_t) parameterIndex] = newValue;
+    }
+
     std::vector<float> snapshotParameterValues() {
         std::vector<float> values;
         auto parameters = juce_processor->getParameterTree().getParameters(true);
@@ -460,6 +490,36 @@ public:
         for (int i = 0; i < count; i++)
             values.push_back(juce_processor->getParameter(i));
         return values;
+    }
+
+    aap_parameter_info_t* findAAPParameterInfoById(int id) {
+        for (auto* info : aapParams)
+            if (info != nullptr && info->stable_id == id)
+                return info;
+        return nullptr;
+    }
+
+    uint32_t juceNormalizedToTransportUint32(int parameterIndex, float normalizedValue) {
+        auto* info = findAAPParameterInfoById(parameterIndex);
+        auto* param = findJUCEParameter(parameterIndex);
+        auto plainValue = (double) normalizedValue;
+        if (auto* ranged = dynamic_cast<juce::RangedAudioParameter*>(param))
+            plainValue = ranged->getNormalisableRange().convertFrom0to1(normalizedValue);
+        if (info == nullptr)
+            return aapParameterNormalizedToUint32(normalizedValue);
+        return aapParameterPlainToTransportUint32(info->min_value, info->max_value, plainValue);
+    }
+
+    float transportUint32ToJuceNormalized(int parameterIndex, uint32_t transportValue) {
+        auto* info = findAAPParameterInfoById(parameterIndex);
+        auto* param = findJUCEParameter(parameterIndex);
+        auto normalizedValue = aapParameterUint32ToNormalized(transportValue);
+        if (info == nullptr)
+            return (float) normalizedValue;
+        auto plainValue = aapParameterNormalizedToPlain(info->min_value, info->max_value, normalizedValue);
+        if (auto* ranged = dynamic_cast<juce::RangedAudioParameter*>(param))
+            return ranged->getNormalisableRange().convertTo0to1((float) plainValue);
+        return (float) plainValue;
     }
 
     void flushParameterChanges(aap_buffer_t* buffer) {
@@ -482,8 +542,9 @@ public:
         auto* umpDst = (uint32_t*) (void*) ((uint8_t*) outMidiBuf + sizeof(AAPMidiBufferHeader) + outMidiBuf->length);
 
         for (auto& change : changes) {
+            auto transportValue = juceNormalizedToTransportUint32(change.index, change.value);
             aapMidi2ParameterSysex8(umpDst, umpDst + 1, umpDst + 2, umpDst + 3,
-                                    0, 0, 0, 0, change.index, change.value);
+                                    0, 0, 0, 0, change.index, transportValue);
             umpDst += 4;
             outMidiBuf->length += 16;
         }
@@ -511,8 +572,8 @@ public:
             uint16_t paramId;
             uint32_t paramValue;
             if (readMidi2Parameter(&paramGroup, &paramChannel, &paramKey, &paramExtra, &paramId, &paramValue, ump)) {
-                auto normalizedValue = (float) aapParameterUint32ToNormalized(paramValue);
-                auto param = juce_processor->getParameterTree().getParameters(true)[paramId];
+                auto normalizedValue = transportUint32ToJuceNormalized(paramId, paramValue);
+                auto param = findJUCEParameter(paramId);
                 if (param != nullptr) {
                     param->setValue(normalizedValue);
                     param->sendValueChangedMessageToListeners (normalizedValue);
@@ -894,6 +955,7 @@ public:
         auto oldValues = snapshotParameterValues();
         juce_processor->setStateInformation(input->data, input->data_size);
         enqueueChangedParameters(oldValues);
+        last_parameter_values = snapshotParameterValues();
     }
 
     int32_t getPresetCount() {
