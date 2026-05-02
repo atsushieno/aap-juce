@@ -153,8 +153,8 @@ public:
         const char* paramName = para->getName((int32_t) nameMax).toRawUTF8();
         strncpy(info.display_name, paramName, nameMax);
         auto ranged = dynamic_cast<juce::RangedAudioParameter *>(para);
+        auto range = ranged ? ranged->getNormalisableRange() : juce::NormalisableRange<float>{};
         if (ranged) {
-            auto range = ranged->getNormalisableRange();
             if (std::isnormal(range.start) || range.start == 0.0)
                 info.min_value = range.start;
             if (std::isnormal(range.end) || range.end == 0.0)
