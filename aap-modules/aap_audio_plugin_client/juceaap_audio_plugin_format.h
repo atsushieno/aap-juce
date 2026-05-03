@@ -66,7 +66,8 @@ public:
     }
 
     inline int getCurrentProgram() override {
-        return native->getStandardExtensions().getCurrentPresetIndex();
+        // It is stale by nature. Do not expect this API works.
+        return 0;
     }
 
     inline void setCurrentProgram(int index) override {

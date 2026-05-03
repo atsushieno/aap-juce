@@ -281,7 +281,9 @@ bool AndroidAudioPluginInstance::parameterValueChanged(AndroidAudioPluginParamet
     auto mbh = (AAPMidiBufferHeader*) buffer->get_buffer(*buffer, aap_midi_in_port);
     uint32_t* dst = (uint32_t*) (void*) ((uint8_t*) buffer->get_buffer(*buffer, aap_midi_in_port) + sizeof(AAPMidiBufferHeader) + mbh->length);
     mbh->length += 16;
-    auto transportValue = aapParameterPlainToTransportUint32(impl->getMinimumValue(), impl->getMaximumValue(), newValue);
+    auto transportValue = aapParameterPlainToTransportUint32(parameter->impl->getMinimumValue(),
+                                                             parameter->impl->getMaximumValue(),
+                                                             newValue);
     aapMidi2ParameterSysex8(dst, dst + 1, dst + 2, dst + 3, 0, 0, 0, 0, (uint16_t) paramId, transportValue);
 
     // FIXME: RT unlock
