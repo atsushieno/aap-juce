@@ -969,11 +969,6 @@ public:
         juce_processor->getProgramName(index).copyToUTF8(preset->name, AAP_PRESETS_EXTENSION_MAX_NAME_LENGTH);
     }
 
-    int32_t getPresetIndex() {
-        juceaap_ensureEventsLoopStarted();
-        return juce_processor->getCurrentProgram();
-    }
-
     void setPresetIndex(int32_t index) {
         juceaap_ensureEventsLoopStarted();
         juce_processor->setCurrentProgram(index);
@@ -1079,11 +1074,6 @@ void juce_aap_wrapper_get_preset(aap_presets_extension_t* ext, AndroidAudioPlugi
         callback(callbackContext, plugin);
 }
 
-int32_t juce_aap_wrapper_get_preset_index(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin) {
-    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
-    return wrapper->getPresetIndex();
-}
-
 void juce_aap_wrapper_set_preset_index(aap_presets_extension_t* ext, AndroidAudioPlugin* plugin, int32_t index) {
     auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
     wrapper->setPresetIndex(index);
@@ -1154,7 +1144,6 @@ void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
             aap_presets_extension_t newInstance{nullptr,
                                                 juce_aap_wrapper_get_preset_count,
                                                 juce_aap_wrapper_get_preset,
-                                                juce_aap_wrapper_get_preset_index,
                                                 juce_aap_wrapper_set_preset_index};
 
             presets_ext_map[plugin] = std::make_unique<aap_presets_extension_t>(newInstance);
