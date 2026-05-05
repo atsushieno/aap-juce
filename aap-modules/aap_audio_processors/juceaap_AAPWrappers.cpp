@@ -89,9 +89,9 @@ class JuceAAPWrapper : juce::AudioPlayHead, juce::AudioProcessorListener {
     int android_preferred_view_height{0};
 
 public:
-    JuceAAPWrapper(AndroidAudioPlugin *plugin, const char *pluginUniqueId, int sampleRate,
+    JuceAAPWrapper(AndroidAudioPlugin *plugin, const char *pluginUniqueId,
                    AndroidAudioPluginHost *aapHost)
-            : aap(plugin), sample_rate(sampleRate), host(*aapHost) {
+            : aap(plugin), host(*aapHost) {
 #if ANDROID
         typedef JavaVM*(*getJVMFunc)();
         auto libaap = dlopen("libandroidaudioplugin.so", RTLD_NOW);
@@ -326,7 +326,7 @@ public:
 
         juce_channels.calloc(juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels());
 
-        juce_audio_buffer.setSize(juce_processor->getMainBusNumOutputChannels(), aapBuffer->num_frames(*aapBuffer));
+        juce_audio_buffer.setSize(juce_processor->getMainBusNumOutputChannels(), aapBuffer->num_frames(aapBuffer));
 
         // allocates juce_buffer. No need to interpret content.
         this->buffer = aapBuffer;
@@ -342,7 +342,8 @@ public:
         return bus ? bus->getNumberOfChannels() : 0;
     }
 
-    void prepare(aap_buffer_t *buffer) {
+    void prepare(int32_t sampleRate, aap_buffer_t *buffer) {
+        sample_rate = sampleRate;
         allocateBuffer(buffer);
         if (juce_aap_wrapper_last_error_code != JUCEAAP_SUCCESS)
             return;
@@ -395,10 +396,10 @@ public:
         juce_processor->setPlayConfigDetails(
                 getNumberOfChannelsOfBus(juce_processor->getBus(true, 0)),
                 getNumberOfChannelsOfBus(juce_processor->getBus(false, 0)),
-                sample_rate, buffer->num_frames(*buffer));
+                sample_rate, buffer->num_frames(buffer));
         juce_processor->setPlayHead(this);
 
-        juce_processor->prepareToPlay(sample_rate, buffer->num_frames(*buffer));
+        juce_processor->prepareToPlay(sample_rate, buffer->num_frames(buffer));
     }
 
     void activate() {
@@ -526,7 +527,7 @@ public:
         if (aap_midi2_out_port < 0)
             return;
 
-        if ((uint32_t) aap_midi2_out_port >= buffer->num_ports(*buffer))
+        if ((uint32_t) aap_midi2_out_port >= buffer->num_ports(buffer))
             return;
 
         std::vector<PendingParameterChange> changes;
@@ -538,7 +539,7 @@ public:
         if (changes.empty())
             return;
 
-        auto* outMidiBuf = (AAPMidiBufferHeader*) buffer->get_buffer(*buffer, aap_midi2_out_port);
+        auto* outMidiBuf = (AAPMidiBufferHeader*) buffer->get_buffer(buffer, aap_midi2_out_port);
         auto* umpDst = (uint32_t*) (void*) ((uint8_t*) outMidiBuf + sizeof(AAPMidiBufferHeader) + outMidiBuf->length);
 
         for (auto& change : changes) {
@@ -560,7 +561,7 @@ public:
     void processMidiInputs(aap_buffer_t *audioBuffer, int32_t frameCount) {
 
         sysex_offset = 0;
-        auto midiInBuf = (AAPMidiBufferHeader*) audioBuffer->get_buffer(*audioBuffer, aap_midi2_in_port);
+        auto midiInBuf = (AAPMidiBufferHeader*) audioBuffer->get_buffer(audioBuffer, aap_midi2_in_port);
         auto umpStart = ((uint8_t*) midiInBuf) + sizeof(AAPMidiBufferHeader);
         int32_t positionInJRTimestamp = 0;
 
@@ -773,7 +774,7 @@ public:
         if (aap_midi2_out_port < 0)
             return;
 
-        void *dst = buffer->get_buffer(*buffer, aap_midi2_out_port);
+        void *dst = buffer->get_buffer(buffer, aap_midi2_out_port);
         auto outMidiBuf = (AAPMidiBufferHeader*) dst;
         auto umpDst = (cmidi2_ump*) ((uint8_t*) dst + sizeof(AAPMidiBufferHeader));
 
@@ -815,31 +816,31 @@ public:
         if (aap_midi2_out_port < 0)
             return;
 
-        if ((uint32_t) aap_midi2_out_port >= buffer->num_ports(*buffer))
+        if ((uint32_t) aap_midi2_out_port >= buffer->num_ports(buffer))
             return;
 
-        auto* outMidiBuf = (AAPMidiBufferHeader*) buffer->get_buffer(*buffer, aap_midi2_out_port);
+        auto* outMidiBuf = (AAPMidiBufferHeader*) buffer->get_buffer(buffer, aap_midi2_out_port);
         outMidiBuf->length = 0;
     }
 
     void resetJuceChannels(aap_buffer_t *audioBuffer, int32_t frameCount) {
         int nOut = juce_processor->getMainBusNumOutputChannels();
         int nIn = juce_processor->getMainBusNumInputChannels();
-        auto numFrames = audioBuffer->num_frames(*audioBuffer);
+        auto numFrames = audioBuffer->num_frames(audioBuffer);
         if (frameCount > numFrames) {
             aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "frameCount is bigger than numFrames from aap_buffer_t.");
             frameCount = numFrames;
         }
 
-        for (int i = 0; i < audioBuffer->num_ports(*audioBuffer); i++) {
+        for (int i = 0; i < audioBuffer->num_ports(audioBuffer); i++) {
             // Assign JUCE out channel buffer ONLY IF it is not assigned for inputs.
             // To achieve that, first fill output buffer pointers, then overwrite by input buffer pointers.
             auto iterOut = aap_to_juce_portmap_out.find(i);
             if (iterOut != aap_to_juce_portmap_out.end())
-                juce_channels[iterOut->second] = (float*) audioBuffer->get_buffer(*audioBuffer, i);
+                juce_channels[iterOut->second] = (float*) audioBuffer->get_buffer(audioBuffer, i);
             auto iterIn = aap_to_juce_portmap_in.find(i);
             if (iterIn != aap_to_juce_portmap_in.end())
-                juce_channels[iterIn->second] = (float*) audioBuffer->get_buffer(*audioBuffer, i);
+                juce_channels[iterIn->second] = (float*) audioBuffer->get_buffer(audioBuffer, i);
         }
 
         juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), frameCount);
@@ -857,7 +858,7 @@ public:
             ATrace_beginSection(AAP_JUCE_TRACE_SECTION_NAME);
         }
 #endif
-        auto numFrames = audioBuffer->num_frames(*audioBuffer);
+        auto numFrames = audioBuffer->num_frames(audioBuffer);
         if (frameCount > numFrames) {
             aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "frameCount is bigger than numFrames from aap_buffer_t.");
             frameCount = numFrames;
@@ -910,7 +911,7 @@ public:
         int numCopied = numAudioIns < numAudioOuts ? numAudioIns : numAudioOuts;
         for (int i = 0; i < numCopied; i++) {
             auto aapPortIndex = portmap_juce_to_aap_out[i];
-            memcpy(audioBuffer->get_buffer(*audioBuffer, aapPortIndex), juce_channels[i], audioBuffer->num_frames(*audioBuffer) * sizeof(float));
+            memcpy(audioBuffer->get_buffer(audioBuffer, aapPortIndex), juce_channels[i], audioBuffer->num_frames(audioBuffer) * sizeof(float));
         }
 
 #if ANDROID
@@ -1024,8 +1025,9 @@ JuceAAPWrapper *getWrapper(AndroidAudioPlugin *plugin) {
 
 void juceaap_prepare(
         AndroidAudioPlugin *plugin,
+        int32_t sampleRate,
         aap_buffer_t *audioBuffer) {
-    getWrapper(plugin)->prepare(audioBuffer);
+    getWrapper(plugin)->prepare(sampleRate, audioBuffer);
 }
 
 void juceaap_activate(AndroidAudioPlugin *plugin) {
@@ -1158,10 +1160,9 @@ void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
 AndroidAudioPlugin *juceaap_instantiate(
         AndroidAudioPluginFactory *pluginFactory,
         const char *pluginUniqueId,
-        int sampleRate,
         AndroidAudioPluginHost *host) {
     auto *ret = new AndroidAudioPlugin();
-    auto *ctx = new JuceAAPWrapper(ret, pluginUniqueId, sampleRate, host);
+    auto *ctx = new JuceAAPWrapper(ret, pluginUniqueId, host);
 
     ret->plugin_specific = ctx;
 
