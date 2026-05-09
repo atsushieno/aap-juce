@@ -31,10 +31,10 @@
         android:foregroundServiceType="mediaPlayback"
         android:exported="true">
       <intent-filter>
-        <action android:name="org.androidaudioplugin.AudioPluginService.V3"/>
+        <action android:name="org.androidaudioplugin.AudioPluginService.V4"/>
       </intent-filter>
       <meta-data
-	android:name="org.androidaudioplugin.AudioPluginService.V3#Plugins"
+	android:name="org.androidaudioplugin.AudioPluginService.V4#Plugins"
 	android:resource="@xml/aap_metadata"/>
     </service>
     <service android:name="org.androidaudioplugin.AudioPluginViewService" android:exported="true" />
