@@ -378,8 +378,9 @@ bool AndroidAudioPluginInstance::hasMidiPort(bool isInput) const {
 class AndroidAudioProcessorEditor : public AudioProcessorEditor {
 public:
     AndroidAudioProcessorEditor(AudioProcessor *audioProcessor)
-            : AudioProcessorEditor(audioProcessor) {
-        setBounds(getDefaultEditorBounds());
+            : AudioProcessorEditor(audioProcessor),
+              primaryDisplayMetrics(capturePrimaryDisplayMetrics()) {
+        setBounds(getDefaultEditorBounds(primaryDisplayMetrics));
     }
 
     virtual ~AndroidAudioProcessorEditor() {
@@ -387,20 +388,41 @@ public:
     }
 
 protected:
-    static Rectangle<int> getDefaultEditorBounds() {
-        auto screen = getPrimaryDisplayUserArea();
+    struct DisplayMetrics {
+        Rectangle<int> userArea;
+        double scale;
+    };
+
+    Rectangle<int> getDefaultEditorBounds() const {
+        return getDefaultEditorBounds(primaryDisplayMetrics);
+    }
+
+    Rectangle<int> getNativeEditorBounds() const {
+        return getNativeEditorBounds(primaryDisplayMetrics);
+    }
+
+    Rectangle<int> toAndroidPixelBounds(Rectangle<int> bounds) const {
+        return toAndroidPixelBounds(bounds, primaryDisplayMetrics);
+    }
+
+    const DisplayMetrics& getPrimaryDisplayMetrics() const {
+        return primaryDisplayMetrics;
+    }
+
+    static Rectangle<int> getDefaultEditorBounds(const DisplayMetrics& metrics) {
+        auto screen = metrics.userArea;
         auto width = screen.getWidth() < 600 ? screen.getWidth() : 600;
         auto height = screen.getHeight() < 400 ? screen.getHeight() : 400;
         return {0, 0, width, height};
     }
 
-    static Rectangle<int> getNativeEditorBounds() {
-        auto screen = getPrimaryDisplayUserArea();
+    static Rectangle<int> getNativeEditorBounds(const DisplayMetrics& metrics) {
+        auto screen = metrics.userArea;
         return {0, 0, jmax(1, screen.getWidth()), jmax(1, screen.getHeight())};
     }
 
-    static Rectangle<int> toAndroidPixelBounds(Rectangle<int> bounds) {
-        auto scale = getPrimaryDisplayScale();
+    static Rectangle<int> toAndroidPixelBounds(Rectangle<int> bounds, const DisplayMetrics& metrics) {
+        auto scale = metrics.scale;
         return {
             roundToInt(bounds.getX() * scale),
             roundToInt(bounds.getY() * scale),
@@ -409,18 +431,13 @@ protected:
         };
     }
 
-protected:
-    static Rectangle<int> getPrimaryDisplayUserArea() {
+    static DisplayMetrics capturePrimaryDisplayMetrics() {
         if (auto* display = Desktop::getInstance().getDisplays().getPrimaryDisplay())
-            return display->userArea;
-        return {0, 0, 600, 400};
+            return { display->userArea, jmax(1.0, display->scale) };
+        return { {0, 0, 600, 400}, 1.0 };
     }
 
-    static double getPrimaryDisplayScale() {
-        if (auto* display = Desktop::getInstance().getDisplays().getPrimaryDisplay())
-            return jmax(1.0, display->scale);
-        return 1.0;
-    }
+    DisplayMetrics primaryDisplayMetrics;
 };
 
 class AndroidNativeAudioProcessorEditor : public AndroidAudioProcessorEditor {
@@ -477,16 +494,17 @@ private:
     void updatePreferredBoundsAndConnectOnWorker() {
         Component::SafePointer<AndroidNativeAudioProcessorEditor> safeThis { this };
         auto* remoteInstance = instance;
+        const auto metrics = getPrimaryDisplayMetrics();
 
         int32_t preferredWidth = 0;
         int32_t preferredHeight = 0;
-        auto preferredBounds = getDefaultEditorBounds();
+        auto preferredBounds = getDefaultEditorBounds(metrics);
 
         if (remoteInstance != nullptr &&
             remoteInstance->getRemoteNativeViewPreferredSize(preferredWidth, preferredHeight) &&
             preferredWidth > 0 && preferredHeight > 0) {
-            auto screen = getPrimaryDisplayUserArea();
-            auto scale = getPrimaryDisplayScale();
+            auto screen = metrics.userArea;
+            auto scale = metrics.scale;
             auto width = jlimit(1, screen.getWidth(), roundToInt(preferredWidth / scale));
             auto height = jlimit(1, screen.getHeight(), roundToInt(preferredHeight / scale));
             preferredBounds = {0, 0, width, height};
