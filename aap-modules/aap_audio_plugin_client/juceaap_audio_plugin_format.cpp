@@ -469,6 +469,20 @@ public:
     void resized() override {
         if (nativeViewComponent)
             nativeViewComponent->setBounds(getLocalBounds());
+
+        if (! connected || instance == nullptr)
+            return;
+
+        auto androidBounds = toAndroidPixelBounds(getBounds());
+        auto width = androidBounds.getWidth();
+        auto height = androidBounds.getHeight();
+
+        if (width == lastRemoteWidth && height == lastRemoteHeight)
+            return;
+
+        lastRemoteWidth = width;
+        lastRemoteHeight = height;
+        instance->resizeRemoteNativeView(width, height);
     }
 
 private:
@@ -519,17 +533,21 @@ private:
     void applyBoundsAndConnect(Rectangle<int> bounds) {
         if (connected)
             return;
-        connected = true;
         setSize(bounds.getWidth(), bounds.getHeight());
         resized();
         auto androidBounds = toAndroidPixelBounds(getBounds());
+        lastRemoteWidth = androidBounds.getWidth();
+        lastRemoteHeight = androidBounds.getHeight();
         instance->connectRemoteNativeView(androidBounds.getWidth(), androidBounds.getHeight());
+        connected = true;
     }
 
     PreferredSizeThread preferredSizeThread;
     aap::RemotePluginInstance* instance{};
     AndroidViewComponent* nativeViewComponent{};
     bool connected{false};
+    int lastRemoteWidth{-1};
+    int lastRemoteHeight{-1};
 };
 
 class AndroidWebAudioProcessorEditor : public AndroidAudioProcessorEditor {
