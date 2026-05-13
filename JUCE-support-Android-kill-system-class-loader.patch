@@ -96,4 +96,4 @@ index f9ba13b0a..abcacd0e9 100644
 +        JNIClassBase::initialiseAllClasses (env);
  
          // if we ever support unloading then this should probably be a weak reference
-         androidApkContext = env->NewGlobalRef (static_cast<jobject> (context));
+        androidApkContext = env->NewGlobalRef (LocalRef<jobject> ((jobject) context, IncrementRef::yes).get());
