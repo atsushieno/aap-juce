@@ -41,6 +41,31 @@ static void juceaap_ensureEventsLoopStarted() {
     juce::MessageManager::getInstance();
 }
 
+template <typename Fn>
+static auto juceaap_callOnExistingMessageThreadIfNeeded(Fn&& fn) -> decltype(fn()) {
+    using Result = decltype(fn());
+
+    if (auto* mm = juce::MessageManager::getInstanceWithoutCreating()) {
+        if (mm->isThisTheMessageThread() || mm->currentThreadHasLockedMessageManager())
+            return fn();
+
+        if constexpr (std::is_void_v<Result>) {
+            const auto ok = juce::MessageManager::callSync([&fn] { fn(); });
+            jassert(ok);
+            if (!ok)
+                fn();
+            return;
+        } else {
+            auto result = juce::MessageManager::callSync([&fn] { return fn(); });
+            jassert(result.has_value());
+            if (result.has_value())
+                return *result;
+        }
+    }
+
+    return fn();
+}
+
 extern "C" { int juce_aap_wrapper_last_error_code{0}; }
 
 #define JUCEAAP_SUCCESS 0
@@ -929,50 +954,57 @@ public:
     }
 
     size_t getStateSize() {
-        MemoryBlock mb;
-        mb.reset();
-        juce_processor->getStateInformation(mb);
-        return mb.getSize();
+        return juceaap_callOnExistingMessageThreadIfNeeded([&] {
+            MemoryBlock mb;
+            mb.reset();
+            juce_processor->getStateInformation(mb);
+            return mb.getSize();
+        });
     }
 
     void getState(aap_state_t *result) {
-        juceaap_ensureEventsLoopStarted();
-        MemoryBlock mb;
-        mb.reset();
-        juce_processor->getStateInformation(mb);
-        if (state.data == nullptr || state.data_size < mb.getSize()) {
-            if (state.data != nullptr)
-                free((void *) state.data);
-            state.data = calloc(mb.getSize(), 1);
-        }
-        state.data_size = mb.getSize();
-        memcpy((void *) state.data, mb.begin(), mb.getSize());
-        result->data_size = state.data_size;
-        result->data = state.data;
+        juceaap_callOnExistingMessageThreadIfNeeded([&] {
+            MemoryBlock mb;
+            mb.reset();
+            juce_processor->getStateInformation(mb);
+            if (state.data == nullptr || state.data_size < mb.getSize()) {
+                if (state.data != nullptr)
+                    free((void *) state.data);
+                state.data = calloc(mb.getSize(), 1);
+            }
+            state.data_size = mb.getSize();
+            memcpy((void *) state.data, mb.begin(), mb.getSize());
+            result->data_size = state.data_size;
+            result->data = state.data;
+        });
     }
 
     void setState(aap_state_t *input) {
-        juceaap_ensureEventsLoopStarted();
-        auto oldValues = snapshotParameterValues();
-        juce_processor->setStateInformation(input->data, input->data_size);
-        enqueueChangedParameters(oldValues);
-        last_parameter_values = snapshotParameterValues();
+        juceaap_callOnExistingMessageThreadIfNeeded([&] {
+            auto oldValues = snapshotParameterValues();
+            juce_processor->setStateInformation(input->data, input->data_size);
+            enqueueChangedParameters(oldValues);
+            last_parameter_values = snapshotParameterValues();
+        });
     }
 
     int32_t getPresetCount() {
-        juceaap_ensureEventsLoopStarted();
-        return juce_processor->getNumPrograms();
+        return juceaap_callOnExistingMessageThreadIfNeeded([&] {
+            return juce_processor->getNumPrograms();
+        });
     }
 
     void getPreset(int32_t index, aap_preset_t* preset) {
-        juceaap_ensureEventsLoopStarted();
-        preset->id = index;
-        juce_processor->getProgramName(index).copyToUTF8(preset->name, AAP_PRESETS_EXTENSION_MAX_NAME_LENGTH);
+        juceaap_callOnExistingMessageThreadIfNeeded([&] {
+            preset->id = index;
+            juce_processor->getProgramName(index).copyToUTF8(preset->name, AAP_PRESETS_EXTENSION_MAX_NAME_LENGTH);
+        });
     }
 
     void setPresetIndex(int32_t index) {
-        juceaap_ensureEventsLoopStarted();
-        juce_processor->setCurrentProgram(index);
+        juceaap_callOnExistingMessageThreadIfNeeded([&] {
+            juce_processor->setCurrentProgram(index);
+        });
     }
 
     int32_t getAAPParameterCount() { return aapParams.size(); }
