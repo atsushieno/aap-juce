@@ -1,0 +1,15 @@
+diff --git a/modules/juce_gui_basics/menus/juce_PopupMenu.cpp b/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
+--- a/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
++++ b/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
+@@ -1438,6 +1438,10 @@ private:
+         {
+             if (reallyContained)
+                 window.triggerCurrentlyHighlightedItem();
++#if JUCE_ANDROID
++            else if (source.isTouch())
++            {
++            }
++#endif
+             else if ((window.hasBeenOver || ! window.dismissOnMouseUp) && ! isOverAny)
+                 window.dismissMenu (nullptr);
+
