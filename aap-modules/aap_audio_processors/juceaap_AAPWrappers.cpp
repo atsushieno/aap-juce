@@ -50,16 +50,32 @@ static auto juceaap_callOnExistingMessageThreadIfNeeded(Fn&& fn) -> decltype(fn(
             return fn();
 
         if constexpr (std::is_void_v<Result>) {
-            const auto ok = juce::MessageManager::callSync([&fn] { fn(); });
-            jassert(ok);
-            if (!ok)
-                fn();
+            struct Context {
+                Fn* fn;
+            } context { &fn };
+
+            auto invoke = [] (void* userData) -> void* {
+                auto* ctx = static_cast<Context*>(userData);
+                (*ctx->fn)();
+                return nullptr;
+            };
+
+            mm->callFunctionOnMessageThread(invoke, &context);
             return;
         } else {
-            auto result = juce::MessageManager::callSync([&fn] { return fn(); });
-            jassert(result.has_value());
-            if (result.has_value())
-                return *result;
+            struct Context {
+                Fn* fn;
+                Result result;
+            } context { &fn, Result{} };
+
+            auto invoke = [] (void* userData) -> void* {
+                auto* ctx = static_cast<Context*>(userData);
+                ctx->result = (*ctx->fn)();
+                return nullptr;
+            };
+
+            mm->callFunctionOnMessageThread(invoke, &context);
+            return context.result;
         }
     }
 
