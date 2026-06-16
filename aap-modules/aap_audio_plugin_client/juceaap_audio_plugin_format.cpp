@@ -640,16 +640,15 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
 
             callback(std::make_unique<AndroidAudioPluginInstance>(androidInstance), error);
         };
-        int sampleRate = (int) initialSampleRate;
         auto identifier = pluginInfo->getPluginID();
         auto service = plugin_client_connections->getServiceHandleForConnectedPlugin(pluginInfo->getPluginPackageName(), pluginInfo->getPluginLocalName());
         if (service != nullptr) {
-            auto result = android_host->createInstance(identifier, sampleRate, true);
+            auto result = android_host->createInstance(identifier, true);
             aapCallback(result.value, result.error);
         } else {
-            std::function<void(std::string&)> cb = [identifier,sampleRate,aapCallback,this](std::string& error) {
+            std::function<void(std::string&)> cb = [identifier,aapCallback,this](std::string& error) {
                 if (error.empty()) {
-                    auto result = android_host->createInstance(identifier, sampleRate, true);
+                    auto result = android_host->createInstance(identifier, true);
                     aapCallback(result.value, result.error);
                 }
                 else
