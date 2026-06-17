@@ -86,9 +86,12 @@ public:
     }
 
     inline void getStateInformation(juce::MemoryBlock &destData) override {
-        auto state = native->getStandardExtensions().getState();
-        destData.setSize((size_t) state.data_size);
-        destData.copyFrom(state.data, 0, (size_t) state.data_size);
+        auto result = native->getStandardExtensions().getState();
+        if (result.error.empty()) {
+            auto& state = result.value;
+            destData.setSize((size_t) state.data_size);
+            destData.copyFrom(state.data, 0, (size_t) state.data_size);
+        }
     }
 
     inline void setStateInformation(const void *data, int sizeInBytes) override {
