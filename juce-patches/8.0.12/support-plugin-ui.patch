@@ -1,8 +1,7 @@
 diff --git a/modules/juce_core/native/juce_Threads_android.cpp b/modules/juce_core/native/juce_Threads_android.cpp
-index 370e5eb003..4806cc9f8d 100644
 --- a/modules/juce_core/native/juce_Threads_android.cpp
 +++ b/modules/juce_core/native/juce_Threads_android.cpp
-@@ -297,7 +297,8 @@ private:
+@@ -297,7 +297,8 @@
  
  //==============================================================================
  #if JUCE_MODULE_AVAILABLE_juce_events && JUCE_ANDROID
@@ -12,7 +11,7 @@ index 370e5eb003..4806cc9f8d 100644
  #endif
  
  void Thread::initialiseJUCE (void* jniEnv, void* context)
-@@ -331,7 +332,9 @@ void Thread::initialiseJUCE (void* jniEnv, void* context)
+@@ -331,7 +332,9 @@
          JuceActivityWatcher::getInstance();
  
         #if JUCE_MODULE_AVAILABLE_juce_events && JUCE_ANDROID
@@ -24,10 +23,9 @@ index 370e5eb003..4806cc9f8d 100644
      }
  }
 diff --git a/modules/juce_events/native/juce_Messaging_android.cpp b/modules/juce_events/native/juce_Messaging_android.cpp
-index 2034d06fa7..734d85873a 100644
 --- a/modules/juce_events/native/juce_Messaging_android.cpp
 +++ b/modules/juce_events/native/juce_Messaging_android.cpp
-@@ -274,8 +274,8 @@ private:
+@@ -274,8 +274,8 @@
  //==============================================================================
  File juce_getExecutableFile();
  
@@ -37,8 +35,8 @@ index 2034d06fa7..734d85873a 100644
 +extern "C" void juce_juceEventsAndroidStartApp()
  {
      auto dllPath = juce_getExecutableFile().getFullPathName();
-    auto addr = reinterpret_cast<juce::JUCEApplicationBase*(*)()> (DynamicLibrary (dllPath)
-@@ -285,4 +285,11 @@ void juce_juceEventsAndroidStartApp()
+     auto addr = reinterpret_cast<juce::JUCEApplicationBase* (*)()> (DynamicLibrary (dllPath)
+@@ -285,4 +285,11 @@
          JuceAppLifecycle::getInstance (addr);
  }
  
