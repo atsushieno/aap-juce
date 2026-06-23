@@ -19,6 +19,14 @@ ifeq ('$(APP_SHARED_CODE_LIBS)', '')
 APP_SHARED_CODE_LIBS="$(APP_NAME)_artefacts/lib$(APP_NAME)_SharedCode.a"
 endif
 
+## Specify the Gradle module directories whose build artifacts should be
+## collected by `dist` and cleaned up by MINIMIZE_INTERMEDIATES. The default
+## is the conventional single `app` module; projects with multiple app modules
+## (e.g. adlplug-ae opnplug-ae) can override this with a space-separated list.
+ifeq ('$(APP_MODULE_DIRS)', '')
+APP_MODULE_DIRS=app
+endif
+
 ## Specify path to juce. The default is the submodule path.
 ifeq ('$(JUCE_DIR)', '')
 JUCE_DIR=$(shell pwd)/external/JUCE
@@ -107,15 +115,20 @@ build-app-cmake:
 	fi
 	./gradlew $(GRADLE_TASK)
 	if [ $(MINIMIZE_INTERMEDIATES) ] ; then \
-		rm -rf $(ANDROID_DIR)/app/build/intermediates/ ; \
-		rm -rf $(ANDROID_DIR)/app/.cxx ; \
+		for dir in $(APP_MODULE_DIRS) ; do \
+			rm -rf $(ANDROID_DIR)/$$dir/build/intermediates/ ; \
+			rm -rf $(ANDROID_DIR)/$$dir/.cxx ; \
+		done ; \
 	fi
 
 .PHONY:
 dist:
 	mkdir -p $(DIST_DIR)
-	cp $(APP_BUILD_DIR)/app/build/outputs/apk/debug/*.apk  $(DIST_DIR)/$(APP_NAME)-debug.apk
-	cp $(APP_BUILD_DIR)/app/build/outputs/bundle/release/*.aab  $(DIST_DIR)/$(APP_NAME)-release.aab
+	for dir in $(APP_MODULE_DIRS) ; do \
+		if [ "$$dir" = "app" ] ; then name="$(APP_NAME)" ; else name="$$dir" ; fi ; \
+		cp $(APP_BUILD_DIR)/$$dir/build/outputs/apk/debug/*.apk  $(DIST_DIR)/$$name-debug.apk ; \
+		cp $(APP_BUILD_DIR)/$$dir/build/outputs/bundle/release/*.aab  $(DIST_DIR)/$$name-release.aab ; \
+	done
 
 
 # Independent Tasks that have to be performed manually
