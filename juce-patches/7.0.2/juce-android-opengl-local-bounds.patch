@@ -1,0 +1,90 @@
+diff --git a/modules/juce_opengl/native/juce_OpenGL_android.h b/modules/juce_opengl/native/juce_OpenGL_android.h
+--- a/modules/juce_opengl/native/juce_OpenGL_android.h
++++ b/modules/juce_opengl/native/juce_OpenGL_android.h
+@@ -160,8 +160,6 @@
+ 
+         // initialise the geometry of the view
+         auto bounds = component.getTopLevelComponent()->getLocalArea (&component, component.getLocalBounds());
+-        bounds *= component.getDesktopScaleFactor();
+-
+         updateWindowPosition (bounds);
+         hasInitialised = true;
+     }
+@@ -190,17 +188,18 @@
+ 
+         if (holder != nullptr)
+         {
++            surfaceReady.wait (2000);
++
+             LocalRef<jobject> jSurface (env->CallObjectMethod (holder.get(), AndroidSurfaceHolder.getSurface));
+ 
+             if (jSurface != nullptr)
+             {
+-                window = ANativeWindow_fromSurface(env, jSurface.get());
+-
+-                // if we didn't succeed the first time, wait 25ms and try again
+-                if (window == nullptr)
++                for (int attempt = 0; attempt < 40 && window == nullptr; ++attempt)
+                 {
+-                    Thread::sleep (200);
+                     window = ANativeWindow_fromSurface (env, jSurface.get());
++
++                    if (window == nullptr)
++                        Thread::sleep (50);
+                 }
+             }
+         }
+@@ -311,6 +310,8 @@
+     {
+         auto* env = getEnv();
+ 
++        surfaceReady.reset();
++
+         LocalRef<jobject> holder (env->CallObjectMethod (surfaceView.get(), JuceOpenGLViewSurface.getHolder));
+ 
+         if (surfaceHolderCallback == nullptr)
+@@ -396,6 +397,7 @@
+ 
+     GlobalRef surfaceView;
+     Rectangle<int> lastBounds;
++    WaitableEvent surfaceReady { true };
+ 
+     OpenGLContext* juceContext = nullptr;
+     EGLSurface surface;
+diff --git a/modules/juce_opengl/opengl/juce_OpenGLContext.cpp b/modules/juce_opengl/opengl/juce_OpenGLContext.cpp
+--- a/modules/juce_opengl/opengl/juce_OpenGLContext.cpp
++++ b/modules/juce_opengl/opengl/juce_OpenGLContext.cpp
+@@ -392,7 +392,7 @@
+                 transform = AffineTransform::scale ((float) newArea.getWidth()  / (float) localBounds.getWidth(),
+                                                     (float) newArea.getHeight() / (float) localBounds.getHeight());
+ 
+-                nativeContext->updateWindowPosition (peer->getAreaCoveredBy (component));
++                nativeContext->updateWindowPosition (peer->getComponent().getLocalArea (&component, component.getLocalBounds()));
+                 invalidateAll();
+             });
+         }
+@@ -912,7 +912,7 @@
+                 c->handleResize();
+ 
+             if (auto* peer = comp.getTopLevelComponent()->getPeer())
+-                context.nativeContext->updateWindowPosition (peer->getAreaCoveredBy (comp));
++                context.nativeContext->updateWindowPosition (peer->getComponent().getLocalArea (&comp, comp.getLocalBounds()));
+         }
+     }
+ 
+@@ -1451,6 +1451,7 @@
+ void OpenGLContext::NativeContext::surfaceCreated (LocalRef<jobject> holder)
+ {
+     ignoreUnused (holder);
++    surfaceReady.signal();
+ 
+     if (auto* cachedImage = CachedImage::get (component))
+     {
+@@ -1468,6 +1469,7 @@
+ void OpenGLContext::NativeContext::surfaceDestroyed (LocalRef<jobject> holder)
+ {
+     ignoreUnused (holder);
++    surfaceReady.reset();
+ 
+     // unlike the name suggests this will be called just before the
+     // surface is destroyed. We need to pause the render thread.
