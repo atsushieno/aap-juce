@@ -873,12 +873,16 @@ public:
             frameCount = numFrames;
         }
 
+        // Assign JUCE out channel buffer ONLY IF it is not assigned for inputs.
+        // To achieve that, first fill output buffer pointers, then overwrite by input buffer pointers.
+        // (They must be two separate passes; AAP port order is not guaranteed, and e.g. the
+        // default port configuration in aap-core lists input ports before output ports.)
         for (int i = 0; i < audioBuffer->num_ports(audioBuffer); i++) {
-            // Assign JUCE out channel buffer ONLY IF it is not assigned for inputs.
-            // To achieve that, first fill output buffer pointers, then overwrite by input buffer pointers.
             auto iterOut = aap_to_juce_portmap_out.find(i);
             if (iterOut != aap_to_juce_portmap_out.end())
                 juce_channels[iterOut->second] = (float*) audioBuffer->get_buffer(audioBuffer, i);
+        }
+        for (int i = 0; i < audioBuffer->num_ports(audioBuffer); i++) {
             auto iterIn = aap_to_juce_portmap_in.find(i);
             if (iterIn != aap_to_juce_portmap_in.end())
                 juce_channels[iterIn->second] = (float*) audioBuffer->get_buffer(audioBuffer, i);
