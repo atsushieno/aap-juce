@@ -1,0 +1,50 @@
+diff --git a/modules/juce_core/native/juce_Threads_android.cpp b/modules/juce_core/native/juce_Threads_android.cpp
+--- a/modules/juce_core/native/juce_Threads_android.cpp
++++ b/modules/juce_core/native/juce_Threads_android.cpp
+@@ -259,7 +259,8 @@
+ 
+ //==============================================================================
+ #if JUCE_MODULE_AVAILABLE_juce_events && JUCE_ANDROID
+-void juce_juceEventsAndroidStartApp();
++extern "C" void juce_juceEventsAndroidStartApp();
++void juce_ensureEventsLoopStarted();
+ #endif
+ 
+ void Thread::initialiseJUCE (void* jniEnv, void* context)
+@@ -293,7 +294,9 @@
+         JuceActivityWatcher::getInstance();
+ 
+        #if JUCE_MODULE_AVAILABLE_juce_events && JUCE_ANDROID
+-        juce_juceEventsAndroidStartApp();
++        // AAP plugins may initialize JUCE from a non-launcher Android component.
++        // In that case we only want the message loop, not the standalone JUCE app bootstrap.
++        juce_ensureEventsLoopStarted();
+        #endif
+     }
+ }
+diff --git a/modules/juce_events/native/juce_Messaging_android.cpp b/modules/juce_events/native/juce_Messaging_android.cpp
+--- a/modules/juce_events/native/juce_Messaging_android.cpp
++++ b/modules/juce_events/native/juce_Messaging_android.cpp
+@@ -276,8 +276,8 @@
+ //==============================================================================
+ File juce_getExecutableFile();
+ 
+-void juce_juceEventsAndroidStartApp();
+-void juce_juceEventsAndroidStartApp()
++extern "C" void juce_juceEventsAndroidStartApp();
++extern "C" void juce_juceEventsAndroidStartApp()
+ {
+     auto dllPath = juce_getExecutableFile().getFullPathName();
+     auto addr = reinterpret_cast<juce::JUCEApplicationBase*(*)()> (DynamicLibrary (dllPath)
+@@ -287,4 +287,11 @@
+         JuceAppLifecycle::getInstance (addr);
+ }
+ 
++void juce_ensureEventsLoopStarted()
++{
++    // This is used by the AAP JUCE bridge so AndroidX Startup can prepare the
++    // JUCE message manager on the main thread without launching the standalone app.
++    MessageManager::getInstance();
++}
++
+ } // namespace juce
