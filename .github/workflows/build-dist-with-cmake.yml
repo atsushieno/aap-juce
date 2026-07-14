@@ -3,6 +3,9 @@ name: build dist
 on:
   workflow_call:
 
+permissions:
+  contents: write
+
 jobs:
   linux-build:
     if: false
@@ -80,18 +83,34 @@ jobs:
       with:
         path: /Users/runner/.gradle/caches/
         key: ${{ runner.os }}-gradle-caches
+    - name: Bump version
+      uses: chkfung/android-version-actions@v1.2.1
+      with:
+        gradlePath: app/build.gradle
+        versionCode: ${{github.run_number}}
     - name: install deps
       run: |
         brew install doxygen pkg-config coreutils ninja graphviz
     - name: build
       run: make build dist
+    - name: Sign app bundle
+      uses: r0adkll/sign-android-release@v1
+      id: sign_app
+      with:
+        releaseDirectory: dist
+        signingKeyBase64: ${{ secrets.SIGNING_KEY_BASE64 }}
+        alias: ${{ secrets.SIGNING_KEY_ALIAS }}
+        keyStorePassword: ${{ secrets.SIGNING_KEY_STORE_PASSWORD }}
+        keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
     - name: upload-artifact
       uses: actions/upload-artifact@v4
       with:
         name: dist
-        path: dist
+        path: |
+          dist/*-debug.apk
+          ${{ steps.sign_app.outputs.signedReleaseFiles }}
     - name: Create Release
       uses: ncipollo/release-action@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        artifacts: dist/*
+        artifacts: dist/*-debug.apk,${{ steps.sign_app.outputs.signedReleaseFiles }}
