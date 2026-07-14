@@ -59,6 +59,8 @@ jobs:
   osx-build:
     name: build on osx
     runs-on: macos-14
+    env:
+      SIGNING_ENABLED: ${{ secrets.SIGNING_KEY_BASE64 != '' }}
     steps:
     - name: checkout
       uses: actions/checkout@v4
@@ -93,24 +95,33 @@ jobs:
         brew install doxygen pkg-config coreutils ninja graphviz
     - name: build
       run: make build dist
+    - name: Prepare app bundles for signing
+      run: |
+        mkdir -p "$RUNNER_TEMP/aab-to-sign"
+        cp dist/*.aab "$RUNNER_TEMP/aab-to-sign/"
     - name: Sign app bundle
-      uses: r0adkll/sign-android-release@v1
-      id: sign_app
+      if: env.SIGNING_ENABLED == 'true'
+      uses: ilharp/sign-android-release@v2
       with:
-        releaseDirectory: dist
-        signingKeyBase64: ${{ secrets.SIGNING_KEY_BASE64 }}
-        alias: ${{ secrets.SIGNING_KEY_ALIAS }}
+        releaseDir: ${{ runner.temp }}/aab-to-sign
+        signingKey: ${{ secrets.SIGNING_KEY_BASE64 }}
+        keyAlias: ${{ secrets.SIGNING_KEY_ALIAS }}
         keyStorePassword: ${{ secrets.SIGNING_KEY_STORE_PASSWORD }}
         keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+    - name: Restore app bundles
+      if: env.SIGNING_ENABLED == 'true'
+      run: |
+        rm dist/*.aab
+        mv "$RUNNER_TEMP/aab-to-sign"/*-signed.aab dist/
     - name: upload-artifact
       uses: actions/upload-artifact@v4
       with:
         name: dist
         path: |
           dist/*-debug.apk
-          ${{ steps.sign_app.outputs.signedReleaseFiles }}
+          dist/*.aab
     - name: Create Release
       uses: ncipollo/release-action@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        artifacts: dist/*-debug.apk,${{ steps.sign_app.outputs.signedReleaseFiles }}
+        artifacts: dist/*-debug.apk,dist/*.aab
