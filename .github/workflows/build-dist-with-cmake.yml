@@ -85,11 +85,81 @@ jobs:
       with:
         path: /Users/runner/.gradle/caches/
         key: ${{ runner.os }}-gradle-caches
-    - name: Bump version
-      uses: chkfung/android-version-actions@v1.2.1
-      with:
-        gradlePath: app/build.gradle
-        versionCode: ${{github.run_number}}
+    # FIXME: we should make it standalone reusable action (it is a drop-in replacement script for an abandoned action in the market...)
+    - name: Set Android version codes
+      run: |
+        node <<'NODE'
+        const fs = require('node:fs');
+        const path = require('node:path');
+
+        const versionCode = '${{ github.run_number }}';
+        const gradleFiles = [];
+
+        function collectGradleFiles(directory) {
+          for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+            if (entry.name === '.git' || entry.name === 'external')
+              continue;
+
+            const entryPath = path.join(directory, entry.name);
+            if (entry.isDirectory())
+              collectGradleFiles(entryPath);
+            else if (entry.isFile() && (entry.name === 'build.gradle' || entry.name === 'build.gradle.kts'))
+              gradleFiles.push(entryPath);
+          }
+        }
+
+        function braceDelta(line) {
+          return [...line].reduce((depth, character) =>
+            depth + (character === '{' ? 1 : character === '}' ? -1 : 0), 0);
+        }
+
+        collectGradleFiles('.');
+
+        for (const file of gradleFiles) {
+          const source = fs.readFileSync(file, 'utf8');
+          if (!/com\.android\.application/.test(source))
+            continue;
+
+          const lines = source.split(/\r?\n/);
+          let defaultConfigLine = -1;
+          let defaultConfigEndLine = -1;
+          let depth = 0;
+
+          for (let index = 0; index < lines.length; index++) {
+            if (defaultConfigLine < 0 && /\bdefaultConfig\s*\{/.test(lines[index])) {
+              defaultConfigLine = index;
+              depth = braceDelta(lines[index]);
+              continue;
+            }
+
+            if (defaultConfigLine >= 0) {
+              depth += braceDelta(lines[index]);
+              if (depth === 0) {
+                defaultConfigEndLine = index;
+                break;
+              }
+            }
+          }
+
+          if (defaultConfigLine < 0 || defaultConfigEndLine < 0)
+            throw new Error(`Cannot find defaultConfig block in ${file}`);
+
+          const assignment = file.endsWith('.kts') ? `versionCode = ${versionCode}` : `versionCode ${versionCode}`;
+          let updated = false;
+          for (let index = defaultConfigLine + 1; index < defaultConfigEndLine; index++) {
+            if (/^\s*versionCode(?:\s*=)?\s+/.test(lines[index])) {
+              lines[index] = `${lines[index].match(/^\s*/)[0]}${assignment}`;
+              updated = true;
+            }
+          }
+
+          if (!updated)
+            lines.splice(defaultConfigLine + 1, 0, `${lines[defaultConfigLine].match(/^\s*/)[0]}    ${assignment}`);
+
+          fs.writeFileSync(file, lines.join('\n'));
+          console.log(`Set versionCode for ${file}`);
+        }
+        NODE
     - name: install deps
       run: |
         brew install doxygen pkg-config coreutils ninja graphviz
