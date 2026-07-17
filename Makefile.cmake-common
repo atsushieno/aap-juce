@@ -32,6 +32,11 @@ ifeq ('$(JUCE_DIR)', '')
 JUCE_DIR=$(shell pwd)/external/JUCE
 endif
 
+## Set BUILD_USES_FETCHCONTENT=1 if the upstream app fetches JUCE via CMake
+## FetchContent. All the JUCE patches must then be applied by FetchContent
+## itself (as FetchContent_Declare options e.g. PATCH_COMMAND, added by the
+## app's aap-juce-support.patch), so the local JUCE patching step is skipped.
+
 ## Specify path to aap core. The default is the submodule path.
 AAP_DIR=$(shell pwd)/external/aap-core
 
@@ -63,7 +68,12 @@ all: build
 
 build: $(PRE_BUILD_TASKS) patch-juce-cmake patch-app-cmake build-aap-core build-app-cmake
 
+ifneq ('$(BUILD_USES_FETCHCONTENT)', '')
+# JUCE is fetched and patched by FetchContent itself; nothing to do here.
+patch-juce-cmake:
+else
 patch-juce-cmake: $(JUCE_DIR)/.stamp-juce
+endif
 
 $(JUCE_DIR)/.stamp-juce:
 	echo "JUCE patches: $(JUCE_PATCHES)"
