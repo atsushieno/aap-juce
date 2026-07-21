@@ -4,7 +4,7 @@ AAP-JUCE is a part of [AAP (Audio Plugins For Android) project](https://github.c
 
 This repo is the place where we have the common JUCE integration support modules, as well as various patches for handful of different JUCE versions.
 
-CAUTION: do not expect stability too much. The entire AAP framework is still under active development and will keep bringing in breaking API/ABI changes.
+CAUTION: the entire AAP framework is still under active development and will keep bringing in breaking API/ABI changes.
 Also, since JUCE itself does not support AAP or anything like AAP that works as an Android Service, there are handful of local changes that try to make it work within the AAP basis.
 
 We partially care about backward compatibility, but everything is still subject to change. Contributions are welcome but please bear in mind, documentation is poor and source code is ugly. We have GitHub discussions for AAP enabled at [aap-core](https://github.com/atsushieno/aap-core/discussions/landing), not in aap-juce repo, so please feel free to shoot your questions there.
