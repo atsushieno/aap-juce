@@ -1,0 +1,31 @@
+diff --git a/modules/juce_core/native/juce_AndroidDocument_android.cpp b/modules/juce_core/native/juce_AndroidDocument_android.cpp
+index 4f8bb62af..91f6704f6 100644
+--- a/modules/juce_core/native/juce_AndroidDocument_android.cpp
++++ b/modules/juce_core/native/juce_AndroidDocument_android.cpp
+@@ -958,6 +958,14 @@ AndroidDocumentIterator AndroidDocumentIterator::makeNonRecursive (const Android
+ 
+     using Detail = AndroidDocumentDetail;
+ 
++   #if JUCE_ANDROID
++    // A tree/document that is backed by a content:// URI (fromTree()/fromDocument())
++    // has no local file path, so getUrl().getLocalFile() returns an empty File and the
++    // filesystem iterator below finds nothing. Walk it through DocumentsContract instead.
++    if (const auto nativeInfo = dir.getNativeInfo(); ! (nativeInfo.uri == nullptr))
++        return Utils::makeWithEngine (Detail::makeDocumentsContractIteratorEngine (nativeInfo.uri));
++   #endif
++
+     return Utils::makeWithEngineInplace<Detail::DirectoryIteratorEngine> (dir.getUrl().getLocalFile(), false);
+ }
+ 
+@@ -968,6 +976,11 @@ AndroidDocumentIterator AndroidDocumentIterator::makeRecursive (const AndroidDoc
+ 
+     using Detail = AndroidDocumentDetail;
+ 
++   #if JUCE_ANDROID
++    if (const auto nativeInfo = dir.getNativeInfo(); ! (nativeInfo.uri == nullptr))
++        return Utils::makeWithEngineInplace<Detail::RecursiveEngine> (nativeInfo.uri);
++   #endif
++
+     return Utils::makeWithEngineInplace<Detail::DirectoryIteratorEngine> (dir.getUrl().getLocalFile(), true);
+ }
+ 
