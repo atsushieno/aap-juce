@@ -336,11 +336,20 @@ public:
                 return nullptr;
             }
 
-            std::unique_ptr<AudioProcessorEditor> editor(q->wrapper->juce_processor->createEditor());
+#if AAP_JUCE_HAS_HEADLESS_PROCESSOR
+            std::unique_ptr<AudioProcessorEditor> editor(q->wrapper->juce_processor->createEditorAndMakeActive());
+#else
+            std::unique_ptr<AudioProcessorEditor> editor(q->wrapper->juce_processor->createEditorIfNeeded());
+#endif
             if (editor == nullptr)
                 return nullptr;
 
             readEditorSize(*editor);
+#if AAP_JUCE_HAS_HEADLESS_PROCESSOR
+            // This function is not for public use, but we implementors are kind of non-public user here...
+            // We are not sure about how wide range of JUCE versions require this, so limit it to JUCE9 or later...
+            q->wrapper->juce_processor->editorBeingDeleted(editor.get());
+#endif
             return nullptr;
         };
 
