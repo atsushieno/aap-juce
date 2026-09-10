@@ -1,6 +1,9 @@
 
 #include <ctime>
 #include <mutex>
+#include <algorithm>
+#include <cstddef>
+#include <unordered_set>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "aap/android-audio-plugin.h"
 #include "aap/core/host/plugin-host.h"
@@ -573,6 +576,24 @@ public:
         return (float) plainValue;
     }
 
+    // Collapses the queue to the newest value per parameter (order-preserving) so a state restore cannot grow it without bound.
+    static void coalesceParameterChanges(std::vector<PendingParameterChange>& changes) {
+        if (changes.size() < 2)
+            return;
+
+        std::vector<PendingParameterChange> deduped;
+        deduped.reserve(changes.size());
+        std::unordered_set<uint16_t> seen;
+        seen.reserve(changes.size());
+
+        for (auto it = changes.rbegin(); it != changes.rend(); ++it)
+            if (seen.insert(it->index).second)
+                deduped.push_back(*it);
+
+        std::reverse(deduped.begin(), deduped.end());
+        changes.swap(deduped);
+    }
+
     void flushParameterChanges(aap_buffer_t* buffer) {
         if (aap_midi2_out_port < 0)
             return;
@@ -589,15 +610,36 @@ public:
         if (changes.empty())
             return;
 
-        auto* outMidiBuf = (AAPMidiBufferHeader*) buffer->get_buffer(buffer, aap_midi2_out_port);
-        auto* umpDst = (uint32_t*) (void*) ((uint8_t*) outMidiBuf + sizeof(AAPMidiBufferHeader) + outMidiBuf->length);
+        // Only worth the allocation for pathological bursts; ordinary automation queues a handful per block.
+        if (changes.size() > 64)
+            coalesceParameterChanges(changes);
 
-        for (auto& change : changes) {
+        auto* outMidiBuf = (AAPMidiBufferHeader*) buffer->get_buffer(buffer, aap_midi2_out_port);
+        const int64_t capacity = buffer->get_buffer_size(buffer, aap_midi2_out_port);
+
+        // One 16-byte SysEx8 UMP per change; the MIDI2 out port is a fixed shared buffer, so emit what fits and requeue the rest (a state restore's batch overruns it and crashes the RT thread otherwise).
+        static constexpr int32_t kParameterUmpBytes = 16;
+
+        size_t emitted = 0;
+        for (; emitted < changes.size(); emitted++) {
+            if ((int64_t) sizeof(AAPMidiBufferHeader) + outMidiBuf->length + kParameterUmpBytes > capacity)
+                break;
+
+            auto& change = changes[emitted];
             auto transportValue = juceNormalizedToTransportUint32(change.index, change.value);
+            auto* umpDst = (uint32_t*) (void*) ((uint8_t*) outMidiBuf
+                                                + sizeof(AAPMidiBufferHeader) + outMidiBuf->length);
             aapMidi2ParameterSysex8(umpDst, umpDst + 1, umpDst + 2, umpDst + 3,
                                     0, 0, 0, 0, change.index, transportValue);
-            umpDst += 4;
-            outMidiBuf->length += 16;
+            outMidiBuf->length += kParameterUmpBytes;
+        }
+
+        if (emitted < changes.size()) {
+            std::lock_guard<std::mutex> lock(pending_parameter_changes_lock);
+            pending_parameter_changes.insert(pending_parameter_changes.begin(),
+                                             changes.begin() + (std::ptrdiff_t) emitted,
+                                             changes.end());
+            coalesceParameterChanges(pending_parameter_changes);
         }
     }
 
@@ -824,9 +866,16 @@ public:
         if (aap_midi2_out_port < 0)
             return;
 
+        if ((uint32_t) aap_midi2_out_port >= buffer->num_ports(buffer))
+            return;
+
         void *dst = buffer->get_buffer(buffer, aap_midi2_out_port);
         auto outMidiBuf = (AAPMidiBufferHeader*) dst;
         auto umpDst = (cmidi2_ump*) ((uint8_t*) dst + sizeof(AAPMidiBufferHeader));
+
+        // Fixed-size shared buffer: never write past it, and never memcpy a SysEx larger than the reassembly buffer.
+        const int32_t umpCapacity = buffer->get_buffer_size(buffer, aap_midi2_out_port)
+                                    - (int32_t) sizeof(AAPMidiBufferHeader);
 
         MidiBuffer::Iterator iterator{juce_midi_messages};
         const uint8_t *data;
@@ -834,8 +883,12 @@ public:
         while (iterator.getNextEvent(data, eventSize, eventPos)) {
             if (data[eventPos] == 0xF0) {
                 // sysex
-                memcpy(sysex_buffer, data + eventPos, eventSize);
+                if (eventSize <= 0 || eventSize > (int32_t) sizeof(sysex_buffer))
+                    continue;
                 auto numPackets = cmidi2_ump_sysex7_get_num_packets(eventSize);
+                if (dstBufSize + numPackets * 8 > umpCapacity)
+                    break;
+                memcpy(sysex_buffer, data + eventPos, eventSize);
                 for (int i = 0; i < numPackets; i++) {
                     cmidi2_ump_write64(umpDst, cmidi2_ump_sysex7_get_packet_of(
                             0, i + 1 < numPackets ? 6 : eventSize % 6,
@@ -844,6 +897,8 @@ public:
                     dstBufSize += 8;
                 }
             } else if (data[eventPos] > 0xF0) {
+                if (dstBufSize + 4 > umpCapacity)
+                    break;
                 cmidi2_ump_write32(umpDst, cmidi2_ump_system_message(
                         0, data[eventPos],
                         eventSize > 1 ? data[eventPos + 1] : 0,
@@ -851,6 +906,8 @@ public:
                 umpDst++;
                 dstBufSize += 4;
             } else {
+                if (dstBufSize + 4 > umpCapacity)
+                    break;
                 cmidi2_ump_write32(umpDst, cmidi2_ump_midi1_message(
                         0, data[eventPos] & 0xF0, data[eventPos] & 0xF,
                         eventSize > 1 ? data[eventPos + 1] : 0,
