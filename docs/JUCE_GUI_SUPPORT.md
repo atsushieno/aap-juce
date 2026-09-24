@@ -88,6 +88,38 @@ The `JuceAppInitializer` call is important. It runs
 `com.rmsl.juce.Java.initialiseJUCE(context.getApplicationContext())` before
 the plugin editor is attached to the hosted view.
 
+### More than one JUCE plugin in one app
+
+Each JUCE plugin library has its own JUCE runtime, and two of them cannot share a
+process (JUCE binds its native code to `com.rmsl.juce.*` Java classes, which exist
+only once per process). An app that contains more than one JUCE plugin runs each
+plugin in its own process, as described in "Running plugins in separate processes"
+in aap-core `docs/DEVELOPERS.md`:
+
+- one `AudioPluginService` and one `AudioPluginViewService` per process
+  (`android:process`), using empty derived classes for the extra processes, and the
+  `org.androidaudioplugin.AudioPluginService.V4#ViewService` meta-data;
+- one `aap_metadata.xml` per `AudioPluginService`, listing only its plugins:
+  `#Plugins` meta-data for the primary (stock class) service, and
+  `#SecondaryPlugins` for the others, so that hosts built with older aap-core
+  only see the primary service.
+
+`JuceAppInitializer` only runs in the main process, so such an app initializes
+JUCE with `JuceAudioPluginServiceExtension` on each `AudioPluginService` instead.
+It loads the plugin library of that service and calls `initialiseJUCE()` in the
+service's process:
+
+```xml
+<meta-data
+    android:name="org.androidaudioplugin.AudioPluginService.V4#Extensions"
+    android:value="org.androidaudioplugin.juce.JuceAudioPluginServiceExtension" />
+```
+
+Do not declare `JuceAppInitializer` in such an app, and do not load a library in the
+static initializer of the app's `com.rmsl.juce.Java` class. The main process then
+never loads JUCE; the plugin manager UI and the MIDI device services reach the
+plugins through binder. See aap-juce-adlplug-ae for a complete example.
+
 We also have to make sure that `app/build.gradle` contains the reference to `libs.aap.ui.compose.app`:
 
 ```

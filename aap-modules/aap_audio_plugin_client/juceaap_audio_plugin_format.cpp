@@ -656,7 +656,10 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
             };
             // Make sure we launch a non-main thread
             Thread::launch([this, pluginInfo, cb] {
-                PluginClientSystem::getInstance()->ensurePluginServiceConnected(plugin_client_connections, pluginInfo->getPluginPackageName(), cb);
+                // A plugin package may have more than one AudioPluginService (in separate processes),
+                // so connect to the one that hosts the plugin.
+                PluginClientSystem::getInstance()->ensurePluginServiceConnected(plugin_client_connections,
+                    pluginInfo->getPluginPackageName(), pluginInfo->getPluginLocalName(), cb);
             });
         }
     }
