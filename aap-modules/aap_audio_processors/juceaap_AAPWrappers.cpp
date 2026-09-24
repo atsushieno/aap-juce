@@ -99,7 +99,18 @@ extern "C" { int juce_aap_wrapper_last_error_code{0}; }
 //  IF exists JUCE MIDI input buffer -> AAP MIDI input port nIn+nOut
 //  IF exists JUCE MIDI output buffer -> AAP MIDI output port last
 
-class JuceAAPWrapper : juce::AudioPlayHead, juce::AudioProcessorListener {
+// The JNI entry points for the plugin UI (at the end of this file) are exported by every JUCE plugin
+// library. When more than one of them is loaded in a process, Java binds the native methods to only
+// one of them, whichever plugin the instance belongs to. They reach the library that created the
+// instance (and its own JUCE runtime) through this interface. It is the first base class of
+// JuceAAPWrapper, so that its vtable layout does not depend on JUCE.
+class JuceAAPAndroidViewSupport {
+public:
+    virtual void addAndroidView(void* parentLinearLayout) = 0;
+    virtual void getAndroidViewPreferredSize(int& width, int& height) = 0;
+};
+
+class JuceAAPWrapper : public JuceAAPAndroidViewSupport, juce::AudioPlayHead, juce::AudioProcessorListener {
     AndroidAudioPlugin *aap;
     const char *plugin_unique_id;
     int sample_rate;
@@ -288,7 +299,8 @@ public:
     }
 #endif
 
-    void addAndroidView(void* parentLinearLayout) {
+    void addAndroidView(void* parentLinearLayout) override {
+        juceaap_ensureEventsLoopStarted();
         auto creator = [&] {
             auto editor = juce_processor->createEditorIfNeeded();
             if (editor == nullptr)
@@ -306,7 +318,8 @@ public:
             juce::MessageManager::callAsync(creator);
     }
 
-    void getAndroidViewPreferredSize(int& width, int& height) {
+    void getAndroidViewPreferredSize(int& width, int& height) override {
+        juceaap_ensureEventsLoopStarted();
         if (android_preferred_view_width > 0 && android_preferred_view_height > 0) {
             width = android_preferred_view_width;
             height = android_preferred_view_height;
@@ -1325,28 +1338,30 @@ JNIEXPORT void JNICALL
 Java_org_androidaudioplugin_juce_JuceAudioProcessorEditorView_addAndroidComponentPeerViewTo(
         JNIEnv *env, jclass clazz, jlong pluginServiceNative, jstring plugin_id, jint instanceId,
         jobject parentLinearLayout) {
-    juceaap_ensureEventsLoopStarted();
+    // It may be another JUCE plugin library's copy of this function (see JuceAAPAndroidViewSupport).
+    // Do not touch JUCE here; the instance does it in its own library.
     auto service = (aap::PluginService *) pluginServiceNative;
     auto instance = service->getLocalInstance(instanceId);
     auto plugin = instance->getPlugin();
-    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
-    wrapper->addAndroidView(parentLinearLayout);
+    JuceAAPAndroidViewSupport* view = (JuceAAPWrapper*) plugin->plugin_specific;
+    view->addAndroidView(parentLinearLayout);
 }
 
 extern "C"
 JNIEXPORT jintArray JNICALL
 Java_org_androidaudioplugin_juce_JuceAudioPluginViewFactory_getPreferredSize(
         JNIEnv *env, jclass clazz, jlong pluginServiceNative, jstring plugin_id, jint instanceId) {
-    juceaap_ensureEventsLoopStarted();
+    // It may be another JUCE plugin library's copy of this function (see JuceAAPAndroidViewSupport).
+    // Do not touch JUCE here; the instance does it in its own library.
     auto service = (aap::PluginService *) pluginServiceNative;
     auto instance = service->getLocalInstance(instanceId);
     auto plugin = instance->getPlugin();
-    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    JuceAAPAndroidViewSupport* view = (JuceAAPWrapper*) plugin->plugin_specific;
 
     int width = 0;
     int height = 0;
-    if (wrapper != nullptr)
-        wrapper->getAndroidViewPreferredSize(width, height);
+    if (view != nullptr)
+        view->getAndroidViewPreferredSize(width, height);
 
     jint values[2] = {width, height};
     auto result = env->NewIntArray(2);

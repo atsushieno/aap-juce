@@ -84,9 +84,13 @@ through AndroidX Startup:
 </application>
 ```
 
-The `JuceAppInitializer` call is important. It runs
-`com.rmsl.juce.Java.initialiseJUCE(context.getApplicationContext())` before
-the plugin editor is attached to the hosted view.
+The `JuceAppInitializer` call is important. For each plugin library listed in
+the package's AAP metadata (the `library` attribute), it loads the library and
+runs `com.rmsl.juce.Java.initialiseJUCE(context.getApplicationContext())`
+before any plugin is instantiated. Each library's `JNI_OnLoad()` binds
+`initialiseJUCE()` to that library, so the app's `com.rmsl.juce.Java` class
+must not load any library other than the plugin library in its static
+initializer.
 
 We also have to make sure that `app/build.gradle` contains the reference to `libs.aap.ui.compose.app`:
 
@@ -129,6 +133,41 @@ Do not keep two different JUCE Java trees in the same app source set. If the
 app compiles stale `com.rmsl.juce.*` classes, the metadata and native factory
 can look correct while the native UI still fails to show up or uses old input
 routing behavior.
+
+## More Than One JUCE Plugin Library in an App
+
+This section applies only to an app that contains more than one JUCE plugin
+library (e.g. aap-juce-adlplug-ae, which contains ADLplug-AE and OPNplug-AE).
+An app with one JUCE plugin library does not need any of these.
+
+Such an app can host all of them in one `AudioPluginService` (and one
+process), listed in one `aap_metadata.xml`. Each library has its own JUCE
+runtime, as in desktop plugin hosts, and `JuceAppInitializer` initializes each
+of them. It needs some changes to the setup described above though:
+
+- Do not compile the JUCE Java sources (`native/java/app` and
+  `native/javaopt/app`); compile only `aap-juce/java` and the app's own Java
+  sources. JUCE binds the native methods of its Java classes (e.g. the 31 native
+  methods of `ComponentPeerView`) with `RegisterNatives()`, which is per class.
+  If the app compiled `ComponentPeerView`, all the JUCE libraries would share
+  the class, and the last initialized library would receive the callbacks from
+  the JUCE views of the other libraries. When the app does not have the class,
+  JUCE loads it from the dex byte-code embedded in each library, through a class
+  loader of its own. (It is how Projucer apps work; Projucer does not compile
+  them either.)
+- Since the app does not compile `JuceActivity` (in `javaopt/app`) anymore,
+  remove `JUCE_PUSH_NOTIFICATIONS` and `JUCE_PUSH_NOTIFICATIONS_ACTIVITY` from
+  the compile definitions (JUCE looks up the activity class if the latter is
+  defined), and the `JuceActivity` element in `AndroidManifest.xml`.
+- Our patches to the JUCE Java sources have to be applied to the embedded
+  byte-code instead. For JUCE 7.0.12, add
+  `juce-patches/7.0.12/juce-component-peer-view-touch-bytecode.patch` to
+  `JUCE_PATCHES`, next to `juce-patches/7.0.11/juce-component-peer-view-touch.patch`.
+  For other JUCE versions, apply the Java source patches and run
+  `tools/update-juce-java-bytecode.sh` on the JUCE tree to create the byte-code
+  patch.
+- `com.rmsl.juce.Java` must not load any library in its static initializer.
+  `JuceAppInitializer` loads them.
 
 ## AAP Metadata
 
