@@ -108,6 +108,7 @@ class JuceAAPAndroidViewSupport {
 public:
     virtual void addAndroidView(void* parentLinearLayout) = 0;
     virtual void getAndroidViewPreferredSize(int& width, int& height) = 0;
+    virtual void removeAndroidView(void* parentLinearLayout) = 0;
 };
 
 class JuceAAPWrapper : public JuceAAPAndroidViewSupport, juce::AudioPlayHead, juce::AudioProcessorListener {
@@ -142,6 +143,9 @@ class JuceAAPWrapper : public JuceAAPAndroidViewSupport, juce::AudioPlayHead, ju
 #endif
     int android_preferred_view_width{0};
     int android_preferred_view_height{0};
+    JavaVM* jvm{nullptr};
+    // The JuceAudioProcessorEditorView (global ref) that the active editor is attached to.
+    jobject android_editor_parent{nullptr};
 
 public:
     JuceAAPWrapper(AndroidAudioPlugin *plugin, const char *pluginUniqueId,
@@ -151,7 +155,7 @@ public:
         typedef JavaVM*(*getJVMFunc)();
         auto libaap = dlopen("libandroidaudioplugin.so", RTLD_NOW);
         auto getJVM = (getJVMFunc) dlsym(libaap, "_ZN3aap15get_android_jvmEv"); // aap::get_android_jvm()
-        auto jvm = getJVM();
+        jvm = getJVM();
         JNIEnv *env;
         jvm->AttachCurrentThread(&env, nullptr);
         auto looperClass = env->FindClass("android/os/Looper");
@@ -180,6 +184,7 @@ public:
         // notifications are made, so that none of them is in progress when we are gone.
         juceaap_callOnExistingMessageThreadIfNeeded([&] { juce_processor->removeListener(this); });
         juce_processor->releaseResources();
+        setAndroidEditorParent(nullptr);
 
         if (state.data != nullptr)
             free((void *) state.data);
@@ -303,23 +308,76 @@ public:
     }
 #endif
 
+    JNIEnv* getJNIEnv() {
+        JNIEnv* env{nullptr};
+        if (jvm->GetEnv((void**) &env, JNI_VERSION_1_6) != JNI_OK)
+            jvm->AttachCurrentThread(&env, nullptr);
+        return env;
+    }
+
+    void setAndroidEditorParent(jobject parent) {
+        if (android_editor_parent != nullptr)
+            getJNIEnv()->DeleteGlobalRef(android_editor_parent);
+        android_editor_parent = parent;
+    }
+
+    AudioProcessorEditor* createActiveEditor() {
+#if AAP_JUCE_HAS_HEADLESS_PROCESSOR
+        return juce_processor->createEditorAndMakeActive();
+#else
+        return juce_processor->createEditorIfNeeded();
+#endif
+    }
+
+    // Since JUCE 8.0.11 the processor holds the active editor as a raw pointer that only
+    // editorBeingDeleted() clears (it used to be a SafePointer), so it must always precede deletion.
+    // editorBeingDeleted() is not for public use, but we implementors are kind of non-public user here...
+    void deleteActiveEditor(AudioProcessorEditor* editor) {
+        juce_processor->editorBeingDeleted(editor);
+        delete editor;
+    }
+
     void addAndroidView(void* parentLinearLayout) override {
         juceaap_ensureEventsLoopStarted();
-        auto creator = [&] {
-            auto editor = juce_processor->createEditorIfNeeded();
+        // parentLinearLayout is a JNI local ref, which does not outlive this call.
+        auto parent = getJNIEnv()->NewGlobalRef((jobject) parentLinearLayout);
+        auto creator = [this, parent] {
+            // The editor may still be alive if its previous view was not destroyed, or if another
+            // UI session shows it. Move it to this view then; since JUCE 8.0.11
+            // createEditorIfNeeded() does not return the active editor anymore.
+            auto editor = juce_processor->getActiveEditor();
             if (editor == nullptr)
+                editor = createActiveEditor();
+            if (editor == nullptr) {
+                getJNIEnv()->DeleteGlobalRef(parent);
                 return;
+            }
 
             if (editor->isOnDesktop())
                 editor->removeFromDesktop();
 
             editor->setVisible(true);
-            editor->addToDesktop(0, parentLinearLayout);
+            editor->addToDesktop(0, parent);
+            setAndroidEditorParent(parent);
         };
         if (juce::MessageManager::getInstance()->isThisTheMessageThread())
             creator();
         else
             juce::MessageManager::callAsync(creator);
+    }
+
+    void removeAndroidView(void* parentLinearLayout) override {
+        auto env = getJNIEnv();
+        auto parent = env->NewGlobalRef((jobject) parentLinearLayout);
+        juceaap_callOnExistingMessageThreadIfNeeded([this, parent] {
+            // If the editor has moved to another view, that view's UI session still shows it.
+            if (android_editor_parent == nullptr || !getJNIEnv()->IsSameObject(android_editor_parent, parent))
+                return;
+            setAndroidEditorParent(nullptr);
+            if (auto editor = juce_processor->getActiveEditor())
+                deleteActiveEditor(editor);
+        });
+        env->DeleteGlobalRef(parent);
     }
 
     void getAndroidViewPreferredSize(int& width, int& height) override {
@@ -356,20 +414,12 @@ public:
                 return nullptr;
             }
 
-#if AAP_JUCE_HAS_HEADLESS_PROCESSOR
-            std::unique_ptr<AudioProcessorEditor> editor(q->wrapper->juce_processor->createEditorAndMakeActive());
-#else
-            std::unique_ptr<AudioProcessorEditor> editor(q->wrapper->juce_processor->createEditorIfNeeded());
-#endif
+            auto editor = q->wrapper->createActiveEditor();
             if (editor == nullptr)
                 return nullptr;
 
             readEditorSize(*editor);
-#if AAP_JUCE_HAS_HEADLESS_PROCESSOR
-            // This function is not for public use, but we implementors are kind of non-public user here...
-            // We are not sure about how wide range of JUCE versions require this, so limit it to JUCE9 or later...
-            q->wrapper->juce_processor->editorBeingDeleted(editor.get());
-#endif
+            q->wrapper->deleteActiveEditor(editor);
             return nullptr;
         };
 
@@ -1349,6 +1399,22 @@ Java_org_androidaudioplugin_juce_JuceAudioProcessorEditorView_addAndroidComponen
     auto plugin = instance->getPlugin();
     JuceAAPAndroidViewSupport* view = (JuceAAPWrapper*) plugin->plugin_specific;
     view->addAndroidView(parentLinearLayout);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_org_androidaudioplugin_juce_JuceAudioProcessorEditorView_removeAndroidComponentPeerViewFrom(
+        JNIEnv *env, jclass clazz, jlong pluginServiceNative, jstring plugin_id, jint instanceId,
+        jobject parentLinearLayout) {
+    // It may be another JUCE plugin library's copy of this function (see JuceAAPAndroidViewSupport).
+    // Do not touch JUCE here; the instance does it in its own library.
+    // The UI session may outlive the plugin instance (or even the service).
+    auto service = (aap::PluginService *) pluginServiceNative;
+    auto instance = service ? service->getLocalInstance(instanceId) : nullptr;
+    auto plugin = instance ? instance->getPlugin() : nullptr;
+    JuceAAPAndroidViewSupport* view = plugin ? (JuceAAPWrapper*) plugin->plugin_specific : nullptr;
+    if (view != nullptr)
+        view->removeAndroidView(parentLinearLayout);
 }
 
 extern "C"

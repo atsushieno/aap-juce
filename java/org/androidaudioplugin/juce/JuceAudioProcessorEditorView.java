@@ -8,6 +8,7 @@ import org.androidaudioplugin.AudioPluginServiceHelper;
 class JuceAudioProcessorEditorView extends LinearLayout {
     // note: adding the view might be asynchronously done (depending on whether it is main thread or not).
     private static native void addAndroidComponentPeerViewTo(long serviceInstance, String pluginId, int instanceId, JuceAudioProcessorEditorView view);
+    private static native void removeAndroidComponentPeerViewFrom(long serviceInstance, String pluginId, int instanceId, JuceAudioProcessorEditorView view);
 
     private final String pluginId;
     private final int instanceId;
@@ -22,5 +23,11 @@ class JuceAudioProcessorEditorView extends LinearLayout {
         this.instanceId = instanceId;
         setLayoutParams(new ViewGroup.LayoutParams(200, 200)); // stub values
         addAndroidComponentPeerViewTo(AudioPluginServiceHelper.getServiceInstance(pluginId), pluginId, instanceId, this);
+    }
+
+    // Deletes the JUCE editor (unless it has moved to another view since then), so that it does
+    // not stay in memory while no UI is shown. The view must not be used anymore.
+    void destroy() {
+        removeAndroidComponentPeerViewFrom(AudioPluginServiceHelper.getServiceInstance(pluginId), pluginId, instanceId, this);
     }
 }

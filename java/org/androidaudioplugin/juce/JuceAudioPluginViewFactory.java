@@ -23,4 +23,10 @@ public class JuceAudioPluginViewFactory extends AudioPluginViewFactory {
     public View createView(Context context, String pluginId, int instanceId) {
         return new JuceAudioProcessorEditorView(context, pluginId, instanceId);
     }
+
+    @Override
+    public void maybeDestroyView(Context context, String pluginId, int instanceId, View view) {
+        if (view instanceof JuceAudioProcessorEditorView)
+            ((JuceAudioProcessorEditorView) view).destroy();
+    }
 }
