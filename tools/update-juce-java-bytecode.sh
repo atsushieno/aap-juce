@@ -7,10 +7,10 @@
 # contains it, and otherwise from the embedded byte-code, through a class loader that belongs to each
 # JUCE library. The latter is what lets more than one JUCE plugin library live in one process: each
 # library registers its native methods to its own copy of the class. Therefore such an app must not
-# compile those Java sources, and the embedded byte-code has to contain our patches to them
-# (e.g. juce-component-peer-view-touch.patch). An app with one JUCE plugin library can keep
-# compiling the patched Java sources instead. See "More Than One JUCE Plugin Library in an App" in
-# docs/JUCE_GUI_SUPPORT.md.
+# compile those Java sources, and the embedded byte-code has to contain our patches to them (e.g.
+# juce-component-peer-view-touch.patch and component-peer-view-unregister-lifecycle-callbacks.patch).
+# An app with one JUCE plugin library can keep compiling the patched Java sources instead. See
+# "More Than One JUCE Plugin Library in an App" in docs/JUCE_GUI_SUPPORT.md.
 #
 # Usage: update-juce-java-bytecode.sh JUCE_DIR
 #

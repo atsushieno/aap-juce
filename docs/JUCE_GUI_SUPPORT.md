@@ -162,9 +162,12 @@ of them. It needs some changes to the setup described above though:
 - Our patches to the JUCE Java sources have to be applied to the embedded
   byte-code instead. For JUCE 7.0.12, add
   `juce-patches/7.0.12/juce-component-peer-view-touch-bytecode.patch` to
-  `JUCE_PATCHES`, next to `juce-patches/7.0.11/juce-component-peer-view-touch.patch`.
+  `JUCE_PATCHES`, next to `juce-patches/7.0.11/juce-component-peer-view-touch.patch`
+  and `juce-patches/7.0.11/component-peer-view-unregister-lifecycle-callbacks.patch`.
   For JUCE 8.0.15, add `juce-patches/8.0.15/juce-component-peer-view-touch-bytecode.patch`
-  next to `juce-patches/8.0.12/juce-component-peer-view-touch.patch`.
+  next to `juce-patches/8.0.12/juce-component-peer-view-touch.patch` and
+  `juce-patches/8.0.12/component-peer-view-unregister-lifecycle-callbacks.patch`.
+  The byte-code patches contain both of these Java source patches.
   For other JUCE versions, apply the Java source patches and run
   `tools/update-juce-java-bytecode.sh` on the JUCE tree to create the byte-code
   patch.
@@ -228,7 +231,8 @@ PATCH_DEPTH=1
 JUCE_PATCHES= \
         $(shell pwd)/external/aap-juce/juce-patches/7.0.12/disable-cgwindowlistcreateimage.patch \
         $(shell pwd)/external/aap-juce/juce-patches/7.0.6/support-plugin-ui.patch \
-        $(shell pwd)/external/aap-juce/juce-patches/7.0.11/juce-component-peer-view-touch.patch
+        $(shell pwd)/external/aap-juce/juce-patches/7.0.11/juce-component-peer-view-touch.patch \
+        $(shell pwd)/external/aap-juce/juce-patches/7.0.11/component-peer-view-unregister-lifecycle-callbacks.patch
 
 include $(AAP_JUCE_DIR)/Makefile.cmake-common
 ```
@@ -404,6 +408,16 @@ git -C external/YourPluginSource apply --check --reverse --ignore-space-change \
   `external/aap-juce/java`, not stale generated JUCE Java sources.
 - The plugin appears in AAP hosts.
 - Opening, closing, and reopening the native UI works.
+- Closing the native UI releases its views: after a few open/close cycles and
+  a GC (`adb shell run-as <package> kill -10 <pid>`), the Views count in
+  `adb shell dumpsys meminfo <package>` does not grow with the number of
+  cycles, and a heap dump (`adb shell am dumpheap <pid> <file>`) contains no
+  `com.rmsl.juce.ComponentPeerView`. The Views count includes the host's views
+  when the host runs in the plugin process (e.g. the plugin app's own plugin
+  manager), so a heap dump tells which side leaks.
+  `component-peer-view-unregister-lifecycle-callbacks.patch` is needed for it;
+  without it, the `Application` keeps every `ComponentPeerView` alive through
+  its activity lifecycle callbacks.
 - The editor reports a sensible preferred size.
 - Controls react at the touched coordinates.
 - Combo boxes, preset selectors, popup menus, and about dialogs render inside

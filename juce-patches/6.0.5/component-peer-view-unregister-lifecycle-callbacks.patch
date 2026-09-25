@@ -1,0 +1,23 @@
+diff --git a/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java b/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
+index 823d66be36..996324522d 100644
+--- a/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
++++ b/modules/juce_gui_basics/native/java/app/com/rmsl/juce/ComponentPeerView.java
+@@ -111,6 +111,18 @@ public final class ComponentPeerView extends ViewGroup
+     public void clear ()
+     {
+         host = 0;
++
++        // The view is registered to the application in the constructor, which keeps it alive
++        // after its peer is gone, unless we unregister it here.
++        Context context = getContext ();
++
++        if (Application.class.isInstance (context))
++        {
++            ((Application) context).unregisterActivityLifecycleCallbacks (this);
++        } else
++        {
++            ((Application) context.getApplicationContext ()).unregisterActivityLifecycleCallbacks (this);
++        }
+     }
+ 
+     //==============================================================================
