@@ -175,6 +175,10 @@ public:
     }
 
     virtual ~JuceAAPWrapper() {
+        // The processor outlives this wrapper (we do not delete it), and it may keep notifying parameter
+        // changes (e.g. from its Timer). Stop listening to it, on the message thread where the Timer
+        // notifications are made, so that none of them is in progress when we are gone.
+        juceaap_callOnExistingMessageThreadIfNeeded([&] { juce_processor->removeListener(this); });
         juce_processor->releaseResources();
 
         if (state.data != nullptr)

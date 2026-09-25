@@ -1,0 +1,20 @@
+diff --git a/modules/juce_gui_basics/menus/juce_PopupMenu.cpp b/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
+index 476d0e8..936e335 100644
+--- a/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
++++ b/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
+@@ -2196,6 +2196,15 @@ PopupMenu::Options PopupMenu::Options::forSubmenu() const
+ Component* PopupMenu::createWindow (const Options& options,
+                                     ApplicationCommandManager** managerOfChosenCommand) const
+ {
++   #if JUCE_ANDROID
++    // AAP: a plugin editor is shown in a view hosted by another process, where we cannot create a
++    // heavyweight popup window (there is no Activity). Unless the parent is explicitly specified, show
++    // the menu in the top-level component (i.e. the editor) of the target, as a lightweight component.
++    if (options.getParentComponent() == nullptr)
++        if (auto* target = options.getTargetComponent())
++            return createWindow (options.withParentComponent (target->getTopLevelComponent()), managerOfChosenCommand);
++   #endif
++
+    #if JUCE_WINDOWS
+     const auto handle = std::invoke ([&]() -> void*
+     {

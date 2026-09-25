@@ -163,6 +163,8 @@ of them. It needs some changes to the setup described above though:
   byte-code instead. For JUCE 7.0.12, add
   `juce-patches/7.0.12/juce-component-peer-view-touch-bytecode.patch` to
   `JUCE_PATCHES`, next to `juce-patches/7.0.11/juce-component-peer-view-touch.patch`.
+  For JUCE 8.0.15, add `juce-patches/8.0.15/juce-component-peer-view-touch-bytecode.patch`
+  next to `juce-patches/8.0.12/juce-component-peer-view-touch.patch`.
   For other JUCE versions, apply the Java source patches and run
   `tools/update-juce-java-bytecode.sh` on the JUCE tree to create the byte-code
   patch.

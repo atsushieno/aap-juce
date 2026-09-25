@@ -43,7 +43,8 @@ if [ -z "$SDK_DIR" ] ; then
     fi
 fi
 BUILD_TOOLS_DIR=$(ls -d "$SDK_DIR"/build-tools/* | sort -V | tail -n 1)
-ANDROID_JAR=$(ls "$SDK_DIR"/platforms/*/android.jar | sort -V | tail -n 1)
+# Skip codename platforms (e.g. android-UpsideDownCake), which sort -V would pick over the numbered ones.
+ANDROID_JAR=$(ls "$SDK_DIR"/platforms/android-[0-9]*/android.jar | sort -V | tail -n 1)
 if [ ! -x "$BUILD_TOOLS_DIR/d8" ] || [ ! -f "$ANDROID_JAR" ] ; then
     echo "Android SDK build-tools or platform was not found in $SDK_DIR" >&2
     exit 1
