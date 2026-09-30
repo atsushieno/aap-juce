@@ -1,6 +1,10 @@
 
 #include <ctime>
 #include <mutex>
+#include <atomic>
+#include <memory>
+#include <optional>
+#include <map>
 #include <algorithm>
 #include <cstddef>
 #include <unordered_set>
@@ -172,7 +176,7 @@ public:
         // It must have been done at initialiseJUCE().
         juce_processor = createPluginFilter();
 
-        buildParameterList();
+        publishParameterList();
 
         juce_processor->addListener(this);
         last_parameter_values = snapshotParameterValues();
@@ -190,6 +194,7 @@ public:
             free((void *) state.data);
         if (plugin_unique_id != nullptr)
             free((void *) plugin_unique_id);
+        delete aap_parameter_list.load();
     }
 
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
@@ -207,17 +212,51 @@ public:
 
     const char* getPluginId() { return plugin_unique_id; }
 
-    juce::OwnedArray<aap_parameter_info_t> aapParams{};
-    juce::HashMap<int32_t,int32_t> aapParamIdToEnumIndex{};
-    juce::OwnedArray<aap_parameter_enum_t> aapEnums{};
+    struct EnumRange {
+        int32_t start;
+        int32_t count;
+    };
 
-    void registerParameter(juce::String path, juce::AudioProcessorParameter* para) {
+    // Immutable once published; getters may read it from Binder, worker and audio threads at any time.
+    struct AAPParameterList {
+        std::vector<aap_parameter_info_t> params{};
+        std::vector<aap_parameter_enum_t> enums{};
+        std::map<int32_t,EnumRange> enumRanges{};
+    };
+
+    std::atomic<const AAPParameterList*> aap_parameter_list{nullptr};
+    std::atomic<int32_t> aap_parameter_list_readers{0};
+    std::mutex aap_parameter_list_publisher_lock{};
+    std::vector<std::unique_ptr<const AAPParameterList>> retired_aap_parameter_lists{};
+
+    // Lock-free for readers: a retired list is freed only after a publish finds no reader in progress.
+    template <typename Func>
+    auto readParameterList(Func func) {
+        aap_parameter_list_readers.fetch_add(1);
+        struct ReaderRelease {
+            std::atomic<int32_t>& readers;
+            ~ReaderRelease() { readers.fetch_sub(1, std::memory_order_release); }
+        } release{aap_parameter_list_readers};
+        return func(*aap_parameter_list.load());
+    }
+
+    void publishParameterList() {
+        auto list = buildParameterList();
+        std::lock_guard<std::mutex> lock(aap_parameter_list_publisher_lock);
+        auto retired = aap_parameter_list.exchange(list.release());
+        if (retired)
+            retired_aap_parameter_lists.emplace_back(retired);
+        if (aap_parameter_list_readers.load() == 0)
+            retired_aap_parameter_lists.clear();
+    }
+
+    static void registerParameter(AAPParameterList& list, juce::String path, juce::AudioProcessorParameter* para) {
         aap_parameter_info_t info{};
         strncpy(info.path, path.toRawUTF8(), sizeof(info.path));
         info.stable_id = static_cast<int16_t>(para->getParameterIndex());
         auto nameMax = sizeof(info.display_name);
-        const char* paramName = para->getName((int32_t) nameMax).toRawUTF8();
-        strncpy(info.display_name, paramName, nameMax);
+        auto paramName = para->getName((int32_t) nameMax);
+        strncpy(info.display_name, paramName.toRawUTF8(), nameMax);
         info.min_value = 0.0;
         info.max_value = 1.0;
         info.default_value = para->getDefaultValue();
@@ -232,42 +271,40 @@ public:
         }
         auto names = para->getAllValueStrings();
         if (!names.isEmpty()) {
-            aapParamIdToEnumIndex.set(info.stable_id, aapEnums.size());
+            list.enumRanges[info.stable_id] = {(int32_t) list.enums.size(), names.size()};
             for (auto name : names) {
                 aap_parameter_enum_t e{};
                 auto enumValue = para->getValueForText(name);
                 e.value = ranged ? range.convertFrom0to1(enumValue) : enumValue;
                 strncpy(e.name, name.toRawUTF8(), sizeof(e.name));
-                aapEnums.add(new aap_parameter_enum_t(e));
+                list.enums.push_back(e);
             }
         }
-        aapParams.add(new aap_parameter_info_t(info));
+        list.params.push_back(info);
     }
 
-    void registerParameters(juce::String path, const juce::AudioProcessorParameterGroup::AudioProcessorParameterNode* node) {
+    static void registerParameters(AAPParameterList& list, juce::String path, const juce::AudioProcessorParameterGroup::AudioProcessorParameterNode* node) {
         auto group = node->getGroup();
         if (group != nullptr) {
             juce::String curPath = path + "/" + group->getName();
             for (const auto childPara : *group)
-                registerParameters(curPath, childPara);
+                registerParameters(list, curPath, childPara);
         } else {
             auto para = node->getParameter();
-            registerParameter(path, para);
+            registerParameter(list, path, para);
         }
     }
 
-    void buildParameterList() {
-        aapParams.clear();
-        aapParamIdToEnumIndex.clear();
-        aapEnums.clear();
+    std::unique_ptr<AAPParameterList> buildParameterList() {
+        auto list = std::make_unique<AAPParameterList>();
 
         auto &tree = juce_processor->getParameterTree();
         for (auto node : tree)
-            registerParameters("", node);
-        if (aapParams.size() == 0)
+            registerParameters(*list, "", node);
+        if (list->params.empty())
             for (auto para : juce_processor->getParameters())
-                registerParameter("", para);
-        if (aapParams.size() == 0) {
+                registerParameter(*list, "", para);
+        if (list->params.empty()) {
             // Some classic plugins (such as OB-Xd) do not return parameter objects.
             // They still return parameter names, so we can still generate AAP parameters.
             for (int i = 0, n = juce_processor->getNumParameters(); i < n; i++) {
@@ -277,9 +314,17 @@ public:
                 p.min_value = 0.0;
                 p.max_value = 1.0;
                 p.default_value = juce_processor->getParameter(i);
-                aapParams.add(new aap_parameter_info_t(p));
+                list->params.push_back(p);
             }
         }
+        return list;
+    }
+
+    void notifyParametersChanged() {
+        publishParameterList();
+        auto ext = (aap_parameters_host_extension_t *) host.get_extension(&host, AAP_PARAMETERS_EXTENSION_URI);
+        if (ext)
+            ext->notify_parameters_changed(ext, &host);
     }
 
     // juce::AudioProcessorListener implementation
@@ -292,19 +337,15 @@ public:
     void audioProcessorChanged(juce::AudioProcessor* processor) override {
         enqueueChangedParameters(last_parameter_values);
         last_parameter_values = snapshotParameterValues();
-        auto ext = (aap_parameters_host_extension_t *) host.get_extension(&host, AAP_PARAMETERS_EXTENSION_URI);
-        if (ext)
-            ext->notify_parameters_changed(ext, &host);
+        // We cannot tell whether parameter info has changed, so assume it has.
+        notifyParametersChanged();
     }
 #else
     void audioProcessorChanged(juce::AudioProcessor* processor, const juce::AudioProcessorListener::ChangeDetails &details) override {
         enqueueChangedParameters(last_parameter_values);
         last_parameter_values = snapshotParameterValues();
-        if (details.parameterInfoChanged) {
-            auto ext = (aap_parameters_host_extension_t *) host.get_extension(&host, AAP_PARAMETERS_EXTENSION_URI);
-            if (ext)
-                ext->notify_parameters_changed(ext, &host);
-        }
+        if (details.parameterInfoChanged)
+            notifyParametersChanged();
     }
 #endif
 
@@ -613,15 +654,20 @@ public:
         return values;
     }
 
-    aap_parameter_info_t* findAAPParameterInfoById(int id) {
-        for (auto* info : aapParams)
-            if (info != nullptr && info->stable_id == id)
-                return info;
+    static const aap_parameter_info_t* findAAPParameterInfoById(const AAPParameterList& list, int id) {
+        for (auto& info : list.params)
+            if (info.stable_id == id)
+                return &info;
         return nullptr;
     }
 
     uint32_t juceNormalizedToTransportUint32(int parameterIndex, float normalizedValue) {
-        auto* info = findAAPParameterInfoById(parameterIndex);
+        return readParameterList([&](const AAPParameterList& list) {
+            return juceNormalizedToTransportUint32(findAAPParameterInfoById(list, parameterIndex), parameterIndex, normalizedValue);
+        });
+    }
+
+    uint32_t juceNormalizedToTransportUint32(const aap_parameter_info_t* info, int parameterIndex, float normalizedValue) {
         auto* param = findJUCEParameter(parameterIndex);
         auto plainValue = (double) normalizedValue;
         if (auto* ranged = dynamic_cast<juce::RangedAudioParameter*>(param))
@@ -632,7 +678,12 @@ public:
     }
 
     float transportUint32ToJuceNormalized(int parameterIndex, uint32_t transportValue) {
-        auto* info = findAAPParameterInfoById(parameterIndex);
+        return readParameterList([&](const AAPParameterList& list) {
+            return transportUint32ToJuceNormalized(findAAPParameterInfoById(list, parameterIndex), parameterIndex, transportValue);
+        });
+    }
+
+    float transportUint32ToJuceNormalized(const aap_parameter_info_t* info, int parameterIndex, uint32_t transportValue) {
         auto* param = findJUCEParameter(parameterIndex);
         auto normalizedValue = aapParameterUint32ToNormalized(transportValue);
         if (info == nullptr)
@@ -1160,8 +1211,14 @@ public:
         });
     }
 
-    int32_t getAAPParameterCount() { return aapParams.size(); }
-    aap_parameter_info_t getAAPParameterInfo(int index) { return *aapParams[index]; }
+    int32_t getAAPParameterCount() {
+        return readParameterList([](const AAPParameterList& list) { return (int32_t) list.params.size(); });
+    }
+    aap_parameter_info_t getAAPParameterInfo(int index) {
+        return readParameterList([index](const AAPParameterList& list) {
+            return 0 <= index && index < (int) list.params.size() ? list.params[index] : aap_parameter_info_t{};
+        });
+    }
     AudioProcessorParameter* findJUCEParameter(int id) {
         for (auto p : juce_processor->getParameterTree().getParameters(true))
             if (p->getParameterIndex() == id)
@@ -1169,34 +1226,42 @@ public:
         return nullptr;
     }
     double getAAPParameterProperty(int32_t parameterId, int32_t propertyId) {
-        for (auto info: aapParams) {
-            if (info->stable_id == parameterId) {
-                switch (propertyId) {
-                    case AAP_PARAMETER_PROPERTY_MIN_VALUE:
-                        return info->min_value;
-                    case AAP_PARAMETER_PROPERTY_MAX_VALUE:
-                        return info->max_value;
-                    case AAP_PARAMETER_PROPERTY_DEFAULT_VALUE:
-                        return info->default_value;
-                    case AAP_PARAMETER_PROPERTY_IS_DISCRETE: {
-                        auto p = findJUCEParameter(parameterId);
-                        return p != nullptr && p->isDiscrete();
-                    }
-                    // JUCE does not have it (yet?)
-                    case AAP_PARAMETER_PROPERTY_PRIORITY:
-                        return 0;
-                }
+        auto info = readParameterList([parameterId](const AAPParameterList& list) {
+            auto found = findAAPParameterInfoById(list, parameterId);
+            return found ? std::optional<aap_parameter_info_t>{*found} : std::nullopt;
+        });
+        if (!info)
+            return 0;
+        switch (propertyId) {
+            case AAP_PARAMETER_PROPERTY_MIN_VALUE:
+                return info->min_value;
+            case AAP_PARAMETER_PROPERTY_MAX_VALUE:
+                return info->max_value;
+            case AAP_PARAMETER_PROPERTY_DEFAULT_VALUE:
+                return info->default_value;
+            case AAP_PARAMETER_PROPERTY_IS_DISCRETE: {
+                auto p = findJUCEParameter(parameterId);
+                return p != nullptr && p->isDiscrete();
             }
+            // JUCE does not have it (yet?)
+            case AAP_PARAMETER_PROPERTY_PRIORITY:
+                return 0;
         }
         return 0;
     }
     int32_t getAAPEnumerationCount(int32_t parameterId) {
-        auto p = findJUCEParameter(parameterId);
-        return p != nullptr ? p->getAllValueStrings().size() : 0;
+        return readParameterList([parameterId](const AAPParameterList& list) {
+            auto range = list.enumRanges.find(parameterId);
+            return range != list.enumRanges.end() ? range->second.count : 0;
+        });
     }
     aap_parameter_enum_t getAAPEnumeration(int32_t parameterId, int32_t enumIndex) {
-        int32_t baseIndex = aapParamIdToEnumIndex[parameterId];
-        return *aapEnums[baseIndex + enumIndex];
+        return readParameterList([parameterId, enumIndex](const AAPParameterList& list) {
+            auto range = list.enumRanges.find(parameterId);
+            if (range == list.enumRanges.end() || enumIndex < 0 || enumIndex >= range->second.count)
+                return aap_parameter_enum_t{};
+            return list.enums[range->second.start + enumIndex];
+        });
     }
 
     AudioProcessor* getAudioProcessor() { return juce_processor; }
