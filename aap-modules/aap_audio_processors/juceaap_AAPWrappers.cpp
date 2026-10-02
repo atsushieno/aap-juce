@@ -183,12 +183,16 @@ public:
     }
 
     virtual ~JuceAAPWrapper() {
-        // The processor outlives this wrapper (we do not delete it), and it may keep notifying parameter
-        // changes (e.g. from its Timer). Stop listening to it, on the message thread where the Timer
-        // notifications are made, so that none of them is in progress when we are gone.
-        juceaap_callOnExistingMessageThreadIfNeeded([&] { juce_processor->removeListener(this); });
-        juce_processor->releaseResources();
-        setAndroidEditorParent(nullptr);
+        // Timers and editors must be torn down on the message thread before their processor.
+        juceaap_callOnExistingMessageThreadIfNeeded([&] {
+            juce_processor->removeListener(this);
+            if (auto editor = juce_processor->getActiveEditor())
+                deleteActiveEditor(editor);
+            juce_processor->releaseResources();
+            delete juce_processor;
+            juce_processor = nullptr;
+            setAndroidEditorParent(nullptr);
+        });
 
         if (state.data != nullptr)
             free((void *) state.data);
@@ -1435,10 +1439,8 @@ void juceaap_release(
         delete ctx;
         instance->plugin_specific = nullptr;
     }
-    if (presets_ext_map[instance]) {
-        presets_ext_map[instance].reset(nullptr);
-        presets_ext_map.erase(instance);
-    }
+    presets_ext_map.erase(instance);
+    state_ext_map.erase(instance);
     delete instance;
 }
 
