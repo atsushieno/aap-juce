@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include "cmidi2.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_extra/juce_gui_extra.h>
@@ -14,7 +15,7 @@ namespace juceaap {
 
 class AndroidAudioPluginParameter;
 
-class AndroidAudioPluginInstance : public juce::AudioPluginInstance {
+class AndroidAudioPluginInstance : public juce::AudioPluginInstance, private juce::AsyncUpdater {
     friend class AndroidAudioPluginParameter;
 
     aap::PluginInstance *native;
@@ -22,6 +23,14 @@ class AndroidAudioPluginInstance : public juce::AudioPluginInstance {
     uint8_t midi_output_store[4096];
     uint32_t midi_buffer_size{4096};
     int sample_rate;
+    int block_size{0};
+    // AAP_BUSES_CHANGED_* notified by the plugin, handled on the message thread.
+    std::atomic<uint32_t> pending_bus_changes{0};
+    // While the JUCE buses are made to follow the plugin's buses (not a host request).
+    bool adopting_plugin_layout{false};
+    void handleAsyncUpdate() override;
+    void adoptPluginBusLayout();
+    bool matchesPluginBusLayout(const BusesLayout& layouts) const;
     std::map<int32_t,int32_t> portMapAapToJuce{};
     void preProcessBuffers(AudioBuffer<float> &audioBuffer, MidiBuffer &midiMessages);
     void postProcessBuffers(AudioBuffer<float> &buffer, MidiBuffer &midiMessages);
@@ -29,6 +38,13 @@ class AndroidAudioPluginInstance : public juce::AudioPluginInstance {
     bool parameterValueChanged(AndroidAudioPluginParameter* parameter, float newValue);
 
     static juce::AudioProcessor::BusesProperties createJuceBuses(aap::PluginInstance* native);
+
+protected:
+    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
+    bool canApplyBusesLayout(const BusesLayout& layouts) const override;
+    bool canAddBus(bool isInput) const override { return adopting_plugin_layout; }
+    bool canRemoveBus(bool isInput) const override { return adopting_plugin_layout; }
+    bool canApplyBusCountChange(bool isInput, bool isAdding, BusProperties& outProperties) override;
 
 public:
 

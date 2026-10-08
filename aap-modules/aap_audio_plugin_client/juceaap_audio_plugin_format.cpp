@@ -69,14 +69,10 @@ static void fillPluginDescriptionFromNativeInstance(PluginDescription &descripti
     const auto src = *native->getPluginInformation();
     fillPluginDescriptionFromNativeCommon(description, src);
 
-    for (int i = 0; i < native->getNumPorts(); i++) {
-        auto port = native->getPort(i);
-        auto dir = port->getPortDirection();
-        if (dir == AAP_PORT_DIRECTION_INPUT)
-            description.numInputChannels++;
-        else if (dir == AAP_PORT_DIRECTION_OUTPUT)
-            description.numOutputChannels++;
-    }
+    for (int b = 0, n = native->getNumBuses(AAP_BUS_KIND_AUDIO, AAP_PORT_DIRECTION_INPUT); b < n; b++)
+        description.numInputChannels += native->getBus(AAP_BUS_KIND_AUDIO, AAP_PORT_DIRECTION_INPUT, b)->getChannelCount();
+    for (int b = 0, n = native->getNumBuses(AAP_BUS_KIND_AUDIO, AAP_PORT_DIRECTION_OUTPUT); b < n; b++)
+        description.numOutputChannels += native->getBus(AAP_BUS_KIND_AUDIO, AAP_PORT_DIRECTION_OUTPUT, b)->getChannelCount();
 }
 
 static void* handleSysex7(uint64_t data, void* context) {
@@ -91,19 +87,21 @@ void AndroidAudioPluginInstance::preProcessBuffers(AudioBuffer<float> &audioBuff
                                                         MidiBuffer &midiMessages) {
     // FIXME: RT lock
 
-    // FIXME: there is some glitch between how JUCE AudioBuffer assigns a channel for each buffer item
-    //  and how AAP expects them.
-    int juceInputsAssigned = 0;
     auto *buffer = native->getAudioPluginBuffer();
 
-    for (int portIndex = 0, numPorts = native->getNumPorts(); portIndex < numPorts; portIndex++) {
-        auto port = native->getPort(portIndex);
-        if (port->getPortDirection() != AAP_PORT_DIRECTION_INPUT)
-            continue;
-        if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO &&
-            juceInputsAssigned < audioBuffer.getNumChannels())
-            memcpy(buffer->get_buffer(buffer, portIndex), (void *) audioBuffer.getReadPointer(juceInputsAssigned++),
-                   audioBuffer.getNumSamples() * sizeof(float));
+    // JUCE buses mirror the AAP audio buses (see createJuceBuses()).
+    // Channels that JUCE does not feed (e.g. a bus disabled only on the JUCE side) get silence.
+    for (int b = 0, nb = native->getNumBuses(AAP_BUS_KIND_AUDIO, AAP_PORT_DIRECTION_INPUT); b < nb; b++) {
+        auto bus = native->getBus(AAP_BUS_KIND_AUDIO, AAP_PORT_DIRECTION_INPUT, b);
+        auto juceChannels = b < getBusCount(true) ? getChannelCountOfBus(true, b) : 0;
+        for (int ch = 0, nc = bus->getChannelCount(); ch < nc; ch++) {
+            auto dst = buffer->get_buffer(buffer, bus->getPortIndex(ch));
+            auto juceChannel = ch < juceChannels ? getChannelIndexInProcessBlockBuffer(true, b, ch) : -1;
+            if (juceChannel >= 0 && juceChannel < audioBuffer.getNumChannels())
+                memcpy(dst, (void *) audioBuffer.getReadPointer(juceChannel), audioBuffer.getNumSamples() * sizeof(float));
+            else
+                memset(dst, 0, audioBuffer.getNumSamples() * sizeof(float));
+        }
     }
 
     if (aap_midi_in_port >= 0) { // it should be usually true as it supports all parameter changes.
@@ -155,16 +153,15 @@ void AndroidAudioPluginInstance::preProcessBuffers(AudioBuffer<float> &audioBuff
 void AndroidAudioPluginInstance::postProcessBuffers(AudioBuffer<float> &audioBuffer, MidiBuffer &midiMessages) {
     // FIXME: RT lock
 
-    int n = native->getNumPorts();
     auto *buffer = native->getAudioPluginBuffer();
 
-    int juceOutputsAssigned = 0;
-    for (int i = 0; i < n; i++) {
-        auto port = native->getPort(i);
-        if (port->getPortDirection() != AAP_PORT_DIRECTION_OUTPUT)
-            continue;
-        if (port->getContentType() == AAP_CONTENT_TYPE_AUDIO && juceOutputsAssigned < audioBuffer.getNumChannels()) {
-            memcpy((void *) audioBuffer.getWritePointer(juceOutputsAssigned++), buffer->get_buffer(buffer, i), audioBuffer.getNumSamples() * sizeof(float));
+    for (int b = 0, nb = std::min(native->getNumBuses(AAP_BUS_KIND_AUDIO, AAP_PORT_DIRECTION_OUTPUT), getBusCount(false)); b < nb; b++) {
+        auto bus = native->getBus(AAP_BUS_KIND_AUDIO, AAP_PORT_DIRECTION_OUTPUT, b);
+        for (int ch = 0, nc = std::min(bus->getChannelCount(), getChannelCountOfBus(false, b)); ch < nc; ch++) {
+            auto juceChannel = getChannelIndexInProcessBlockBuffer(false, b, ch);
+            if (juceChannel < audioBuffer.getNumChannels())
+                memcpy((void *) audioBuffer.getWritePointer(juceChannel), buffer->get_buffer(buffer, bus->getPortIndex(ch)),
+                       audioBuffer.getNumSamples() * sizeof(float));
         }
     }
 
@@ -194,44 +191,155 @@ void AndroidAudioPluginInstance::postProcessBuffers(AudioBuffer<float> &audioBuf
     // FIXME: RT unlock
 }
 
+static juce::AudioChannelSet toJuceChannelSet(const aap::BusInformation* bus) {
+    if (!bus->isEnabled() || bus->getChannelCount() == 0)
+        return juce::AudioChannelSet::disabled();
+    if (strcmp(bus->getLayout(), AAP_BUS_LAYOUT_MONO) == 0)
+        return juce::AudioChannelSet::mono();
+    if (strcmp(bus->getLayout(), AAP_BUS_LAYOUT_STEREO) == 0)
+        return juce::AudioChannelSet::stereo();
+    return juce::AudioChannelSet::discreteChannels(bus->getChannelCount());
+}
+
+// Each AAP audio bus becomes a JUCE bus, in the same order.
 juce::AudioProcessor::BusesProperties AndroidAudioPluginInstance::createJuceBuses(aap::PluginInstance* native) {
     juce::AudioProcessor::BusesProperties ret{};
-    int32_t numAudioIns = 0, numAudioOuts = 0;
-    for (int32_t i = 0, n = native->getNumPorts(); i < n; i++) {
-        auto port = native->getPort(i);
-        if (port->getContentType() != AAP_CONTENT_TYPE_AUDIO)
-            continue;
-        if (port->getPortDirection() == AAP_PORT_DIRECTION_INPUT)
-            numAudioIns++;
-        else
-            numAudioOuts++;
-    }
-    switch (numAudioIns) {
-        case 0:
-            break;
-        case 1:
-            ret.addBus(true, "Mono Input", juce::AudioChannelSet::mono());
-            break;
-        stereo_input:
-        case 2:
-            ret.addBus(true, "Stereo Input", juce::AudioChannelSet::stereo());
-            break;
-        default:
-            aap::a_log_f(AAP_LOG_LEVEL_WARN, AAP_JUCE_LOG_TAG,
-                         "TODO: the plugin has more audio input channels than stereo, which is not implemented in aap-juce. Treating it as stereo.");
-            goto stereo_input;
-    }
-    switch (numAudioOuts) {
-        case 0: break;
-        case 1: ret.addBus(false, "Mono Output", juce::AudioChannelSet::mono()); break;
-        stereo_output:
-        case 2: ret.addBus(false, "Stereo Output", juce::AudioChannelSet::stereo()); break;
-        default:
-            aap::a_log_f(AAP_LOG_LEVEL_WARN, AAP_JUCE_LOG_TAG,
-                         "TODO: the plugin has more audio output channels than stereo, which is not implemented in aap-juce. Treating it as stereo.");
-            goto stereo_output;
+    for (auto direction : {AAP_PORT_DIRECTION_INPUT, AAP_PORT_DIRECTION_OUTPUT}) {
+        for (int b = 0, n = native->getNumBuses(AAP_BUS_KIND_AUDIO, direction); b < n; b++) {
+            auto bus = native->getBus(AAP_BUS_KIND_AUDIO, direction, b);
+            ret.addBus(direction == AAP_PORT_DIRECTION_INPUT, bus->getName(), toJuceChannelSet(bus));
+        }
     }
     return ret;
+}
+
+static std::string toAAPBusLayout(const juce::AudioChannelSet& set) {
+    if (set == juce::AudioChannelSet::mono())
+        return AAP_BUS_LAYOUT_MONO;
+    if (set == juce::AudioChannelSet::stereo())
+        return AAP_BUS_LAYOUT_STEREO;
+    if (set == juce::AudioChannelSet::createLCR())
+        return "lcr";
+    if (set == juce::AudioChannelSet::quadraphonic())
+        return "quad";
+    if (set == juce::AudioChannelSet::create5point1())
+        return "5.1";
+    if (set == juce::AudioChannelSet::create7point1())
+        return "7.1";
+    if (set.getAmbisonicOrder() >= 0)
+        return "ambisonic(" + std::to_string(set.getAmbisonicOrder()) + ")";
+    return aap::BusInformation::getDefaultLayoutForChannelCount(set.size());
+}
+
+// Each JUCE bus has the channel count of its AAP bus, or is disabled only on the JUCE side.
+bool AndroidAudioPluginInstance::matchesPluginBusLayout(const BusesLayout& layouts) const {
+    for (bool isInput : {true, false}) {
+        auto& sets = isInput ? layouts.inputBuses : layouts.outputBuses;
+        auto direction = isInput ? AAP_PORT_DIRECTION_INPUT : AAP_PORT_DIRECTION_OUTPUT;
+        if (sets.size() != native->getNumBuses(AAP_BUS_KIND_AUDIO, direction))
+            return false;
+        for (int b = 0; b < sets.size(); b++)
+            if (!sets[b].isDisabled() && sets[b].size() != native->getBus(AAP_BUS_KIND_AUDIO, direction, b)->getChannelCount())
+                return false;
+    }
+    return true;
+}
+
+// JUCE may change layouts without canApplyBusesLayout() (e.g. setPlayConfigDetails()), so
+// only those that need no change on the plugin side are supported here.
+bool AndroidAudioPluginInstance::isBusesLayoutSupported(const BusesLayout& layouts) const {
+    return adopting_plugin_layout || matchesPluginBusLayout(layouts);
+}
+
+// The AAP plugin accepts or rejects a whole layout atomically, so it is requested here: JUCE
+// changes its buses right after this check succeeds. The host prepares the instance again.
+bool AndroidAudioPluginInstance::canApplyBusesLayout(const BusesLayout& layouts) const {
+    if (adopting_plugin_layout || layouts == getBusesLayout() || matchesPluginBusLayout(layouts))
+        return true;
+    auto remote = dynamic_cast<aap::RemotePluginInstance*>(native);
+    if (!remote)
+        return false;
+    aap_bus_layout_request_t request{};
+    for (bool isInput : {true, false}) {
+        auto& sets = isInput ? layouts.inputBuses : layouts.outputBuses;
+        auto direction = isInput ? AAP_PORT_DIRECTION_INPUT : AAP_PORT_DIRECTION_OUTPUT;
+        if (sets.size() != native->getNumBuses(AAP_BUS_KIND_AUDIO, direction))
+            return false;
+        for (int b = 0; b < sets.size() && request.count < AAP_MAX_BUSES; b++) {
+            auto& bus = request.buses[request.count++];
+            bus.id = native->getBus(AAP_BUS_KIND_AUDIO, direction, b)->getId();
+            bus.enabled = !sets[b].isDisabled();
+            bus.channel_count = sets[b].size();
+            strncpy(bus.layout, toAAPBusLayout(sets[b]).c_str(), AAP_MAX_BUS_LAYOUT_CHARS - 1);
+        }
+    }
+    bool wasActive = remote->getInstanceState() == aap::PLUGIN_INSTANTIATION_STATE_ACTIVE;
+    if (wasActive)
+        remote->deactivate();
+    auto error = remote->applyBusLayout(request);
+    if (!error.empty()) {
+        aap::a_log_f(AAP_LOG_LEVEL_WARN, AAP_JUCE_LOG_TAG, "The bus layout was not applied: %s", error.c_str());
+        if (wasActive && remote->getInstanceState() == aap::PLUGIN_INSTANTIATION_STATE_INACTIVE)
+            remote->activate();
+        return false;
+    }
+    return true;
+}
+
+bool AndroidAudioPluginInstance::canApplyBusCountChange(bool isInput, bool isAdding, BusProperties& outProperties) {
+    if (!adopting_plugin_layout)
+        return false;
+    if (isAdding) {
+        auto bus = native->getBus(AAP_BUS_KIND_AUDIO, isInput ? AAP_PORT_DIRECTION_INPUT : AAP_PORT_DIRECTION_OUTPUT,
+                                  getBusCount(isInput));
+        if (!bus)
+            return false;
+        outProperties = {bus->getName(), toJuceChannelSet(bus), bus->isEnabled()};
+    }
+    return true;
+}
+
+// Makes the JUCE buses follow the AAP audio buses again (see createJuceBuses()).
+void AndroidAudioPluginInstance::adoptPluginBusLayout() {
+    adopting_plugin_layout = true;
+    BusesLayout layouts;
+    for (bool isInput : {true, false}) {
+        auto direction = isInput ? AAP_PORT_DIRECTION_INPUT : AAP_PORT_DIRECTION_OUTPUT;
+        auto count = native->getNumBuses(AAP_BUS_KIND_AUDIO, direction);
+        while (getBusCount(isInput) < count && addBus(isInput)) {}
+        while (getBusCount(isInput) > count && removeBus(isInput)) {}
+        if (getBusCount(isInput) != count) {
+            aap::a_log_f(AAP_LOG_LEVEL_WARN, AAP_JUCE_LOG_TAG, "Could not follow the plugin bus count");
+            adopting_plugin_layout = false;
+            return;
+        }
+        for (int b = 0; b < count; b++)
+            (isInput ? layouts.inputBuses : layouts.outputBuses).add(toJuceChannelSet(native->getBus(AAP_BUS_KIND_AUDIO, direction, b)));
+    }
+    if (!setBusesLayout(layouts))
+        aap::a_log_f(AAP_LOG_LEVEL_WARN, AAP_JUCE_LOG_TAG, "Could not follow the plugin bus layout");
+    adopting_plugin_layout = false;
+}
+
+// Like JUCE VST3 hosting does for restartComponent(kIoChanged): on the message thread, the
+// instance is released, follows the new bus layout, and is prepared again if it was active.
+void AndroidAudioPluginInstance::handleAsyncUpdate() {
+    auto flags = pending_bus_changes.exchange(0);
+    auto remote = dynamic_cast<aap::RemotePluginInstance*>(native);
+    if (!(flags & AAP_BUSES_CHANGED_LAYOUT) || !remote)
+        return;
+    suspendProcessing(true);
+    bool wasActive = remote->getInstanceState() == aap::PLUGIN_INSTANTIATION_STATE_ACTIVE;
+    releaseResources();
+    auto error = remote->refreshBusLayout();
+    if (error.empty()) {
+        adoptPluginBusLayout();
+        if (wasActive && sample_rate > 0 && block_size > 0)
+            prepareToPlay(sample_rate, block_size);
+    } else
+        aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_LOG_TAG, "Failed to refresh the bus layout: %s", error.c_str());
+    suspendProcessing(false);
+    updateHostDisplay();
 }
 
 AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance* nativePlugin)
@@ -248,6 +356,12 @@ AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance* nati
         addParameter(new AndroidAudioPluginParameter(i, this, para));
 #endif
     }
+
+    if (auto remote = dynamic_cast<aap::RemotePluginInstance*>(nativePlugin))
+        remote->setBusesChangedHandler([this](uint32_t flags) {
+            pending_bus_changes |= flags;
+            triggerAsyncUpdate();
+        });
 }
 
 void AndroidAudioPluginParameter::valueChanged(float newValue) {
@@ -294,20 +408,14 @@ bool AndroidAudioPluginInstance::parameterValueChanged(AndroidAudioPluginParamet
 void
 AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpectedSamplesPerBlock) {
     sample_rate = (int) sampleRate;
+    block_size = maximumExpectedSamplesPerBlock;
 
     native->prepare(maximumExpectedSamplesPerBlock, (int32_t) sampleRate);
 
-    for (int i = 0, n = native->getNumPorts(); i < n; i++) {
-        auto port = native->getPort(i);
-        if (port->getContentType() == AAP_CONTENT_TYPE_MIDI2) {
-            if (port->getPortDirection() == AAP_PORT_DIRECTION_INPUT)
-                aap_midi_in_port = i;
-            else
-                aap_midi_out_port = i;
-        }
+    aap_midi_in_port = native->getMainEventPortIndex(AAP_PORT_DIRECTION_INPUT);
+    aap_midi_out_port = native->getMainEventPortIndex(AAP_PORT_DIRECTION_OUTPUT);
 
-        native->activate();
-    }
+    native->activate();
 }
 
 void AndroidAudioPluginInstance::releaseResources() {
@@ -315,6 +423,10 @@ void AndroidAudioPluginInstance::releaseResources() {
 }
 
 AndroidAudioPluginInstance::~AndroidAudioPluginInstance() {
+    // It returns after any running handler call, so nothing triggers an update afterwards.
+    if (auto remote = dynamic_cast<aap::RemotePluginInstance*>(native))
+        remote->setBusesChangedHandler({});
+    cancelPendingUpdate();
     // it does not dispose here; whatever allocated the instance (and passed to the constructor) is responsible.
     native->deactivate();
 }

@@ -17,6 +17,7 @@
 #include "aap/ext/midi.h"
 #include "aap/ext/parameters.h"
 #include "aap/ext/plugin-info.h"
+#include "aap/ext/buses.h"
 #include "aap/ext/gui.h"
 #include "cmidi2.h"
 
@@ -124,13 +125,20 @@ class JuceAAPWrapper : public JuceAAPAndroidViewSupport, juce::AudioPlayHead, ju
     aap_state_t state{nullptr, 0};
     juce::AudioProcessor *juce_processor;
     juce::HeapBlock<float*> juce_channels;
+    // backs JUCE process block channels that have no AAP port buffer.
+    juce::HeapBlock<float> juce_scratch;
+    int juce_num_channels{0};
     juce::AudioSampleBuffer juce_audio_buffer;
 
     juce::MidiBuffer juce_midi_messages;
     int32_t aap_midi2_in_port{-1}, aap_midi2_out_port{-1};
-    std::map<int32_t,int32_t> aap_to_juce_portmap_in{};
-    std::map<int32_t,int32_t> aap_to_juce_portmap_out{};
-    std::map<int32_t,int32_t> portmap_juce_to_aap_out{};
+    // An AAP audio port and the JUCE process block channel for it, over all the JUCE buses.
+    struct ChannelMapping {
+        int32_t aap_port;
+        int juce_channel;
+    };
+    std::vector<ChannelMapping> audio_in_mappings{};
+    std::vector<ChannelMapping> audio_out_mappings{};
 
     struct PendingParameterChange {
         uint16_t index{0};
@@ -175,6 +183,8 @@ public:
         // Note that if we did not have invoked MessageManager::getInstance() until here, it will crash.
         // It must have been done at initialiseJUCE().
         juce_processor = createPluginFilter();
+        // The bus layout is reported to the host before prepare(), so the main buses are enabled here.
+        enableMainBuses();
 
         publishParameterList();
 
@@ -489,22 +499,115 @@ public:
             return;
         }
 
-        juce_channels.calloc(juce_processor->getMainBusNumInputChannels() + juce_processor->getMainBusNumOutputChannels());
+        enableMainBuses();
+        // JUCE processes in place: an input channel and an output channel share the same index.
+        juce_num_channels = jmax(juce_processor->getTotalNumInputChannels(), juce_processor->getTotalNumOutputChannels());
+        juce_channels.calloc(juce_num_channels);
+        juce_scratch.calloc((size_t) juce_num_channels * aapBuffer->num_frames(aapBuffer));
 
-        juce_audio_buffer.setSize(juce_processor->getMainBusNumOutputChannels(), aapBuffer->num_frames(aapBuffer));
+        juce_audio_buffer.setSize(juce_num_channels, aapBuffer->num_frames(aapBuffer));
 
         // allocates juce_buffer. No need to interpret content.
         this->buffer = aapBuffer;
-        if (juce_processor->getBusCount(true) > 0) {
-            juce_processor->getBus(true, 0)->enable();
-        }
-        if (juce_processor->getBusCount(false) > 0)
-            juce_processor->getBus(false, 0)->enable();
         juce_midi_messages.clear();
     }
 
-    inline int getNumberOfChannelsOfBus(juce::AudioPluginInstance::Bus *bus) {
-        return bus ? bus->getNumberOfChannels() : 0;
+    void enableMainBuses() {
+        if (juce_processor->getBusCount(true) > 0)
+            juce_processor->getBus(true, 0)->enable();
+        if (juce_processor->getBusCount(false) > 0)
+            juce_processor->getBus(false, 0)->enable();
+    }
+
+    static std::string toAAPBusLayout(const juce::AudioChannelSet& set) {
+        if (set == juce::AudioChannelSet::mono())
+            return "mono";
+        if (set == juce::AudioChannelSet::stereo())
+            return "stereo";
+        if (set == juce::AudioChannelSet::createLCR())
+            return "lcr";
+        if (set == juce::AudioChannelSet::quadraphonic())
+            return "quad";
+        if (set == juce::AudioChannelSet::create5point1())
+            return "5.1";
+        if (set == juce::AudioChannelSet::create7point1())
+            return "7.1";
+#if JUCE_MAJOR_VERSION >= 7
+        if (set == juce::AudioChannelSet::create7point1point4())
+            return "7.1.4";
+#endif
+        if (set.getAmbisonicOrder() >= 0)
+            return "ambisonic(" + std::to_string(set.getAmbisonicOrder()) + ")";
+        return "discrete(" + std::to_string(set.size()) + ")";
+    }
+
+    static juce::AudioChannelSet fromAAPBusLayout(const char* layout, int32_t channelCount) {
+        std::string tag{layout};
+        if (tag == "mono")
+            return juce::AudioChannelSet::mono();
+        if (tag == "stereo")
+            return juce::AudioChannelSet::stereo();
+        if (tag == "lcr")
+            return juce::AudioChannelSet::createLCR();
+        if (tag == "quad")
+            return juce::AudioChannelSet::quadraphonic();
+        if (tag == "5.1")
+            return juce::AudioChannelSet::create5point1();
+        if (tag == "7.1")
+            return juce::AudioChannelSet::create7point1();
+#if JUCE_MAJOR_VERSION >= 7
+        if (tag == "7.1.4")
+            return juce::AudioChannelSet::create7point1point4();
+#endif
+        int order = 0;
+        if (sscanf(layout, "ambisonic(%d)", &order) == 1)
+            return juce::AudioChannelSet::ambisonic(order);
+        if (tag.empty())
+            return juce::AudioChannelSet::canonicalChannelSet(channelCount);
+        return juce::AudioChannelSet::discreteChannels(channelCount);
+    }
+
+    // Buses extension: JUCE buses are AAP audio buses, in the same order.
+    int32_t getAudioBusCount(bool isInput) { return juce_processor->getBusCount(isInput); }
+
+    aap_bus_info_t getAudioBus(bool isInput, int32_t index) {
+        aap_bus_info_t info{};
+        auto bus = juce_processor->getBus(isInput, index);
+        if (!bus)
+            return info;
+        info.id = (uint32_t) ((isInput ? 0 : 0x100) + index);
+        info.kind = AAP_BUS_KIND_AUDIO;
+        info.direction = isInput ? AAP_PORT_DIRECTION_INPUT : AAP_PORT_DIRECTION_OUTPUT;
+        info.role = index == 0 ? AAP_BUS_ROLE_MAIN : AAP_BUS_ROLE_AUX;
+        strncpy(info.name, bus->getName().toRawUTF8(), AAP_MAX_BUS_NAME_CHARS - 1);
+        auto layout = bus->isEnabled() ? bus->getCurrentLayout() : bus->getDefaultLayout();
+        info.channel_count = layout.size();
+        strncpy(info.layout, toAAPBusLayout(layout).c_str(), AAP_MAX_BUS_LAYOUT_CHARS - 1);
+        if (index > 0)
+            info.flags = AAP_BUS_FLAG_OPTIONAL | (bus->isEnabledByDefault() ? AAP_BUS_FLAG_ENABLED_BY_DEFAULT : 0);
+        info.enabled = bus->isEnabled();
+        return info;
+    }
+
+    // Applies the requested layout, if the JUCE processor supports it. The host prepares it again.
+    bool applyAudioBusLayout(const aap_bus_layout_request_t& request) {
+        auto layout = juce_processor->getBusesLayout();
+        for (int32_t i = 0; i < request.count; i++) {
+            auto& bus = request.buses[i];
+            bool isInput = bus.id < 0x100;
+            auto index = (int) (bus.id & 0xFF);
+            auto& sets = isInput ? layout.inputBuses : layout.outputBuses;
+            if (index >= sets.size())
+                return false;
+            sets.getReference(index) = bus.enabled ? fromAAPBusLayout(bus.layout, bus.channel_count)
+                                                   : juce::AudioChannelSet::disabled();
+            if (bus.enabled && sets[index].size() != bus.channel_count)
+                return false;
+        }
+        if (!juce_processor->checkBusesLayoutSupported(layout))
+            return false;
+        juce_processor->releaseResources();
+        return juce_processor->setBusesLayout(layout);
     }
 
     void prepare(int32_t sampleRate, aap_buffer_t *buffer) {
@@ -516,11 +619,9 @@ public:
         // retrieve AAP MDI2 ports. They are different from juce::AudioProcessor.acceptsMidi()
         auto pluginInfoExt = (aap_host_plugin_info_extension_t*) host.get_extension(&host, AAP_PLUGIN_INFO_EXTENSION_URI);
         if (pluginInfoExt) {
-            aap_to_juce_portmap_in.clear();
-            aap_to_juce_portmap_out.clear();
-            portmap_juce_to_aap_out.clear();
-            int jucePortInIdx = 0, jucePortOutIdx = 0;
-            int nOut = juce_processor->getMainBusNumOutputChannels();
+            audio_in_mappings.clear();
+            audio_out_mappings.clear();
+            std::vector<int32_t> aapAudioIn{}, aapAudioOut{};
 
             auto pluginInfo = pluginInfoExt->get(pluginInfoExt, &host, plugin_unique_id);
             for (int i = 0, n = pluginInfo.get_port_count(&pluginInfo); i < n; i++) {
@@ -533,16 +634,23 @@ public:
                             aap_midi2_out_port = i;
                         break;
                     case AAP_CONTENT_TYPE_AUDIO:
-                        if (port.direction(&port) == AAP_PORT_DIRECTION_INPUT)
-                            aap_to_juce_portmap_in[i] = jucePortInIdx++;
-                        else {
-                            portmap_juce_to_aap_out[jucePortOutIdx] = i;
-                            aap_to_juce_portmap_out[i] = jucePortOutIdx++;
-                        }
+                        (port.direction(&port) == AAP_PORT_DIRECTION_INPUT ? aapAudioIn : aapAudioOut).emplace_back(i);
                         break;
                     default:
                         break;
                 }
+            }
+
+            // The k-th channel over the JUCE buses (in bus order) goes to the k-th AAP audio port of
+            // the same direction. In bus mode, AAP audio ports are exactly the bus channels.
+            for (bool isInput : {true, false}) {
+                auto& aapPorts = isInput ? aapAudioIn : aapAudioOut;
+                auto& mappings = isInput ? audio_in_mappings : audio_out_mappings;
+                size_t k = 0;
+                for (int b = 0, nb = juce_processor->getBusCount(isInput); b < nb; b++)
+                    for (int ch = 0, nc = juce_processor->getBus(isInput, b)->getNumberOfChannels(); ch < nc; ch++, k++)
+                        if (k < aapPorts.size())
+                            mappings.push_back({aapPorts[k], juce_processor->getChannelIndexInProcessBlockBuffer(isInput, b, ch)});
             }
         }
 
@@ -558,10 +666,8 @@ public:
         play_head_position.bpm = 120;
 #endif
 
-        juce_processor->setPlayConfigDetails(
-                getNumberOfChannelsOfBus(juce_processor->getBus(true, 0)),
-                getNumberOfChannelsOfBus(juce_processor->getBus(false, 0)),
-                sample_rate, buffer->num_frames(buffer));
+        // (setPlayConfigDetails() is only for the main buses.)
+        juce_processor->setRateAndBufferSizeDetails(sample_rate, buffer->num_frames(buffer));
         juce_processor->setPlayHead(this);
 
         juce_processor->prepareToPlay(sample_rate, buffer->num_frames(buffer));
@@ -1053,30 +1159,24 @@ public:
     }
 
     void resetJuceChannels(aap_buffer_t *audioBuffer, int32_t frameCount) {
-        int nOut = juce_processor->getMainBusNumOutputChannels();
-        int nIn = juce_processor->getMainBusNumInputChannels();
         auto numFrames = audioBuffer->num_frames(audioBuffer);
         if (frameCount > numFrames) {
             aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_TAG, "frameCount is bigger than numFrames from aap_buffer_t.");
             frameCount = numFrames;
         }
 
+        // Channels without an AAP port buffer use (silent) scratch memory.
+        memset(juce_scratch.get(), 0, sizeof(float) * (size_t) juce_num_channels * numFrames);
+        for (int i = 0; i < juce_num_channels; i++)
+            juce_channels[i] = juce_scratch.get() + (size_t) i * numFrames;
         // Assign JUCE out channel buffer ONLY IF it is not assigned for inputs.
         // To achieve that, first fill output buffer pointers, then overwrite by input buffer pointers.
-        // (They must be two separate passes; AAP port order is not guaranteed, and e.g. the
-        // default port configuration in aap-core lists input ports before output ports.)
-        for (int i = 0; i < audioBuffer->num_ports(audioBuffer); i++) {
-            auto iterOut = aap_to_juce_portmap_out.find(i);
-            if (iterOut != aap_to_juce_portmap_out.end())
-                juce_channels[iterOut->second] = (float*) audioBuffer->get_buffer(audioBuffer, i);
-        }
-        for (int i = 0; i < audioBuffer->num_ports(audioBuffer); i++) {
-            auto iterIn = aap_to_juce_portmap_in.find(i);
-            if (iterIn != aap_to_juce_portmap_in.end())
-                juce_channels[iterIn->second] = (float*) audioBuffer->get_buffer(audioBuffer, i);
-        }
+        for (auto& m : audio_out_mappings)
+            juce_channels[m.juce_channel] = (float*) audioBuffer->get_buffer(audioBuffer, m.aap_port);
+        for (auto& m : audio_in_mappings)
+            juce_channels[m.juce_channel] = (float*) audioBuffer->get_buffer(audioBuffer, m.aap_port);
 
-        juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, jmax(nIn, nOut), frameCount);
+        juce_audio_buffer = juce::AudioBuffer<float>(juce_channels, juce_num_channels, frameCount);
     }
 
     const char *AAP_JUCE_TRACE_SECTION_NAME = "aap-juce_process";
@@ -1139,12 +1239,11 @@ public:
             processMidiOutputs(audioBuffer);
         flushParameterChanges(audioBuffer);
 
-        int numAudioIns = juce_processor->getMainBusNumInputChannels();
-        int numAudioOuts = juce_processor->getMainBusNumOutputChannels();
-        int numCopied = numAudioIns < numAudioOuts ? numAudioIns : numAudioOuts;
-        for (int i = 0; i < numCopied; i++) {
-            auto aapPortIndex = portmap_juce_to_aap_out[i];
-            memcpy(audioBuffer->get_buffer(audioBuffer, aapPortIndex), juce_channels[i], audioBuffer->num_frames(audioBuffer) * sizeof(float));
+        // Output channels that JUCE processed in an input buffer (or in scratch) are copied back.
+        for (auto& m : audio_out_mappings) {
+            auto dst = (float*) audioBuffer->get_buffer(audioBuffer, m.aap_port);
+            if (dst != juce_channels[m.juce_channel])
+                memcpy(dst, juce_channels[m.juce_channel], frameCount * sizeof(float));
         }
 
 #if ANDROID
@@ -1380,9 +1479,35 @@ aap_parameters_extension_t parameters_ext{nullptr,
 std::map<AndroidAudioPlugin *, std::unique_ptr<aap_state_extension_t>> state_ext_map{};
 std::map<AndroidAudioPlugin *, std::unique_ptr<aap_presets_extension_t>> presets_ext_map{};
 
+int32_t juceaap_get_bus_count(aap_buses_extension_t* ext, AndroidAudioPlugin* plugin,
+                              aap_bus_kind kind, aap_port_direction direction) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    return kind == AAP_BUS_KIND_AUDIO ? wrapper->getAudioBusCount(direction == AAP_PORT_DIRECTION_INPUT) : 0;
+}
+
+aap_bus_info_t juceaap_get_bus(aap_buses_extension_t* ext, AndroidAudioPlugin* plugin,
+                               aap_bus_kind kind, aap_port_direction direction, int32_t index) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    return kind == AAP_BUS_KIND_AUDIO ? wrapper->getAudioBus(direction == AAP_PORT_DIRECTION_INPUT, index) : aap_bus_info_t{};
+}
+
+bool juceaap_apply_bus_layout(aap_buses_extension_t* ext, AndroidAudioPlugin* plugin,
+                              const aap_bus_layout_request_t* request) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    return wrapper->applyAudioBusLayout(*request);
+}
+
+aap_buses_extension_t buses_ext{nullptr,
+                                juceaap_get_bus_count,
+                                juceaap_get_bus,
+                                juceaap_apply_bus_layout};
+
 void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
     if (strcmp(uri, AAP_PARAMETERS_EXTENSION_URI) == 0) {
         return &parameters_ext;
+    }
+    if (strcmp(uri, AAP_BUSES_EXTENSION_URI) == 0) {
+        return &buses_ext;
     }
     if (strcmp(uri, AAP_STATE_EXTENSION_URI) == 0) {
         if (!state_ext_map[plugin]) {
