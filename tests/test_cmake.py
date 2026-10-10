@@ -262,6 +262,46 @@ class PreparationTests(unittest.TestCase):
         self.assert_success(subprocess.run(
             ["cmake", "--build", str(build)], capture_output=True, text=True))
 
+    def test_desktop_configure_exports_paths_without_android_preparation(self):
+        header = self.source / "modules/juce_core/system/juce_StandardHeader.h"
+        header.parent.mkdir(parents=True)
+        header.write_text("#define JUCE_MAJOR_VERSION 99\n"
+                          "#define JUCE_MINOR_VERSION 0\n#define JUCE_BUILDNUMBER 1\n")
+        project = self.root / "desktop"
+        project.mkdir()
+        (project / "CMakeLists.txt").write_text(
+            'cmake_minimum_required(VERSION 3.22)\n'
+            f'add_subdirectory("{ROOT}" aap-juce EXCLUDE_FROM_ALL)\n'
+            f'aap_juce_configure(JUCE_SOURCE_DIR "{self.source}" ICON missing.png)\n'
+            'project(desktop LANGUAGES NONE)\n'
+            'if(NOT AAP_JUCE_VERSION STREQUAL "99.0.1" OR NOT AAP_DIR OR NOT AAP_JUCE_DIR)\n'
+            ' message(FATAL_ERROR "Missing integration values")\nendif()\n')
+        self.assert_success(subprocess.run(
+            ["cmake", "-S", str(project), "-B", str(self.root / "desktop-build")],
+            capture_output=True, text=True))
+        self.assertFalse((self.source / ".aap-juce").exists())
+        self.assertFalse((self.source / ".stamp-juce").exists())
+
+    def test_android_detection_before_project(self):
+        header = self.source / "modules/juce_core/system/juce_StandardHeader.h"
+        header.parent.mkdir(parents=True)
+        header.write_text("#define JUCE_MAJOR_VERSION 99\n"
+                          "#define JUCE_MINOR_VERSION 0\n#define JUCE_BUILDNUMBER 1\n")
+        patch = self.patch()
+        project = self.root / "android"
+        project.mkdir()
+        (project / "CMakeLists.txt").write_text(
+            'cmake_minimum_required(VERSION 3.22)\n'
+            f'add_subdirectory("{ROOT}" aap-juce EXCLUDE_FROM_ALL)\n'
+            'set(CMAKE_SYSTEM_NAME Android)\n'
+            f'aap_juce_configure(JUCE_SOURCE_DIR "{self.source}" JUCE_PATCHES "{patch}")\n'
+            'set(CMAKE_SYSTEM_NAME "${CMAKE_HOST_SYSTEM_NAME}")\n'
+            'project(fixture LANGUAGES NONE)\n')
+        self.assert_success(subprocess.run(
+            ["cmake", "-S", str(project), "-B", str(self.root / "android-build")],
+            capture_output=True, text=True))
+        self.assertEqual((self.source / "value.txt").read_text(), "patched\n")
+
     def test_catalog_choices_and_unknown_versions(self):
         for version in ("6.0.5", "7.0.9", "7.0.10", "7.0.11", "7.0.12",
                         "8.0.9", "8.0.10", "8.0.12", "8.0.15", "9.0.0"):
@@ -277,22 +317,29 @@ class PreparationTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
 
     def test_preparation_bootstraps_the_patched_cmake_entrypoint(self):
+        juce = self.root / "JUCE"
+        header = juce / "modules/juce_core/system/juce_StandardHeader.h"
+        header.parent.mkdir(parents=True)
+        header.write_text("#define JUCE_MAJOR_VERSION 99\n"
+                          "#define JUCE_MINOR_VERSION 0\n#define JUCE_BUILDNUMBER 1\n")
+        (juce / "value.txt").write_text("original\n")
+        juce_patch = self.patch()
         entry = self.source / "CMakeLists.txt"
-        entry.write_text('project(fixture LANGUAGES NONE)\n')
+        entry.write_text('project(fixture LANGUAGES NONE)\n'
+                         'message(FATAL_ERROR "Preparation must stop before project")\n')
         patch = self.root / "entry.patch"
         patch.write_text(
             'diff --git a/CMakeLists.txt b/CMakeLists.txt\n'
-            '--- a/CMakeLists.txt\n+++ b/CMakeLists.txt\n@@ -1 +1,6 @@\n'
-            '+if(AAP_JUCE_PREPARE_ONLY)\n'
-            f'+    add_subdirectory("{ROOT}" "${{CMAKE_CURRENT_BINARY_DIR}}/aap-juce")\n'
-            '+    file(WRITE "${CMAKE_CURRENT_LIST_DIR}/prepared.txt" "prepared")\n'
-            '+    return()\n+endif()\n'
-            ' project(fixture LANGUAGES NONE)\n')
+            '--- a/CMakeLists.txt\n+++ b/CMakeLists.txt\n@@ -1,2 +1,4 @@\n'
+            f'+add_subdirectory("{ROOT}" "${{CMAKE_CURRENT_BINARY_DIR}}/aap-juce")\n'
+            f'+aap_juce_configure(JUCE_SOURCE_DIR "{juce}" JUCE_PATCHES "{juce_patch}")\n'
+            ' project(fixture LANGUAGES NONE)\n'
+            ' message(FATAL_ERROR "Preparation must stop before project")\n')
         result = subprocess.run([
             'cmake', f'-DAPP_CMAKE={entry}', f'-DAPP_PATCH={patch}',
             '-P', str(ROOT / 'cmake/PreparePort.cmake')], capture_output=True, text=True)
         self.assert_success(result)
-        self.assertEqual((self.source / 'prepared.txt').read_text(), 'prepared')
+        self.assertEqual((juce / 'value.txt').read_text(), 'patched\n')
         self.assertTrue((self.source / '.stamp-app').exists())
         result = subprocess.run([
             'cmake', f'-DAPP_CMAKE={entry}', f'-DAPP_PATCH={patch}',

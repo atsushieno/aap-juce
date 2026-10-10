@@ -20,29 +20,27 @@ The beginning of a patched Dexed `CMakeLists.txt` looks like:
 
 ```cmake
 cmake_minimum_required(VERSION 3.22)
-if(ANDROID OR AAP_JUCE_PREPARE_ONLY)
-    add_subdirectory("${AAP_JUCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce" EXCLUDE_FROM_ALL)
-    aap_juce_configure(JUCE_SOURCE_DIR libs/JUCE ADOPT_EXISTING_PATCHES)
-    if(AAP_JUCE_PREPARE_ONLY)
-        return()
-    endif()
-    set(DEXED_SKIP_VST3 ON CACHE BOOL "Build only the Android plugin format" FORCE)
-endif()
+add_subdirectory("${AAP_JUCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce" EXCLUDE_FROM_ALL)
+aap_juce_configure(JUCE_SOURCE_DIR libs/JUCE ICON assets/ui/dexedIcon.png ADOPT_EXISTING_PATCHES)
 
 project(Dexed VERSION 1.0.1)
 # Existing upstream JUCE loading and plugin target creation follows here.
 # After the Dexed target exists:
-if(ANDROID)
-    aap_juce_plugin(TARGET Dexed)
-endif()
+aap_juce_plugin(TARGET Dexed)
 ```
 
-The preparation block must precede `project()`, compiler discovery, and JUCE
-loading. `AAP_JUCE_PREPARE_ONLY` allows the same configuration to run in
-a compiler-free host CMake project. It can also stage resources with `configure_file(... COPYONLY)`
-before returning. Relative paths use the application source directory in both modes. The shared Gradle adapter supplies the fixed aap-juce submodule path; the
-helper supplies the sibling aap-core path and stages a launcher icon when
-`ICON` is supplied. Keep the `src/main/cpp` symlink layout in both modes.
+The configuration call must precede `project()`, compiler discovery, and JUCE
+loading. The shared helper detects Android and handles the host preparation
+mode internally. During host preparation it stages sources and resources, then
+returns from the calling `CMakeLists.txt` before configuring native targets.
+Desktop builds receive the AAP paths and JUCE version without Android patching
+or resource staging. Port developers do not need execution-mode guards around
+the helper calls. Relative paths use the application source directory in both
+modes. The shared Gradle adapter supplies the fixed aap-juce submodule path;
+the helper supplies the sibling aap-core path and stages a launcher icon when
+`ICON` is supplied. Keep Gradle's `src/main/cpp/CMakeLists.txt` reference and its
+source-directory symlink: Android Studio's CMake path-resolution limits require
+this layout.
 
 Run preparation before JUCE and upstream CMake files are evaluated, and run
 the target helper after `juce_add_plugin()` creates the target. Host projects
@@ -55,7 +53,7 @@ centrally. An application patch must not also patch files inside the separately
 prepared JUCE tree. App and JUCE preparation have separate journals.
 
 `aap_juce_configure()` exports `AAP_JUCE_DIR`, `AAP_JUCE_SOURCE_DIR`,
-`AAP_JUCE_VERSION`, and, when supplied, `AAP_DIR` into the caller's scope.
+`AAP_JUCE_VERSION`, and `AAP_DIR` into the caller's scope.
 The plugin target helper supplies the appropriate old/new AudioPlayHead API
 definition, AAP module include paths, and Android linkage/initialization
 definitions. Project-specific flags such as `AAP_JUCE_HAS_HEADLESS_PROCESSOR`
