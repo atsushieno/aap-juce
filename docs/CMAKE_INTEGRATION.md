@@ -114,7 +114,7 @@ a `.aap-juce/` lock and journal; aliases to the same directory resolve to the
 same lock. ABI/variant binary directories never own preparation state.
 Exclude `.aap-juce/` from version control in the upstream checkouts.
 
-The fingerprint includes the source revision, ordered patch paths/contents,
+The fingerprint includes the source revision, ordered patch contents,
 and preparation implementation. Prepared file contents are verified too.
 Matching calls return without reapplying patches. Changed patch sets are staged
 against saved originals; all patches must succeed before real files are updated.
@@ -135,22 +135,43 @@ incompatible or partly applied patches fail without overwriting sources. Existin
 legacy stamps alone are never treated as proof that a patch was applied.
 After successful preparation it creates the existing `.stamp-app` and
 `.stamp-juce` markers, allowing legacy Make targets to skip applying the patches
-again. Existing files are not moved, renamed, or replaced with new symlinks.
+again. Existing checked-out JUCE directories are retained.
 
 ## Fetched JUCE and Android build scheduling
 
-For FetchContent/CPM ports, populate JUCE without adding its CMake project,
-then call `aap_juce_configure(JUCE_SOURCE_DIR "${JUCE_SOURCE_DIR}" ...)` before
-adding JUCE. Remove the old `PATCH_COMMAND` when adopting this preparation
-layer; both mechanisms must not patch the same tree. A shared populated source
-can be reused across ABI builds, with the source-local lock protecting patching.
-Fetching itself must also be serialized by its owner before publishing a
-shared source tree; this helper does not lock a concurrent download or checkout.
+Fetched ports pass their JUCE Git recipe to the same configuration call before
+`project()`. For example, after importing aap-juce:
 
-The helpers can also be loaded with `include(cmake/AAPJuce.cmake)` from a host
-`cmake -P` preparation script. Android builds still need Gradle dependencies
-connecting preparation to Java, resources, and lint where these consume its
-outputs. A native build target runs too late for configuration-time patching.
+```cmake
+aap_juce_configure(JUCE_SOURCE_DIR modules/juce SOURCE_CACHE "${CPM_SOURCE_CACHE}"
+    JUCE_CPM_ARGS NAME JUCE GIT_REPOSITORY https://github.com/juce-framework/JUCE
+                  GIT_TAG 7.0.12 CUSTOM_CACHE_KEY aap-7.0.12-lifecycle)
+project(MyPlugin)
+add_subdirectory(modules/juce "${CMAKE_CURRENT_BINARY_DIR}/JUCE")
+```
+
+The version in `GIT_TAG` selects the catalog, then the populated header verifies
+it. A commit-only tag needs `JUCE_VERSION`. `SOURCE_CACHE` is optional; its
+default is the application's `.aap-juce/dependencies`. Gradle forwards an existing
+`-DCPM_SOURCE_CACHE=...` argument to host preparation so both phases use the same
+cache. Android toolchain arguments are kept out of the host configure.
+
+Preparation uses CPM's `DOWNLOAD_ONLY` mode, without discovering compilers or
+configuring JUCE. Cache entries include the Git recipe and ordered patch contents;
+identical profiles share a checkout, while changed profiles get separate checkouts.
+A cache lock covers the first clone, patching, and publication of the stable
+source link. An interrupted partial clone in that managed cache can be retried.
+The source link is published after patch validation succeeds. Android native
+configurations verify the prepared checkout and link without fetching or patching.
+Java and native builds therefore consume the same completed source tree.
+
+Remove the upstream JUCE `PATCH_COMMAND` when adopting this interface. Other
+native dependencies can still use CPM or FetchContent after `project()`.
+Additional dependencies containing Java sources can be prepared with
+`aap_juce_fetch_dependency(SOURCE_DIR ... SOURCE_CACHE ... NAME ...
+GIT_REPOSITORY ... GIT_TAG ...)` before `aap_juce_configure()` returns from the
+host entry point. Existing in-tree checkouts of these unpatched dependencies are
+preserved. This does not prepare unrelated native dependencies.
 
 The shared `cmake/PreparePort.cmake` first applies the application's existing
 `aap-juce-support.patch`, then evaluates the patched entry point in a normal host CMake project
@@ -183,4 +204,8 @@ Android/Prefab dependencies before entering native CMake.
 Run `python3 -m unittest discover -s tests -v` to check concurrent preparation,
 patch updates/removal, failure handling, preservation of local edits, upstream
 revision changes, and the CMake target helpers. These checks use temporary source
-trees and do not modify any checked-out port.
+trees and do not modify any checked-out port. To also run the CPM population
+checks, set `CPM_TEST_FILE` to a local CPM 0.40.2 implementation and run the same
+command. Those checks cover simultaneous cold-cache builds, offline warm reuse,
+profile changes, native verification, partial-clone recovery, and additional Java
+sources.

@@ -37,10 +37,11 @@ if(DEFINED APP_CMAKE)
     endif()
     file(REAL_PATH "${CMAKE_CURRENT_LIST_DIR}/prepare" prepare_source)
     string(SHA256 host_key "${prepare_source};${CMAKE_COMMAND};${ninja}")
+    set(source_arguments "-DCPM_SOURCE_CACHE=${CPM_SOURCE_CACHE}")
     execute_process(COMMAND "${CMAKE_COMMAND}"
         -S "${prepare_source}"
         -B "${app_source}/.aap-juce/host-prepare/${host_key}"
-        ${generator_options}
+        ${generator_options} ${source_arguments}
         "-DAPP_CMAKE=${app_entry}"
         RESULT_VARIABLE result)
     if(NOT result STREQUAL "0")

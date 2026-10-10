@@ -48,13 +48,13 @@ The host can be either `aaphostsample` in aap-core repo, a project [aap-juce-sim
 
 ## App Build Instruction
 
-For those `aap-juce-*` repositories, `make` will build them. (`Makefile` does not sound cool, but it is at least distinct from `CMakeLists.txt` for Android app itself...)
+Migrated CMake ports build with `./gradlew build` (`gradlew.bat build` on Windows), including source preparation. Ports that still have a `Makefile` continue to build with `make`.
 
 ### CI builds
 
 aap-juce itself is a set of JUCE modules that itself does not "build". But still, there are [reusable GitHub Actions workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows) under `.github` directory: one for CMake based projects and another for Projucer based projects. They are kind of normative build instructions (in that it is offered by ourselves).
 
-The actual build is one `make` call if all conditions are met. In other words, every aap-juce-* project that uses the workflow is adjusted to build with that.
+The reusable CMake workflow supports both styles: it runs `make build dist` when the port has a `Makefile`, and otherwise runs `./gradlew build bundleRelease` and collects the APK and app bundle.
 
 As long as other project follows the same structure, you can reuse it too. It is safe to use the versioned workflow by commit rev. as we will be making breaking changes.
 
@@ -66,7 +66,7 @@ You also need Android NDK, most likely at least r23 (our latest development vers
 For those project that use Projucer: depending on the NDK setup you might also have to rewrite `Makefile` and `Builds/Android/local.properties` to point to the right NDK location. Then run `cd Builds/Android && ./gradlew build` instead of `./projuce-app.sh`.
 It would be much easier to place Android SDK and NDK to the standard location though. Symbolic links would suffice.
 
-CMake based projects would similarly need to tweak `Makefile`, but other than that it is a typical Android Studio (Android Gradle) project.
+Migrated CMake projects use the shared [Gradle preparation adapter](docs/CMAKE_INTEGRATION.md) and open as typical Android Studio projects. Older CMake ports still use their Make-based preparation.
 
 ### Build outputs
 

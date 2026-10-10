@@ -11,6 +11,12 @@ if (legacyConfiguration != null || defaultConfiguration.isFile()) {
             "-DAPP_CMAKE=${android.externalNativeBuild.cmake.path.absolutePath}",
             "-DAPP_PATCH=${rootProject.file('aap-juce-support.patch').absolutePath}"]
 }
+// Forward dependency cache selection, without passing Android toolchain arguments
+// to the compiler-free host configure.
+def sourceArguments = android.defaultConfig.externalNativeBuild.cmake.arguments.findAll {
+    it.startsWith('-DCPM_SOURCE_CACHE=')
+}
+preparationArguments += sourceArguments
 def sdkDirectory = androidComponents.sdkComponents.sdkDirectory.get().asFile
 def executableName = System.getProperty('os.name').toLowerCase().contains('windows') ? 'cmake.exe' : 'cmake'
 def sdkCmake = new File(sdkDirectory, "cmake/${libs.versions.cmake.get()}/bin/${executableName}")
@@ -30,7 +36,7 @@ tasks.configureEach {
     if (name == 'preBuild' || name.startsWith('configureCMake') ||
             name.startsWith('buildCMake') ||
             (name.startsWith('externalNativeBuild') && !name.startsWith('externalNativeBuildClean')) ||
-            name.startsWith('lint') ||
+            name.startsWith('lint') || name.matches('generate.*Lint.*Model') ||
             name.matches('compile.*JavaWithJavac') || name.matches('compile.*Kotlin') ||
             name.matches('merge.*Resources') || name.matches('merge.*Assets')) {
         dependsOn prepareAapJuce

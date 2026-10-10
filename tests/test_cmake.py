@@ -326,6 +326,7 @@ class PreparationTests(unittest.TestCase):
             f'aap_juce_configure(JUCE_SOURCE_DIR "{self.source}" JUCE_PATCHES "{patch}")\n'
             'set(CMAKE_SYSTEM_NAME "${CMAKE_HOST_SYSTEM_NAME}")\n'
             'project(fixture LANGUAGES NONE)\n')
+        self.assert_success(self.prepare(patch))
         self.assert_success(subprocess.run(
             ["cmake", "-S", str(project), "-B", str(self.root / "android-build")],
             capture_output=True, text=True))
@@ -359,15 +360,17 @@ class PreparationTests(unittest.TestCase):
         patch = self.root / "entry.patch"
         patch.write_text(
             'diff --git a/CMakeLists.txt b/CMakeLists.txt\n'
-            '--- a/CMakeLists.txt\n+++ b/CMakeLists.txt\n@@ -1,2 +1,4 @@\n'
+            '--- a/CMakeLists.txt\n+++ b/CMakeLists.txt\n@@ -1,2 +1,5 @@\n'
             f'+add_subdirectory("{ROOT}" "${{CMAKE_CURRENT_BINARY_DIR}}/aap-juce")\n'
+            '+file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/selected-cache.txt" "${CPM_SOURCE_CACHE}")\n'
             f'+aap_juce_configure(JUCE_SOURCE_DIR "{juce}" JUCE_PATCHES "{juce_patch}")\n'
             ' project(fixture LANGUAGES NONE)\n'
             ' message(FATAL_ERROR "Preparation must stop before project")\n')
         result = subprocess.run([
-            'cmake', f'-DAPP_CMAKE={entry}', f'-DAPP_PATCH={patch}',
+            'cmake', '-DCPM_SOURCE_CACHE=chosen-cache', f'-DAPP_CMAKE={entry}', f'-DAPP_PATCH={patch}',
             '-P', str(ROOT / 'cmake/PreparePort.cmake')], capture_output=True, text=True)
         self.assert_success(result)
+        self.assertEqual((self.source / 'selected-cache.txt').read_text(), 'chosen-cache')
         self.assertEqual((juce / 'value.txt').read_text(), 'patched\n')
         self.assertTrue((self.source / '.stamp-app').exists())
         result = subprocess.run([
@@ -375,11 +378,12 @@ class PreparationTests(unittest.TestCase):
             '-P', str(ROOT / 'cmake/PreparePort.cmake')], capture_output=True, text=True)
         self.assert_success(result)
         self.assertNotIn('Preparing AAP sources:', result.stdout)
+        self.assertEqual((self.source / 'selected-cache.txt').read_text(), '')
         # Switching from a development checkout to the pinned submodule must
         # not reuse a CMake cache tied to a different host project's source.
         alternate = self.root / 'alternate-helper'
         alternate.mkdir()
-        for filename in ('PreparePort.cmake', 'AAPJuce.cmake', 'PrepareSources.cmake', 'JucePatchSets.cmake'):
+        for filename in ('PreparePort.cmake', 'AAPJuce.cmake', 'PrepareSources.cmake', 'JucePatchSets.cmake', 'PopulateSources.cmake'):
             shutil.copyfile(ROOT / 'cmake' / filename, alternate / filename)
         shutil.copytree(ROOT / 'cmake/prepare', alternate / 'prepare')
         result = subprocess.run([
