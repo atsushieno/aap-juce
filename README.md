@@ -4,6 +4,11 @@ AAP-JUCE is a part of [AAP (Audio Plugins For Android) project](https://github.c
 
 This repo is the place where we have the common JUCE integration support modules, as well as various patches for handful of different JUCE versions.
 
+CMake ports can also load this repository with `add_subdirectory()` and use
+version-selected JUCE patches through `aap_juce_configure()`. See
+[CMake integration](docs/CMAKE_INTEGRATION.md). The existing Make-based
+interfaces and source-tree paths remain available.
+
 CAUTION: the entire AAP framework is still under active development and will keep bringing in breaking API/ABI changes.
 Also, since JUCE itself does not support AAP or anything like AAP that works as an Android Service, there are handful of local changes that try to make it work within the AAP basis.
 
