@@ -1,3 +1,4 @@
 tools/aap-metadata-generator
 tools/aap-metadata-generator.dSYM/
 .DS_Store
+tests/__pycache__/

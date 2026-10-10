@@ -54,7 +54,17 @@ jobs:
                  libjack-jackd2-dev ladspa-sdk doxygen \
                  graphviz cmake ninja-build
     - name: build
-      run: make build dist
+      run: &build_dist |
+        if [ -f Makefile ]; then
+          make build dist
+        else
+          ./gradlew -p external/aap-core publishToMavenLocal
+          ./gradlew build bundleRelease
+          mkdir -p dist
+          find . -path './external' -prune -o -type f \
+            \( -path '*/build/outputs/apk/debug/*.apk' -o -path '*/build/outputs/bundle/release/*.aab' \) \
+            -exec cp {} dist/ \;
+        fi
 
   osx-build:
     name: build on osx
@@ -164,7 +174,7 @@ jobs:
       run: |
         brew install doxygen pkg-config coreutils ninja graphviz
     - name: build
-      run: make build dist
+      run: *build_dist
     - name: Prepare app bundles for signing
       run: |
         mkdir -p "$RUNNER_TEMP/aab-to-sign"

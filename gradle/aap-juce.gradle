@@ -1,0 +1,38 @@
+// This adapter only schedules portable preparation; port details live in CMake.
+def aapJuceDirectory = buildscript.sourceFile.parentFile.parentFile
+def legacyConfiguration = providers.gradleProperty('aapJucePortConfig').orNull
+def defaultConfiguration = rootProject.file('aap-port.cmake')
+def preparationArguments
+if (legacyConfiguration != null || defaultConfiguration.isFile()) {
+    def portConfiguration = rootProject.file(legacyConfiguration ?: 'aap-port.cmake')
+    preparationArguments = ["-DPORT_CONFIG=${portConfiguration.absolutePath}"]
+} else {
+    preparationArguments = [
+            "-DAPP_CMAKE=${android.externalNativeBuild.cmake.path.absolutePath}",
+            "-DAPP_PATCH=${rootProject.file('aap-juce-support.patch').absolutePath}"]
+}
+def sdkDirectory = androidComponents.sdkComponents.sdkDirectory.get().asFile
+def executableName = System.getProperty('os.name').toLowerCase().contains('windows') ? 'cmake.exe' : 'cmake'
+def sdkCmake = new File(sdkDirectory, "cmake/${libs.versions.cmake.get()}/bin/${executableName}")
+def cmakeExecutable = providers.gradleProperty('aapJuceCmake')
+        .getOrElse(sdkCmake.isFile() ? sdkCmake.absolutePath : executableName)
+
+def prepareAapJuce = tasks.register('prepareAapJuce', Exec) {
+    group = 'build'
+    description = 'Prepare application and JUCE sources once across native ABIs.'
+    commandLine([cmakeExecutable] + preparationArguments + [
+            '-P', new File(aapJuceDirectory, 'cmake/PreparePort.cmake').absolutePath])
+    // Always validate the CMake journal, including after a source checkout/reset.
+    // CMake skips the actual preparation when its fingerprint and files match.
+}
+
+tasks.configureEach {
+    if (name == 'preBuild' || name.startsWith('configureCMake') ||
+            name.startsWith('buildCMake') ||
+            (name.startsWith('externalNativeBuild') && !name.startsWith('externalNativeBuildClean')) ||
+            name.startsWith('lint') ||
+            name.matches('compile.*JavaWithJavac') || name.matches('compile.*Kotlin') ||
+            name.matches('merge.*Resources') || name.matches('merge.*Assets')) {
+        dependsOn prepareAapJuce
+    }
+}
