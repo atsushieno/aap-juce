@@ -262,6 +262,35 @@ class PreparationTests(unittest.TestCase):
         self.assert_success(subprocess.run(
             ["cmake", "--build", str(build)], capture_output=True, text=True))
 
+    def test_add_subdirectory_exports_relocated_source_directory(self):
+        relocated = self.root / "dependencies/integration with arbitrary name"
+        relocated.mkdir(parents=True)
+        shutil.copyfile(ROOT / "CMakeLists.txt", relocated / "CMakeLists.txt")
+        shutil.copytree(ROOT / "cmake", relocated / "cmake")
+        project = self.root / "consumer"
+        project.mkdir()
+        (project / "CMakeLists.txt").write_text(
+            'cmake_minimum_required(VERSION 3.22)\nproject(fixture LANGUAGES C)\n'
+            f'add_subdirectory("{relocated}" integration EXCLUDE_FROM_ALL)\n'
+            f'if(NOT AAP_JUCE_DIR STREQUAL "{relocated}")\n'
+            ' message(FATAL_ERROR "add_subdirectory did not export its own directory")\n'
+            'endif()\n'
+            'function(juce_add_module source)\n'
+            f' if(NOT source MATCHES "^{relocated}/")\n'
+            '  message(FATAL_ERROR "Module path did not follow the loaded directory")\n'
+            ' endif()\n'
+            ' get_filename_component(module "${source}" NAME)\n'
+            ' add_library("${module}" INTERFACE)\nendfunction()\n'
+            'file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/core/include")\n'
+            'set(AAP_DIR "${CMAKE_CURRENT_BINARY_DIR}/core")\n'
+            'set(AAP_JUCE_VERSION 8.0.12)\n'
+            'file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/check.c" "int fixture(void) { return 0; }\\n")\n'
+            'add_library(plugin STATIC "${CMAKE_CURRENT_BINARY_DIR}/check.c")\n'
+            'aap_juce_host(TARGET plugin)\n')
+        self.assert_success(subprocess.run(
+            ["cmake", "-S", str(project), "-B", str(self.root / "relocated-build")],
+            capture_output=True, text=True))
+
     def test_desktop_configure_exports_paths_without_android_preparation(self):
         header = self.source / "modules/juce_core/system/juce_StandardHeader.h"
         header.parent.mkdir(parents=True)

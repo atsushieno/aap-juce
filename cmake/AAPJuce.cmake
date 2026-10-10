@@ -1,4 +1,5 @@
 include_guard(GLOBAL)
+get_filename_component(AAP_JUCE_DIR "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 include("${CMAKE_CURRENT_LIST_DIR}/JucePatchSets.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/PrepareSources.cmake")
 
@@ -25,7 +26,6 @@ function(_aap_juce_configure)
     if(arg_JUCE_VERSION AND NOT arg_JUCE_VERSION VERSION_EQUAL version)
         message(FATAL_ERROR "Expected JUCE ${arg_JUCE_VERSION}, found ${version}")
     endif()
-    set(AAP_JUCE_DIR "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." PARENT_SCOPE)
     set(AAP_JUCE_VERSION "${version}" PARENT_SCOPE)
     set(AAP_JUCE_SOURCE_DIR "${juce_source}" PARENT_SCOPE)
     if(NOT arg_AAP_DIR)

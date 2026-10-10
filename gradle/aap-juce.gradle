@@ -1,6 +1,5 @@
 // This adapter only schedules portable preparation; port details live in CMake.
-def aapJuceDirectory = rootProject.file('external/aap-juce')
-android.defaultConfig.externalNativeBuild.cmake.arguments "-DAAP_JUCE_DIR=${aapJuceDirectory.absolutePath}"
+def aapJuceDirectory = buildscript.sourceFile.parentFile.parentFile
 def legacyConfiguration = providers.gradleProperty('aapJucePortConfig').orNull
 def defaultConfiguration = rootProject.file('aap-port.cmake')
 def preparationArguments

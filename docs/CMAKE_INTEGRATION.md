@@ -20,7 +20,8 @@ The beginning of a patched Dexed `CMakeLists.txt` looks like:
 
 ```cmake
 cmake_minimum_required(VERSION 3.22)
-add_subdirectory("${AAP_JUCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce" EXCLUDE_FROM_ALL)
+get_filename_component(app_source "${CMAKE_CURRENT_LIST_DIR}" REALPATH)
+add_subdirectory("${app_source}/../aap-juce" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce" EXCLUDE_FROM_ALL)
 aap_juce_configure(JUCE_SOURCE_DIR libs/JUCE ICON assets/ui/dexedIcon.png ADOPT_EXISTING_PATCHES)
 
 project(Dexed VERSION 1.0.1)
@@ -36,8 +37,12 @@ returns from the calling `CMakeLists.txt` before configuring native targets.
 Desktop builds receive the AAP paths and JUCE version without Android patching
 or resource staging. Port developers do not need execution-mode guards around
 the helper calls. Relative paths use the application source directory in both
-modes. The shared Gradle adapter supplies the fixed aap-juce submodule path;
-the helper supplies the sibling aap-core path and stages a launcher icon when
+modes. The port locates aap-juce once in `add_subdirectory()`; that call exports
+`AAP_JUCE_DIR` from the loaded directory. Resolving the application directory
+first makes the port's relative import work through the Android Studio symlink
+and when configuring the upstream checkout directly. Other layouts can simply
+name their dependency in `add_subdirectory()`. The helper supplies the sibling
+aap-core path and stages a launcher icon when
 `ICON` is supplied. Keep Gradle's `src/main/cpp/CMakeLists.txt` reference and its
 source-directory symlink: Android Studio's CMake path-resolution limits require
 this layout.
@@ -52,8 +57,9 @@ Application patches contain application adaptations; JUCE patches are selected
 centrally. An application patch must not also patch files inside the separately
 prepared JUCE tree. App and JUCE preparation have separate journals.
 
-`aap_juce_configure()` exports `AAP_JUCE_DIR`, `AAP_JUCE_SOURCE_DIR`,
-`AAP_JUCE_VERSION`, and `AAP_DIR` into the caller's scope.
+`add_subdirectory()` exports `AAP_JUCE_DIR` immediately.
+`aap_juce_configure()` exports `AAP_JUCE_SOURCE_DIR`, `AAP_JUCE_VERSION`, and
+`AAP_DIR` into the caller's scope.
 The plugin target helper supplies the appropriate old/new AudioPlayHead API
 definition, AAP module include paths, and Android linkage/initialization
 definitions. Project-specific flags such as `AAP_JUCE_HAS_HEADLESS_PROCESSOR`
@@ -161,7 +167,8 @@ native builds, Java/Kotlin compilation, resources/assets, and lint. The task use
 the catalog-selected Android SDK CMake installation, falling back to CMake on
 PATH. `-PaapJuceCmake=/path/to/cmake` overrides the executable, and
 `-PaapJucePortConfig=path/to/config.cmake` selects another configuration file.
-The ports use fixed `external/aap-juce` and `external/aap-core` paths. The task always
+The adapter finds its preparation script relative to its own applied file;
+it does not pass an aap-juce source path to CMake. The task always
 checks the shared journal, so source resets and changed patches are detected
 even when Gradle would otherwise consider native outputs up to date. Native
 clean tasks do not depend on preparation.
