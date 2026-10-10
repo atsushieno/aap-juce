@@ -21,10 +21,30 @@ if(DEFINED APP_CMAKE)
     if(patch_size GREATER 0 AND NOT EXISTS "${app_source}/.stamp-app")
         file(TOUCH "${app_source}/.stamp-app")
     endif()
-    # The patched entry point performs only host preparation in this mode,
-    # returning before project(), compiler discovery, or JUCE target creation.
-    set(AAP_JUCE_PREPARE_ONLY TRUE)
-    include("${app_cmake}")
+    # Configure a compiler-free host project, so apps always use the same
+    # add_subdirectory() integration in both host and native configuration.
+    file(LOCK "${app_source}/.aap-juce/host-prepare.lock"
+        GUARD PROCESS TIMEOUT 120 RESULT_VARIABLE lock_result)
+    if(NOT lock_result STREQUAL "0")
+        message(FATAL_ERROR "Cannot lock host preparation: ${lock_result}")
+    endif()
+    get_filename_component(cmake_bin "${CMAKE_COMMAND}" DIRECTORY)
+    find_program(ninja NAMES ninja ninja-build HINTS "${cmake_bin}")
+    set(generator_options)
+    if(ninja)
+        list(APPEND generator_options -G Ninja "-DCMAKE_MAKE_PROGRAM=${ninja}")
+    endif()
+    execute_process(COMMAND "${CMAKE_COMMAND}"
+        -S "${CMAKE_CURRENT_LIST_DIR}/prepare"
+        -B "${app_source}/.aap-juce/host-prepare"
+        ${generator_options}
+        "-DAPP_CMAKE=${app_cmake}"
+        "-DAAP_JUCE_DIR=${AAP_JUCE_DIR}"
+        "-DAAP_DIR=${AAP_DIR}"
+        RESULT_VARIABLE result)
+    if(NOT result STREQUAL "0")
+        message(FATAL_ERROR "AAP host preparation failed: ${result}")
+    endif()
     return()
 endif()
 

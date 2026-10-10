@@ -281,8 +281,9 @@ class PreparationTests(unittest.TestCase):
         patch = self.root / "entry.patch"
         patch.write_text(
             'diff --git a/CMakeLists.txt b/CMakeLists.txt\n'
-            '--- a/CMakeLists.txt\n+++ b/CMakeLists.txt\n@@ -1 +1,5 @@\n'
+            '--- a/CMakeLists.txt\n+++ b/CMakeLists.txt\n@@ -1 +1,6 @@\n'
             '+if(AAP_JUCE_PREPARE_ONLY)\n'
+            f'+    add_subdirectory("{ROOT}" "${{CMAKE_CURRENT_BINARY_DIR}}/aap-juce")\n'
             '+    file(WRITE "${CMAKE_CURRENT_LIST_DIR}/prepared.txt" "prepared")\n'
             '+    return()\n+endif()\n'
             ' project(fixture LANGUAGES NONE)\n')

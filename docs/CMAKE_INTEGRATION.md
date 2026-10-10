@@ -29,11 +29,7 @@ if(ANDROID OR AAP_JUCE_PREPARE_ONLY)
     if(NOT AAP_DIR)
         set(AAP_DIR "${port_root}/external/aap-core")
     endif()
-    if(AAP_JUCE_PREPARE_ONLY)
-        include("${AAP_JUCE_DIR}/cmake/AAPJuce.cmake")
-    else()
-        add_subdirectory("${AAP_JUCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce" EXCLUDE_FROM_ALL)
-    endif()
+    add_subdirectory("${AAP_JUCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce" EXCLUDE_FROM_ALL)
     aap_juce_configure(JUCE_SOURCE_DIR "${app_source}/libs/JUCE"
                        AAP_DIR "${AAP_DIR}" ADOPT_EXISTING_PATCHES)
     if(AAP_JUCE_PREPARE_ONLY)
@@ -51,10 +47,10 @@ endif()
 ```
 
 The preparation block must precede `project()`, compiler discovery, and JUCE
-loading. `AAP_JUCE_PREPARE_ONLY` allows the same configuration to run with
-`cmake -P`. It can also stage resources with `configure_file(... COPYONLY)`
+loading. `AAP_JUCE_PREPARE_ONLY` allows the same configuration to run in
+a compiler-free host CMake project. It can also stage resources with `configure_file(... COPYONLY)`
 before returning. Resolve source paths from the entry point, so the block
-works in both native configuration and host script mode.
+works in both native configuration and the host preparation project.
 
 Run preparation before JUCE and upstream CMake files are evaluated, and run
 the target helper after `juce_add_plugin()` creates the target. Host projects
@@ -161,8 +157,8 @@ connecting preparation to Java, resources, and lint where these consume its
 outputs. A native build target runs too late for configuration-time patching.
 
 The shared `cmake/PreparePort.cmake` first applies the application's existing
-`aap-juce-support.patch`, then evaluates the patched entry point in preparation
-mode. This bootstraps an unpatched checkout without trying to patch a build
+`aap-juce-support.patch`, then evaluates the patched entry point in a normal host CMake project
+with `LANGUAGES NONE` and `AAP_JUCE_PREPARE_ONLY=TRUE`. This bootstraps an unpatched checkout without trying to patch a build
 script while CMake is already configuring it. Pass `APP_CMAKE` and `APP_PATCH`
 when invoking it directly.
 
