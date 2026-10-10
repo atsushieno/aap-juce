@@ -36,12 +36,14 @@ if(DEFINED APP_CMAKE)
         list(APPEND generator_options -G Ninja "-DCMAKE_MAKE_PROGRAM=${ninja}")
     endif()
     file(REAL_PATH "${CMAKE_CURRENT_LIST_DIR}/prepare" prepare_source)
+    get_filename_component(aap_juce_source "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
     string(SHA256 host_key "${prepare_source};${CMAKE_COMMAND};${ninja}")
     execute_process(COMMAND "${CMAKE_COMMAND}"
         -S "${prepare_source}"
         -B "${app_source}/.aap-juce/host-prepare/${host_key}"
         ${generator_options}
         "-DAPP_CMAKE=${app_entry}"
+        "-DAAP_JUCE_DIR=${aap_juce_source}"
         RESULT_VARIABLE result)
     if(NOT result STREQUAL "0")
         message(FATAL_ERROR "AAP host preparation failed: ${result}")

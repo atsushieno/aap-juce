@@ -21,7 +21,7 @@ The beginning of a patched Dexed `CMakeLists.txt` looks like:
 ```cmake
 cmake_minimum_required(VERSION 3.22)
 if(ANDROID OR AAP_JUCE_PREPARE_ONLY)
-    add_subdirectory("../../../../external/aap-juce" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce" EXCLUDE_FROM_ALL)
+    add_subdirectory("${AAP_JUCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce" EXCLUDE_FROM_ALL)
     aap_juce_configure(JUCE_SOURCE_DIR libs/JUCE ADOPT_EXISTING_PATCHES)
     if(AAP_JUCE_PREPARE_ONLY)
         return()
@@ -40,7 +40,7 @@ endif()
 The preparation block must precede `project()`, compiler discovery, and JUCE
 loading. `AAP_JUCE_PREPARE_ONLY` allows the same configuration to run in
 a compiler-free host CMake project. It can also stage resources with `configure_file(... COPYONLY)`
-before returning. Relative paths use the application source directory in both modes. The shared
+before returning. Relative paths use the application source directory in both modes. The shared Gradle adapter supplies the fixed aap-juce submodule path; the
 helper supplies the sibling aap-core path and stages a launcher icon when
 `ICON` is supplied. Keep the `src/main/cpp` symlink layout in both modes.
 
