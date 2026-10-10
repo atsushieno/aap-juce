@@ -5,7 +5,8 @@ if(DEFINED APP_CMAKE)
     if(NOT EXISTS "${APP_CMAKE}")
         message(FATAL_ERROR "Application CMakeLists.txt does not exist: ${APP_CMAKE}")
     endif()
-    file(REAL_PATH "${APP_CMAKE}" app_cmake)
+    get_filename_component(app_entry "${APP_CMAKE}" ABSOLUTE)
+    file(REAL_PATH "${app_entry}" app_cmake)
     get_filename_component(app_source "${app_cmake}" DIRECTORY)
     set(options ADOPT_EXISTING_PATCHES)
     if(APP_PATCH)
@@ -40,7 +41,7 @@ if(DEFINED APP_CMAKE)
         -S "${prepare_source}"
         -B "${app_source}/.aap-juce/host-prepare/${host_key}"
         ${generator_options}
-        "-DAPP_CMAKE=${app_cmake}"
+        "-DAPP_CMAKE=${app_entry}"
         RESULT_VARIABLE result)
     if(NOT result STREQUAL "0")
         message(FATAL_ERROR "AAP host preparation failed: ${result}")

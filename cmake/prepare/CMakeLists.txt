@@ -8,4 +8,6 @@ if(NOT APP_CMAKE OR NOT EXISTS "${APP_CMAKE}")
     message(FATAL_ERROR "APP_CMAKE must identify the patched application entry point")
 endif()
 set(AAP_JUCE_PREPARE_ONLY TRUE)
-include("${APP_CMAKE}")
+get_filename_component(app_source "${APP_CMAKE}" DIRECTORY)
+# Preserve the caller's src/main/cpp symlink path and source-directory context.
+add_subdirectory("${app_source}" "${CMAKE_CURRENT_BINARY_DIR}/app")
