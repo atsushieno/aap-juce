@@ -90,7 +90,7 @@ Exceptions are available through:
 - `EXTRA_JUCE_PATCHES`: additional patches applied after the predefined set.
 - `DISABLE_JUCE_FIXES`: named fixes to omit. The catalog's IDs are `jni`,
   `detach`, `cgwindow`, `opengl`, `peer`, `plugin-ui`, `thread`, `peer-touch`,
-  `peer-lifecycle`, `popup`, `lightweight`, `saf`, `bytecode`, `factory`, and
+  `peer-lifecycle`, `popup`, `popup-touch`, `lightweight`, `saf`, `bytecode`, `factory`, and
   `entrypoint`. Only IDs active for the selected version/mode are accepted.
 - `JUCE_PATCHES`: a complete explicit replacement, including entrypoint patches.
   Use `JUCE_PATCHES NONE` to disable JUCE patching. This override cannot be
@@ -121,9 +121,12 @@ the new baseline. Restoring the previous original file also permits preparation
 to run again. Source preparation persists across native `clean` builds; retain
 the journal while the working tree contains its patches.
 
-On the first migration, use unpatched source checkouts. Existing legacy stamps
-cannot establish which patches were applied or recover their original files,
-so the new interface does not blindly adopt a tree previously patched by Make.
+On the first migration, use unpatched source checkouts or opt into
+`ADOPT_EXISTING_PATCHES`. This option reconstructs originals in scratch space by
+reversing patches that Git proves are already applied, then validates the entire
+ordered forward series before publishing it. Unrelated local edits are retained;
+incompatible or partly applied patches fail without overwriting sources. Existing
+legacy stamps alone are never treated as proof that a patch was applied.
 After successful preparation it creates the existing `.stamp-app` and
 `.stamp-juce` markers, allowing legacy Make targets to skip applying the patches
 again. Existing files are not moved, renamed, or replaced with new symlinks.
@@ -143,8 +146,25 @@ The helpers can also be loaded with `include(cmake/AAPJuce.cmake)` from a host
 connecting preparation to Java, resources, and lint where these consume its
 outputs. A native build target runs too late for configuration-time patching.
 
+For checked-out ports, define `AAP_JUCE_PORT_CONFIG` (the arguments to
+`aap_juce_configure()`) in a root `aap-port.cmake`. Both the Android CMake wrapper
+and `cmake/PreparePort.cmake` load this configuration. Optionally define
+`AAP_PORT_ICON` and `AAP_PORT_ICON_DESTINATION` to copy a launcher icon at its
+existing resource path during host preparation.
+
+Apply `gradle/aap-juce.gradle` at the end of the Android module's build script.
+It registers one `prepareAapJuce` task and wires it before native configuration,
+native builds, Java/Kotlin compilation, resources/assets, and lint. The task uses
+the catalog-selected Android SDK CMake installation, falling back to CMake on
+PATH. `-PaapJuceCmake=/path/to/cmake` overrides the executable, and
+`-PaapJucePortConfig=path/to/config.cmake` selects another configuration file.
+`AAP_JUCE_DIR` and `AAP_DIR` environment overrides are supported. The task always
+checks the shared journal, so source resets and changed patches are detected
+even when Gradle would otherwise consider native outputs up to date. Native
+clean tasks do not depend on preparation.
+
 This interface does not publish aap-core to Maven, generate Gradle projects,
-copy application assets, or collect APK/AAB artifacts. Existing Make tasks
+bundle application assets, or collect APK/AAB artifacts. Existing Make tasks
 remain available for those operations during migration. Resolve aap-core's
 Android/Prefab dependencies before entering native CMake.
 

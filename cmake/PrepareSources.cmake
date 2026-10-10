@@ -24,6 +24,10 @@ function(_aap_juce_check_path source_dir path)
 endfunction()
 
 function(_aap_juce_prepare_tree source_dir)
+    cmake_parse_arguments(PARSE_ARGV 1 arg "ADOPT_EXISTING_PATCHES" "" "PATCHES")
+    if(arg_UNPARSED_ARGUMENTS OR arg_KEYWORDS_MISSING_VALUES)
+        message(FATAL_ERROR "Invalid AAP source preparation arguments")
+    endif()
     if(NOT IS_DIRECTORY "${source_dir}")
         message(FATAL_ERROR "AAP source directory does not exist: ${source_dir}")
     endif()
@@ -54,7 +58,7 @@ function(_aap_juce_prepare_tree source_dir)
     set(identity "${source}\n${revision}\n${implementation}\n")
     set(paths)
     set(patches)
-    foreach(patch IN LISTS ARGN)
+    foreach(patch IN LISTS arg_PATCHES)
         get_filename_component(patch "${patch}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
         if(NOT EXISTS "${patch}")
             message(FATAL_ERROR "AAP patch does not exist: ${patch}")
@@ -162,6 +166,38 @@ function(_aap_juce_prepare_tree source_dir)
             file(COPY "${baseline}" DESTINATION "${transaction}/patched/${parent}")
         endif()
     endforeach()
+    if(arg_ADOPT_EXISTING_PATCHES AND NOT EXISTS "${state}/current/manifest")
+        # A legacy Make build may already have applied some or all patches.
+        # Reconstruct a baseline in scratch space only. Reverse in the opposite
+        # order, reversing only patches Git proves are already present. The
+        # complete forward pass below validates unapplied patches, including
+        # patches that depend on earlier ones. Unrelated local edits survive.
+        set(reverse_patches "${patches}")
+        list(REVERSE reverse_patches)
+        foreach(patch IN LISTS reverse_patches)
+            execute_process(COMMAND "${CMAKE_COMMAND}" -E env
+                --unset=GIT_DIR --unset=GIT_WORK_TREE --unset=GIT_INDEX_FILE
+                "GIT_CEILING_DIRECTORIES=${transaction}"
+                "${git}" apply --reverse --check --ignore-space-change "${patch}"
+                WORKING_DIRECTORY "${transaction}/original"
+                RESULT_VARIABLE reversed OUTPUT_QUIET ERROR_QUIET)
+            if(reversed STREQUAL "0")
+                execute_process(COMMAND "${CMAKE_COMMAND}" -E env
+                    --unset=GIT_DIR --unset=GIT_WORK_TREE --unset=GIT_INDEX_FILE
+                    "GIT_CEILING_DIRECTORIES=${transaction}"
+                    "${git}" apply --reverse --ignore-space-change --whitespace=nowarn "${patch}"
+                    WORKING_DIRECTORY "${transaction}/original"
+                    RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+                if(NOT result STREQUAL "0")
+                    file(REMOVE_RECURSE "${transaction}")
+                    message(FATAL_ERROR "Cannot safely adopt existing patch: ${patch}\n${output}${error}\nSource files are unchanged.")
+                endif()
+            endif()
+        endforeach()
+        file(REMOVE_RECURSE "${transaction}/patched")
+        file(MAKE_DIRECTORY "${transaction}/patched")
+        file(COPY "${transaction}/original/" DESTINATION "${transaction}/patched")
+    endif()
     foreach(patch IN LISTS patches)
         execute_process(COMMAND "${CMAKE_COMMAND}" -E env
             --unset=GIT_DIR --unset=GIT_WORK_TREE --unset=GIT_INDEX_FILE

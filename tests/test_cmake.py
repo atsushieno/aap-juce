@@ -48,6 +48,8 @@ class PreparationTests(unittest.TestCase):
 
     def prepare(self, *patches):
         args = " ".join(f'"{patch}"' for patch in patches)
+        if patches:
+            args = "PATCHES " + args
         return self.run_script(self.script(
             f'_aap_juce_prepare_tree("{self.source}" {args})\n'))
 
@@ -56,7 +58,7 @@ class PreparationTests(unittest.TestCase):
 
     def test_independent_builds_share_one_preparation(self):
         patch = self.patch()
-        script = self.script(f'_aap_juce_prepare_tree("{self.source}" "{patch}")\n')
+        script = self.script(f'_aap_juce_prepare_tree("{self.source}" PATCHES "{patch}")\n')
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             results = list(pool.map(lambda _: self.run_script(script), range(8)))
         for result in results:
@@ -109,6 +111,42 @@ class PreparationTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("changed outside preparation", result.stderr)
         self.assertEqual((self.source / "value.txt").read_text(), "developer edit\n")
+
+    def test_adopts_partial_legacy_patch_set_with_local_edits(self):
+        first = self.patch()
+        second = self.patch("second.patch", "patched", "twice")
+        context = "context 1\ncontext 2\ncontext 3\n"
+        for patch in (first, second):
+            patch.write_text(patch.read_text().replace('@@ -1 +1 @@', '@@ -1,4 +1,4 @@')
+                             + ''.join(' ' + line + '\n' for line in context.splitlines()))
+        (self.source / "value.txt").write_text("patched\n" + context + "unrelated developer edit\n")
+        result = self.run_script(self.script(
+            f'_aap_juce_prepare_tree("{self.source}" ADOPT_EXISTING_PATCHES '
+            f'PATCHES "{first}" "{second}")\n'))
+        self.assert_success(result)
+        self.assertEqual((self.source / "value.txt").read_text(),
+                         "twice\n" + context + "unrelated developer edit\n")
+        self.assert_success(self.prepare())
+        self.assertEqual((self.source / "value.txt").read_text(),
+                         "original\n" + context + "unrelated developer edit\n")
+
+    def test_adoption_rejects_incompatible_local_edit(self):
+        patch = self.patch()
+        (self.source / "value.txt").write_text("different developer edit\n")
+        result = self.run_script(self.script(
+            f'_aap_juce_prepare_tree("{self.source}" ADOPT_EXISTING_PATCHES '
+            f'PATCHES "{patch}")\n'))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((self.source / "value.txt").read_text(), "different developer edit\n")
+
+    def test_adoption_mode_also_accepts_clean_dependent_patches(self):
+        first = self.patch()
+        second = self.patch("second.patch", "patched", "twice")
+        result = self.run_script(self.script(
+            f'_aap_juce_prepare_tree("{self.source}" ADOPT_EXISTING_PATCHES '
+            f'PATCHES "{first}" "{second}")\n'))
+        self.assert_success(result)
+        self.assertEqual((self.source / "value.txt").read_text(), "twice\n")
 
     def test_restored_output_is_prepared_again(self):
         patch = self.patch()
@@ -182,7 +220,7 @@ class PreparationTests(unittest.TestCase):
         result = self.run_script(self.script(
             f'aap_juce_configure(JUCE_SOURCE_DIR "{self.source}" '
             'DISABLE_JUCE_FIXES jni detach cgwindow plugin-ui peer-touch '
-            'peer-lifecycle popup entrypoint '
+            'peer-lifecycle popup popup-touch entrypoint '
             f'EXTRA_JUCE_PATCHES "{patch}")\n'))
         self.assert_success(result)
         self.assertEqual((self.source / "value.txt").read_text(), "patched\n")
