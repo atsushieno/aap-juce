@@ -2,6 +2,7 @@
 
 import concurrent.futures
 import pathlib
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -298,6 +299,17 @@ class PreparationTests(unittest.TestCase):
             '-P', str(ROOT / 'cmake/PreparePort.cmake')], capture_output=True, text=True)
         self.assert_success(result)
         self.assertNotIn('Preparing AAP sources:', result.stdout)
+        # Switching from a development checkout to the pinned submodule must
+        # not reuse a CMake cache tied to a different host project's source.
+        alternate = self.root / 'alternate-helper'
+        alternate.mkdir()
+        for filename in ('PreparePort.cmake', 'AAPJuce.cmake', 'PrepareSources.cmake', 'JucePatchSets.cmake'):
+            shutil.copyfile(ROOT / 'cmake' / filename, alternate / filename)
+        shutil.copytree(ROOT / 'cmake/prepare', alternate / 'prepare')
+        result = subprocess.run([
+            'cmake', f'-DAPP_CMAKE={entry}', f'-DAPP_PATCH={patch}',
+            '-P', str(alternate / 'PreparePort.cmake')], capture_output=True, text=True)
+        self.assert_success(result)
 
 
 if __name__ == "__main__":
