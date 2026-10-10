@@ -275,6 +275,29 @@ class PreparationTests(unittest.TestCase):
         result = self.run_script(self.script('aap_juce_get_juce_patches(p VERSION 99.0.1)\n'))
         self.assertNotEqual(result.returncode, 0)
 
+    def test_preparation_bootstraps_the_patched_cmake_entrypoint(self):
+        entry = self.source / "CMakeLists.txt"
+        entry.write_text('project(fixture LANGUAGES NONE)\n')
+        patch = self.root / "entry.patch"
+        patch.write_text(
+            'diff --git a/CMakeLists.txt b/CMakeLists.txt\n'
+            '--- a/CMakeLists.txt\n+++ b/CMakeLists.txt\n@@ -1 +1,5 @@\n'
+            '+if(AAP_JUCE_PREPARE_ONLY)\n'
+            '+    file(WRITE "${CMAKE_CURRENT_LIST_DIR}/prepared.txt" "prepared")\n'
+            '+    return()\n+endif()\n'
+            ' project(fixture LANGUAGES NONE)\n')
+        result = subprocess.run([
+            'cmake', f'-DAPP_CMAKE={entry}', f'-DAPP_PATCH={patch}',
+            '-P', str(ROOT / 'cmake/PreparePort.cmake')], capture_output=True, text=True)
+        self.assert_success(result)
+        self.assertEqual((self.source / 'prepared.txt').read_text(), 'prepared')
+        self.assertTrue((self.source / '.stamp-app').exists())
+        result = subprocess.run([
+            'cmake', f'-DAPP_CMAKE={entry}', f'-DAPP_PATCH={patch}',
+            '-P', str(ROOT / 'cmake/PreparePort.cmake')], capture_output=True, text=True)
+        self.assert_success(result)
+        self.assertNotIn('Preparing AAP sources:', result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -12,35 +12,49 @@ functions; it does not fetch dependencies or patch sources.
 
 ## Checked-out sources
 
-Use a checked-in Android CMake wrapper rather than a symbolic link to the
-upstream application. For example, in `app/src/main/cpp/CMakeLists.txt`:
+Put the integration directly in the upstream application's `CMakeLists.txt`
+and include it in the existing `aap-juce-support.patch`. Gradle points at that
+entry point; no per-port configuration file or wrapper is required.
+
+The beginning of a patched Dexed `CMakeLists.txt` looks like:
 
 ```cmake
 cmake_minimum_required(VERSION 3.22)
-project(DexedAAP LANGUAGES C CXX)
+if(ANDROID OR AAP_JUCE_PREPARE_ONLY)
+    get_filename_component(app_source "${CMAKE_CURRENT_LIST_DIR}" REALPATH)
+    get_filename_component(port_root "${app_source}/../.." ABSOLUTE)
+    if(NOT AAP_JUCE_DIR)
+        set(AAP_JUCE_DIR "${port_root}/external/aap-juce")
+    endif()
+    if(NOT AAP_DIR)
+        set(AAP_DIR "${port_root}/external/aap-core")
+    endif()
+    if(AAP_JUCE_PREPARE_ONLY)
+        include("${AAP_JUCE_DIR}/cmake/AAPJuce.cmake")
+    else()
+        add_subdirectory("${AAP_JUCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce" EXCLUDE_FROM_ALL)
+    endif()
+    aap_juce_configure(JUCE_SOURCE_DIR "${app_source}/libs/JUCE"
+                       AAP_DIR "${AAP_DIR}" ADOPT_EXISTING_PATCHES)
+    if(AAP_JUCE_PREPARE_ONLY)
+        return()
+    endif()
+    set(DEXED_SKIP_VST3 ON CACHE BOOL "Build only the Android plugin format" FORCE)
+endif()
 
-get_filename_component(port_dir "${CMAKE_CURRENT_LIST_DIR}/../../../.." ABSOLUTE)
-set(AAP_JUCE_DIR "${port_dir}/external/aap-juce")
-
-add_subdirectory("${AAP_JUCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce"
-                 EXCLUDE_FROM_ALL)
-
-aap_juce_configure(
-    APP_SOURCE_DIR  "${port_dir}/external/dexed"
-    APP_PATCHES     "${port_dir}/aap-juce-support.patch"
-    JUCE_SOURCE_DIR "${port_dir}/external/dexed/libs/JUCE"
-    AAP_DIR         "${port_dir}/external/aap-core"
-)
-
-# Set upstream-specific options/path overrides here, then load the application.
-# Upstreams that assume CMAKE_SOURCE_DIR is their own root need an adaptation
-# in their application patch when used through a wrapper.
-add_subdirectory("${port_dir}/external/dexed" upstream)
-
-# This replaces repeated AAP module/linkage setup when that setup is removed
-# from the application's patch. Already-registered AAP modules are reused.
-aap_juce_plugin(TARGET Dexed)
+project(Dexed VERSION 1.0.1)
+# Existing upstream JUCE loading and plugin target creation follows here.
+# After the Dexed target exists:
+if(ANDROID)
+    aap_juce_plugin(TARGET Dexed)
+endif()
 ```
+
+The preparation block must precede `project()`, compiler discovery, and JUCE
+loading. `AAP_JUCE_PREPARE_ONLY` allows the same configuration to run with
+`cmake -P`. It can also stage resources with `configure_file(... COPYONLY)`
+before returning. Resolve source paths from the entry point, so the block
+works in both native configuration and host script mode.
 
 Run preparation before JUCE and upstream CMake files are evaluated, and run
 the target helper after `juce_add_plugin()` creates the target. Host projects
@@ -146,11 +160,14 @@ The helpers can also be loaded with `include(cmake/AAPJuce.cmake)` from a host
 connecting preparation to Java, resources, and lint where these consume its
 outputs. A native build target runs too late for configuration-time patching.
 
-For checked-out ports, define `AAP_JUCE_PORT_CONFIG` (the arguments to
-`aap_juce_configure()`) in a root `aap-port.cmake`. Both the Android CMake wrapper
-and `cmake/PreparePort.cmake` load this configuration. Optionally define
-`AAP_PORT_ICON` and `AAP_PORT_ICON_DESTINATION` to copy a launcher icon at its
-existing resource path during host preparation.
+The shared `cmake/PreparePort.cmake` first applies the application's existing
+`aap-juce-support.patch`, then evaluates the patched entry point in preparation
+mode. This bootstraps an unpatched checkout without trying to patch a build
+script while CMake is already configuring it. Pass `APP_CMAKE` and `APP_PATCH`
+when invoking it directly.
+
+The separate `PORT_CONFIG` interface remains available for existing callers,
+but these migrated ports use their patched CMake entry points directly.
 
 Apply `gradle/aap-juce.gradle` at the end of the Android module's build script.
 It registers one `prepareAapJuce` task and wires it before native configuration,
