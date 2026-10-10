@@ -41,8 +41,6 @@ if(DEFINED APP_CMAKE)
         -B "${app_source}/.aap-juce/host-prepare/${host_key}"
         ${generator_options}
         "-DAPP_CMAKE=${app_cmake}"
-        "-DAAP_JUCE_DIR=${AAP_JUCE_DIR}"
-        "-DAAP_DIR=${AAP_DIR}"
         RESULT_VARIABLE result)
     if(NOT result STREQUAL "0")
         message(FATAL_ERROR "AAP host preparation failed: ${result}")

@@ -23,12 +23,8 @@ cmake_minimum_required(VERSION 3.22)
 if(ANDROID OR AAP_JUCE_PREPARE_ONLY)
     get_filename_component(app_source "${CMAKE_CURRENT_LIST_DIR}" REALPATH)
     get_filename_component(port_root "${app_source}/../.." ABSOLUTE)
-    if(NOT AAP_JUCE_DIR)
-        set(AAP_JUCE_DIR "${port_root}/external/aap-juce")
-    endif()
-    if(NOT AAP_DIR)
-        set(AAP_DIR "${port_root}/external/aap-core")
-    endif()
+    set(AAP_JUCE_DIR "${port_root}/external/aap-juce")
+    set(AAP_DIR "${port_root}/external/aap-core")
     add_subdirectory("${AAP_JUCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce" EXCLUDE_FROM_ALL)
     aap_juce_configure(JUCE_SOURCE_DIR "${app_source}/libs/JUCE"
                        AAP_DIR "${AAP_DIR}" ADOPT_EXISTING_PATCHES)
@@ -171,7 +167,7 @@ native builds, Java/Kotlin compilation, resources/assets, and lint. The task use
 the catalog-selected Android SDK CMake installation, falling back to CMake on
 PATH. `-PaapJuceCmake=/path/to/cmake` overrides the executable, and
 `-PaapJucePortConfig=path/to/config.cmake` selects another configuration file.
-`AAP_JUCE_DIR` and `AAP_DIR` environment overrides are supported. The task always
+The ports use fixed `external/aap-juce` and `external/aap-core` paths. The task always
 checks the shared journal, so source resets and changed patches are detected
 even when Gradle would otherwise consider native outputs up to date. Native
 clean tasks do not depend on preparation.

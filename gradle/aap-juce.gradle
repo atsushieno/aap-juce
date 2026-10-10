@@ -1,8 +1,5 @@
 // This adapter only schedules portable preparation; port details live in CMake.
-def aapJuceDirectory = file(providers.environmentVariable('AAP_JUCE_DIR')
-        .getOrElse("${rootProject.projectDir}/external/aap-juce"))
-def coreDirectory = file(providers.environmentVariable('AAP_DIR')
-        .getOrElse("${rootProject.projectDir}/external/aap-core"))
+def aapJuceDirectory = rootProject.file('external/aap-juce')
 def legacyConfiguration = providers.gradleProperty('aapJucePortConfig').orNull
 def defaultConfiguration = rootProject.file('aap-port.cmake')
 def preparationArguments
@@ -24,8 +21,6 @@ def prepareAapJuce = tasks.register('prepareAapJuce', Exec) {
     group = 'build'
     description = 'Prepare application and JUCE sources once across native ABIs.'
     commandLine([cmakeExecutable] + preparationArguments + [
-            "-DAAP_JUCE_DIR=${aapJuceDirectory.absolutePath}",
-            "-DAAP_DIR=${coreDirectory.absolutePath}",
             '-P', new File(aapJuceDirectory, 'cmake/PreparePort.cmake').absolutePath])
     // Always validate the CMake journal, including after a source checkout/reset.
     // CMake skips the actual preparation when its fingerprint and files match.
