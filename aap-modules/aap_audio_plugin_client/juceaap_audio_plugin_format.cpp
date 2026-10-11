@@ -376,12 +376,6 @@ bool AndroidAudioPluginInstance::parameterValueChanged(AndroidAudioPluginParamet
         return false; // too early to reach here.
 
     // In AAP V2 protocol, parameters are sent over MIDI2 port as UMP.
-    auto *buffer = native->getAudioPluginBuffer();
-    if (aap_midi_in_port < 0)
-        return false; // there is no port that accepts parameter changes
-    if ((uint32_t) aap_midi_in_port >= buffer->num_ports(buffer))
-        return false; // buffer does not seem prepared yet
-
     int32_t paramId = parameter->getAAPParameterId();
     if (paramId > UINT16_MAX) {
         aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_LOG_TAG,
@@ -390,19 +384,13 @@ bool AndroidAudioPluginInstance::parameterValueChanged(AndroidAudioPluginParamet
         return false;
     }
 
-    // FIXME: RT lock
-
-    auto mbh = (AAPMidiBufferHeader*) buffer->get_buffer(buffer, aap_midi_in_port);
-    uint32_t* dst = (uint32_t*) (void*) ((uint8_t*) buffer->get_buffer(buffer, aap_midi_in_port) + sizeof(AAPMidiBufferHeader) + mbh->length);
-    mbh->length += 16;
+    uint32_t message[4];
     auto transportValue = aapParameterPlainToTransportUint32(parameter->impl->getMinimumValue(),
                                                              parameter->impl->getMaximumValue(),
                                                              newValue);
-    aapMidi2ParameterSysex8(dst, dst + 1, dst + 2, dst + 3, 0, 0, 0, 0, (uint16_t) paramId, transportValue);
+    aapMidi2ParameterSysex8(message, message + 1, message + 2, message + 3, 0, 0, 0, 0, (uint16_t) paramId, transportValue);
 
-    // FIXME: RT unlock
-
-    return true;
+    return native->tryAddEventUmpInput(message, sizeof(message));
 }
 
 void
