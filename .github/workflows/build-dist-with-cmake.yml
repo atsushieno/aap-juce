@@ -2,6 +2,11 @@ name: build dist
 
 on:
   workflow_call:
+    inputs:
+      host-tools:
+        description: Additional host tool packages required by the port.
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -11,6 +16,8 @@ jobs:
     if: false
     name: build on linux
     runs-on: ubuntu-24.04
+    env:
+      HOST_TOOLS: ${{ inputs.host-tools }}
     permissions:
       contents: write
     steps:
@@ -52,7 +59,7 @@ jobs:
                  libpng-dev libwebkit2gtk-4.1-dev libx11-6 \
                  libxext6 zlib1g  make g++ mesa-common-dev libasound2-dev \
                  libjack-jackd2-dev ladspa-sdk doxygen \
-                 graphviz cmake ninja-build
+                 graphviz cmake ninja-build ${HOST_TOOLS}
     - name: build
       run: &build_dist |
         if [ -f Makefile ]; then
@@ -70,6 +77,7 @@ jobs:
     name: build on osx
     runs-on: macos-14
     env:
+      HOST_TOOLS: ${{ inputs.host-tools }}
       SIGNING_ENABLED: ${{ secrets.SIGNING_KEY_BASE64 != '' }}
     steps:
     - name: checkout
@@ -172,7 +180,7 @@ jobs:
         NODE
     - name: install deps
       run: |
-        brew install doxygen pkg-config coreutils ninja graphviz
+        brew install doxygen pkg-config coreutils ninja graphviz ${HOST_TOOLS}
     - name: build
       run: *build_dist
     - name: Prepare app bundles for signing

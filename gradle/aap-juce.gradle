@@ -7,9 +7,11 @@ if (legacyConfiguration != null || defaultConfiguration.isFile()) {
     def portConfiguration = rootProject.file(legacyConfiguration ?: 'aap-port.cmake')
     preparationArguments = ["-DPORT_CONFIG=${portConfiguration.absolutePath}"]
 } else {
-    preparationArguments = [
-            "-DAPP_CMAKE=${android.externalNativeBuild.cmake.path.absolutePath}",
-            "-DAPP_PATCH=${rootProject.file('aap-juce-support.patch').absolutePath}"]
+    preparationArguments = ["-DAPP_CMAKE=${android.externalNativeBuild.cmake.path.absolutePath}"]
+    def appPatch = rootProject.file('aap-juce-support.patch')
+    if (appPatch.isFile()) {
+        preparationArguments += "-DAPP_PATCH=${appPatch.absolutePath}"
+    }
 }
 // Forward dependency cache selection, without passing Android toolchain arguments
 // to the compiler-free host configure.
