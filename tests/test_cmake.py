@@ -262,6 +262,115 @@ class PreparationTests(unittest.TestCase):
         self.assert_success(subprocess.run(
             ["cmake", "--build", str(build)], capture_output=True, text=True))
 
+    def test_target_compatibility_uses_loaded_juce_and_stays_target_scoped(self):
+        # Exact releases around each API transition, checked against JUCE's headers.
+        versions = {
+            "6.0.5": (0, 1, 0, 0, 0),
+            "6.1.0": (0, 0, 1, 0, 0),
+            "6.1.2": (0, 0, 1, 0, 0),
+            "6.1.3": (0, 0, 1, 1, 0),
+            "7.0.0": (1, 0, 1, 1, 0),
+            "8.0.10": (1, 0, 1, 1, 0),
+            "8.0.11": (1, 0, 1, 1, 0),
+            "8.0.12": (1, 0, 1, 1, 0),
+            "8.0.13": (1, 0, 1, 1, 1),
+            "8.0.15": (1, 0, 1, 1, 1),
+            "9.0.0": (1, 0, 1, 1, 1),
+        }
+        names = ("JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO",
+                 "JUCEAAP_AUDIO_PROCESSOR_CHANGE_DETAILS_UNAVAILABLE",
+                 "JUCEAAP_USE_UNIQUE_ID", "JUCEAAP_HOSTED_PARAMETER",
+                 "AAP_JUCE_HAS_HEADLESS_PROCESSOR")
+        core = self.root / "core/include"
+        core.mkdir(parents=True)
+        (core / "aap-target-check.h").write_text("#define AAP_INCLUDE_PATH_CHECK 1\n")
+        for version, expected in versions.items():
+            with self.subTest(version=version):
+                project = self.root / version
+                project.mkdir()
+                juce = project / "JUCE"
+                header = juce / "modules/juce_core/system/juce_StandardHeader.h"
+                header.parent.mkdir(parents=True)
+                header.write_text("".join(f"#define JUCE_{key} {value}\n" for key, value in
+                    zip(("MAJOR_VERSION", "MINOR_VERSION", "BUILDNUMBER"), version.split("."))))
+                (project / "check.c").write_text('#include "aap-target-check.h"\n' + "".join(
+                    f'#if {name} != {value}\n#error "Incorrect {name}"\n#endif\n'
+                    for name, value in zip(names, expected)) +
+                    '#if !JUCEAAP_ENABLED || !AAP_INCLUDE_PATH_CHECK\n#error "Missing AAP setup"\n#endif\n'
+                    '#if defined(JUCE_ANDROID) || defined(JUCE_PUSH_NOTIFICATIONS)\n'
+                    '#error "Android flags leaked into desktop"\n#endif\nint check(void) { return 0; }\n')
+                (project / "unrelated.c").write_text(
+                    '#ifdef JUCEAAP_ENABLED\n#error "Definitions leaked to unrelated target"\n#endif\n'
+                    'int unrelated(void) { return 0; }\n')
+                (project / "CMakeLists.txt").write_text(
+                    'cmake_minimum_required(VERSION 3.22)\nproject(targets LANGUAGES C)\n'
+                    f'add_subdirectory("{ROOT}" aap-juce EXCLUDE_FROM_ALL)\n'
+                    'add_library(juce_core INTERFACE)\nadd_library(juce::juce_core ALIAS juce_core)\n'
+                    f'set_target_properties(juce_core PROPERTIES INTERFACE_JUCE_MODULE_PATH "{juce}/modules")\n'
+                    'function(juce_add_module source)\n'
+                    ' get_filename_component(module "${source}" NAME)\n'
+                    ' add_library("${module}" INTERFACE)\n'
+                    'endfunction()\n'
+                    # The real module path, not a caller's stale variable, decides the version.
+                    'set(AAP_JUCE_VERSION 99.0.0)\n'
+                    'function(create_plugins)\n'
+                    ' add_library(plugin_a STATIC check.c)\nadd_library(plugin_b STATIC check.c)\n'
+                    f' aap_juce_plugin(TARGETS plugin_a plugin_b AAP_DIR "{core.parent}")\n'
+                    'endfunction()\ncreate_plugins()\n'
+                    'add_library(host STATIC check.c)\n'
+                    f'aap_juce_host(TARGET host AAP_DIR "{core.parent}")\n'
+                    'add_library(consumer STATIC check.c)\ntarget_link_libraries(consumer PRIVATE plugin_a)\n'
+                    'add_library(unrelated STATIC unrelated.c)\n'
+                    'get_directory_property(directory_defs COMPILE_DEFINITIONS)\n'
+                    'if(directory_defs)\n message(FATAL_ERROR "Directory definitions were modified")\nendif()\n')
+                build = project / "build"
+                self.assert_success(subprocess.run(
+                    ["cmake", "-S", str(project), "-B", str(build)], capture_output=True, text=True))
+                self.assert_success(subprocess.run(
+                    ["cmake", "--build", str(build)], capture_output=True, text=True))
+
+    def test_android_target_helpers_supply_initialization_and_system_linkage(self):
+        project = self.root / "android-targets"
+        project.mkdir()
+        core = self.root / "core/include"
+        core.mkdir(parents=True)
+        (project / "check.c").write_text(
+            '#if !JUCEAAP_ENABLED || !JUCE_ANDROID || !JUCE_PUSH_NOTIFICATIONS || '
+            '!JUCE_DONT_AUTO_OPEN_MIDI_DEVICES_ON_MOBILE || !JUCE_USE_ANDROID_OBOE_STABILIZED_CALLBACK\n'
+            '#error "Missing Android initialization definitions"\n#endif\n'
+            '#if !AAP_JUCE_HAS_HEADLESS_PROCESSOR || !JUCEAAP_HOSTED_PARAMETER || !JUCEAAP_USE_UNIQUE_ID\n'
+            '#error "Missing JUCE compatibility definitions"\n#endif\n'
+            'const char* activity = JUCE_PUSH_NOTIFICATIONS_ACTIVITY;\nint fixture(void) { return activity[0]; }\n')
+        libraries = []
+        setup = ""
+        for library in ("log", "android", "GLESv2", "EGL"):
+            path = project / f"lib{library}.a"
+            path.touch()
+            libraries.append(str(path))
+            setup += f'set(aap_{library} "{path}" CACHE FILEPATH "" FORCE)\n'
+        (project / "CMakeLists.txt").write_text(
+            'cmake_minimum_required(VERSION 3.22)\nproject(android_targets LANGUAGES C)\n'
+            f'add_subdirectory("{ROOT}" aap-juce EXCLUDE_FROM_ALL)\n'
+            'function(juce_add_module source)\n'
+            ' get_filename_component(module "${source}" NAME)\n'
+            ' add_library("${module}" INTERFACE)\nendfunction()\n'
+            'add_library(androidaudioplugin::androidaudioplugin INTERFACE IMPORTED)\n'
+            'set(AAP_JUCE_VERSION 8.0.15)\nset(ANDROID TRUE)\n' + setup +
+            'add_library(plugin STATIC check.c)\nadd_library(host STATIC check.c)\n'
+            f'aap_juce_plugin(TARGET plugin AAP_DIR "{core.parent}")\n'
+            f'aap_juce_host(TARGET host AAP_DIR "{core.parent}")\n'
+            'foreach(target plugin host)\n'
+            ' get_target_property(links ${target} LINK_LIBRARIES)\n'
+            ' foreach(required androidaudioplugin::androidaudioplugin ' +
+            " ".join(f'"{x}"' for x in libraries) + ')\n'
+            '  if(NOT required IN_LIST links)\n message(FATAL_ERROR "Missing Android library: ${required}")\n'
+            '  endif()\n endforeach()\nendforeach()\n')
+        build = project / "build"
+        self.assert_success(subprocess.run(
+            ["cmake", "-S", str(project), "-B", str(build)], capture_output=True, text=True))
+        self.assert_success(subprocess.run(
+            ["cmake", "--build", str(build)], capture_output=True, text=True))
+
     def test_add_subdirectory_exports_relocated_source_directory(self):
         relocated = self.root / "dependencies/integration with arbitrary name"
         relocated.mkdir(parents=True)

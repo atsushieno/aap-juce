@@ -60,10 +60,35 @@ prepared JUCE tree. App and JUCE preparation have separate journals.
 `add_subdirectory()` exports `AAP_JUCE_DIR` immediately.
 `aap_juce_configure()` exports `AAP_JUCE_SOURCE_DIR`, `AAP_JUCE_VERSION`, and
 `AAP_DIR` into the caller's scope.
-The plugin target helper supplies the appropriate old/new AudioPlayHead API
-definition, AAP module include paths, and Android linkage/initialization
-definitions. Project-specific flags such as `AAP_JUCE_HAS_HEADLESS_PROCESSOR`
-remain the application's responsibility.
+The target helpers replace the repeated AAP target blocks. They register and
+link the AAP module, provide its include paths, and select compatibility
+flags from the loaded JUCE's own header. This covers AudioPlayHead,
+AudioProcessorListener change details, plugin IDs, hosted parameters, and the
+editor-creation method renamed in JUCE 8.0.13 (after the headless module split
+in 8.0.11). Those flags belong to
+this library rather than each port. The modules declare their JUCE dependencies
+and C++17 requirement in their existing module headers.
+
+On Android both helpers link the Prefab AAP library and the log, Android, GLESv2,
+and EGL libraries, and provide the JUCE activity, push-notification, MIDI,
+and stabilized-callback definitions. Desktop targets receive the module and
+compatibility definitions without Android libraries or activity definitions.
+All definitions and include paths are attached to targets, so unrelated targets
+and directory-wide optimization settings are left alone.
+
+Use the existing JUCE target name; the helpers do not create or rename targets.
+Several targets can share one call, for example:
+
+```cmake
+aap_juce_plugin(TARGETS MyInstrument MyEffect)
+aap_juce_host(TARGETS magda_daw magda_daw_app)
+```
+
+The helper can also run after `juce_generate_juce_header()`: JUCE evaluates its
+module definitions when generating the header. Separate early
+`juce_add_modules()` calls are unnecessary. Keep app-specific source files and
+options (such as VMPC's custom factory, RtMidi JNI shim, or disabling Oboe) in
+the app patch. The helper does not change plugin formats or compiler optimization.
 
 ## JUCE patch catalog
 

@@ -8,6 +8,8 @@ name: AAP JUCE hosting support
 description: Classes for AAP hosting support
 website: https://github.com/atsushieno/aap-juce
 license: GPLv3
+minimumCppStandard: 17
+dependencies: juce_audio_processors, juce_gui_extra
 
 END_JUCE_MODULE_DECLARATION
 */
