@@ -2,7 +2,7 @@
 
 AAP-JUCE is a part of [AAP (Audio Plugins For Android) project](https://github.com/atsushieno/aap-core) that integrates JUCE apps (plugins and hosts) to Android.
 
-This repo is the place where we have the common JUCE integration support modules, as well as various patches for handful of different JUCE versions.
+This repo is the place where we have the common JUCE integration support modules, CMake helpers, as well as various patches for handful of different JUCE versions.
 
 CMake ports can also load this repository with `add_subdirectory()` and use
 version-selected JUCE patches through `aap_juce_configure()`. See
@@ -27,32 +27,43 @@ At this state, this repository itself is almost about a set of build scripts tha
 JUCE is a popular cross-platform, multi-plugin-format audio development framework.
 JUCE itself does not support AAP, but it can be extended by additional modules.
 JUCE also supports Android (you can even run UI), which makes things closer to actual app production.
-Still, JUCE is not designed to be extensible *enough*, additional code to support AAP is needed in each app. And when it comes to GUI support, many apps are not quite ready for Android.
+Still, JUCE is not designed to be extensible *enough*, additional code to support AAP is needed in each app.
+And when it comes to GUI support, many apps are not quite ready for Android, so you will have to create a handful of patches to port.
 
 While JUCE itself is useful to develop plugin formats like AAP, it is designed to be independent of any other audio development toolkits and frameworks. We stick to minimum dependencies, at least on the public API surface.
 
-JUCE API is stable-ish, while AAP API is not. So if anyone wants to build AAP plugins portable without fear of API breakage, JUCE can be your good friend.
+JUCE API is stable-ish, while AAP API is still not.
+So if anyone wants to build AAP plugins portable without fear of API breakage, JUCE can be your good friend.
 
 Note that JUCE plugins are usually designed for desktop and not meant to be usable on mobiles. In particular -
 
-- their UIs usually don't build, and/or are usually useless on mobile.
+- their UIs are usually not very mobile friendly: they very often do not build due to uses of "missing on Android" JUCE APIs (such as modal dialogs), they are usually too big, and freezes when it tries to access the global desktop either directly or indirectly (such as `juce::PopupMenu` does).
 - those plugins that lets user pick up local files would not fit well with Android paradigm.
-- they frequently expose performance issues too.
+- they often expose performance issues.
 
 ## How to try it out?
 
 To avoid duplicates I removed description here. Check out [aap-core](https://github.com/atsushieno/aap-core) README instead.
 
-The host can be either `aaphostsample` in aap-core repo, a project [aap-juce-simple-host](https://github.com/atsushieno/aap-juce-simple-host) that is somewhat tailored for AAP and mobile UI, `AudioPluginHost` in [aap-juce-plugin-host-cmake](https://github.com/atsushieno/aap-juce-plugin-host) repo (which is JUCE AudioPluginHost with AAP support), or [UAPMD](https://github.com/atsushieno/uapmd). Since JUCE hosts themselves are not really reliable as JUCE is in general not well designed and tailored for Android, @atsushieno recommends UAPMD as the most reliable native host application as of 2026.
+The host can be either of:
+
+- [greenhouse](https://github.com/meteaurestudios/greenhouse) - our "mobile first" plugin host
+- `aaphostsample` in aap-core repo
+- [aap-juce-simple-host](https://github.com/atsushieno/aap-juce-simple-host) project that makes use of `aap_audio_plugin_client` and somewhat tailored for AAP and mobile UI
+- [uapmd](https://github.com/atsushieno/uapmd) (ImGui) or [uapmd-kmp](https://github.com/atsushieno/uapmd-kmp) (Compose Multiplatform)
+
+Since JUCE hosts themselves are not really reliable as JUCE is in general not well designed and tailored for Android, @atsushieno recommends greenhouse or uapmd-kmp as the most reliable native host application as of 2026.
 
 
 ## App Build Instruction
 
-Migrated CMake ports build with `./gradlew build` (`gradlew.bat build` on Windows), including source preparation. Ports that still have a `Makefile` continue to build with `make`.
+Historically we had `make` based build system. Any project with top-level `Makefile` falls into that category.
+Others have migrated pure Gradle + CMake - they build with `./gradlew build` (`gradlew.bat build` on Windows), including source preparation.
 
 ### CI builds
 
-aap-juce itself is a set of JUCE modules that itself does not "build". But still, there are [reusable GitHub Actions workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows) under `.github` directory: one for CMake based projects and another for Projucer based projects. They are kind of normative build instructions (in that it is offered by ourselves).
+aap-juce itself is a set of JUCE modules with some CMake helper scripts, and the repo itself does not "build".
+But still, there are [reusable GitHub Actions workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows) under `.github` directory: one for CMake based projects and another for Projucer based projects. They are kind of normative build instructions (in that it is offered by ourselves).
 
 The reusable CMake workflow supports both styles: it runs `make build dist` when the port has a `Makefile`, and otherwise runs `./gradlew build bundleRelease` and collects the APK and app bundle.
 
@@ -63,17 +74,18 @@ As long as other project follows the same structure, you can reuse it too. It is
 As a prerequisite, you need Android SDK. If you install it via Android Studio it is usually placed under `~/Android/Sdk` on Linux, and `~/Library/Android/sdk` on MacOS.
 You also need Android NDK, most likely at least r23 (our latest development version uses newer ones).
 
-For those project that use Projucer: depending on the NDK setup you might also have to rewrite `Makefile` and `Builds/Android/local.properties` to point to the right NDK location. Then run `cd Builds/Android && ./gradlew build` instead of `./projuce-app.sh`.
-It would be much easier to place Android SDK and NDK to the standard location though. Symbolic links would suffice.
-
 Migrated CMake projects use the shared [Gradle preparation adapter](docs/CMAKE_INTEGRATION.md) and open as typical Android Studio projects. Older CMake ports still use their Make-based preparation.
 
 ### Build outputs
 
+For those projects that use CMake, the build outputs are at `app/build/outputs`.
+
+**NOTE**: We don't support Projucer anymore: convert your `*.jucer` to CMake if you want to build AAP apps.
+Projucer-based build is still possible, but involves complicated setup that we don't spend our resource to explain everything.
+
 For JUCE apps that still use Projucer (we often scrap them and create `CMakeLists.txt` by ourselves in our ports), JUCE Android apps are generated and built under `Builds/Android/app/build/outputs/` in each app directory.
 Though we typically use Android Studio and open `Builds/Android` and then run or debug there, once top-level `make` ran successfully.
 
-For those projects that use CMake, the build outputs are at `app/build/outputs`.
 
 ## Additional notes on Projucer
 
