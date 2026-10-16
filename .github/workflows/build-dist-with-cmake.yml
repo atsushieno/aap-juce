@@ -66,6 +66,10 @@ jobs:
           make build dist
         else
           ./gradlew -p external/aap-core publishToMavenLocal
+          # ports that read soundpacks carry soundpack-provider-for-android as a submodule
+          if [ -f external/soundpack-provider-for-android/settings.gradle.kts ]; then
+            (cd external/soundpack-provider-for-android && ./gradlew publishToMavenLocal)
+          fi
           ./gradlew build bundleRelease
           mkdir -p dist
           find . -path './external' -prune -o -type f \
