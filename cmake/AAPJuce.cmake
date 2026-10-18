@@ -48,6 +48,8 @@ function(_aap_juce_configure)
     endif()
     get_filename_component(core "${arg_AAP_DIR}" ABSOLUTE BASE_DIR "${application_source}")
     set(AAP_DIR "${core}" PARENT_SCOPE)
+    # Target helpers may run in child directories or plugin factory functions.
+    set(AAP_JUCE_EMBEDDED_JAVA "${arg_EMBEDDED_JAVA}" PARENT_SCOPE)
     # Existing desktop checkouts need no Android preparation.
     if(NOT arg_JUCE_CPM_ARGS AND NOT (ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "Android" OR
             AAP_JUCE_PREPARE_ONLY OR CMAKE_SCRIPT_MODE_FILE))
@@ -211,9 +213,15 @@ function(_aap_juce_target mode)
             target_compile_definitions("${target}" PUBLIC
                 JUCE_ANDROID=1
                 JUCE_DONT_AUTO_OPEN_MIDI_DEVICES_ON_MOBILE=1
-                JUCE_PUSH_NOTIFICATIONS=1
-                JUCE_PUSH_NOTIFICATIONS_ACTIVITY="com/rmsl/juce/JuceActivity"
                 JUCE_USE_ANDROID_OBOE_STABILIZED_CALLBACK=1)
+            # Embedded-Java apps omit JuceActivity. Defining the activity macro
+            # makes JUCE register its JNI callbacks at startup, which aborts
+            # the process when the class is absent (even with notifications off).
+            if(NOT AAP_JUCE_EMBEDDED_JAVA)
+                target_compile_definitions("${target}" PUBLIC
+                    JUCE_PUSH_NOTIFICATIONS=1
+                    JUCE_PUSH_NOTIFICATIONS_ACTIVITY="com/rmsl/juce/JuceActivity")
+            endif()
         endif()
     endforeach()
 endfunction()

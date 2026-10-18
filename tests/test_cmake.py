@@ -335,12 +335,22 @@ class PreparationTests(unittest.TestCase):
         core = self.root / "core/include"
         core.mkdir(parents=True)
         (project / "check.c").write_text(
-            '#if !JUCEAAP_ENABLED || !JUCE_ANDROID || !JUCE_PUSH_NOTIFICATIONS || '
+            '#if !JUCEAAP_ENABLED || !JUCE_ANDROID || '
             '!JUCE_DONT_AUTO_OPEN_MIDI_DEVICES_ON_MOBILE || !JUCE_USE_ANDROID_OBOE_STABILIZED_CALLBACK\n'
             '#error "Missing Android initialization definitions"\n#endif\n'
             '#if !AAP_JUCE_HAS_HEADLESS_PROCESSOR || !JUCEAAP_HOSTED_PARAMETER || !JUCEAAP_USE_UNIQUE_ID\n'
             '#error "Missing JUCE compatibility definitions"\n#endif\n'
-            'const char* activity = JUCE_PUSH_NOTIFICATIONS_ACTIVITY;\nint fixture(void) { return activity[0]; }\n')
+            '#if EXPECT_EMBEDDED\n'
+            '#if defined(JUCE_PUSH_NOTIFICATIONS) || defined(JUCE_PUSH_NOTIFICATIONS_ACTIVITY)\n'
+            '#error "Embedded Java must not require JuceActivity"\n#endif\n'
+            '#else\n#if !JUCE_PUSH_NOTIFICATIONS || !defined(JUCE_PUSH_NOTIFICATIONS_ACTIVITY)\n'
+            '#error "Missing activity initialization definitions"\n#endif\n'
+            'const char* activity = JUCE_PUSH_NOTIFICATIONS_ACTIVITY;\n#endif\n'
+            'int fixture(void) { return 0; }\n')
+        juce = project / "juce/modules/juce_core/system"
+        juce.mkdir(parents=True)
+        (juce / "juce_StandardHeader.h").write_text(
+            '#define JUCE_MAJOR_VERSION 8\n#define JUCE_MINOR_VERSION 0\n#define JUCE_BUILDNUMBER 15\n')
         libraries = []
         setup = ""
         for library in ("log", "android", "GLESv2", "EGL"):
@@ -355,21 +365,29 @@ class PreparationTests(unittest.TestCase):
             ' get_filename_component(module "${source}" NAME)\n'
             ' add_library("${module}" INTERFACE)\nendfunction()\n'
             'add_library(androidaudioplugin::androidaudioplugin INTERFACE IMPORTED)\n'
-            'set(AAP_JUCE_VERSION 8.0.15)\nset(ANDROID TRUE)\n' + setup +
+            # Configure before enabling the mocked Android toolchain, avoiding source preparation.
+            'if(EXPECT_EMBEDDED)\nset(java_option EMBEDDED_JAVA)\nendif()\n'
+            f'aap_juce_configure(JUCE_SOURCE_DIR juce AAP_DIR "{core.parent}" ${{java_option}})\n'
+            'set(ANDROID TRUE)\nadd_compile_definitions(EXPECT_EMBEDDED=${EXPECT_EMBEDDED})\n' + setup +
+            'function(add_plugins)\n'
             'add_library(plugin STATIC check.c)\nadd_library(host STATIC check.c)\n'
             f'aap_juce_plugin(TARGET plugin AAP_DIR "{core.parent}")\n'
             f'aap_juce_host(TARGET host AAP_DIR "{core.parent}")\n'
+            'endfunction()\nadd_plugins()\n'
             'foreach(target plugin host)\n'
             ' get_target_property(links ${target} LINK_LIBRARIES)\n'
             ' foreach(required androidaudioplugin::androidaudioplugin ' +
             " ".join(f'"{x}"' for x in libraries) + ')\n'
             '  if(NOT required IN_LIST links)\n message(FATAL_ERROR "Missing Android library: ${required}")\n'
             '  endif()\n endforeach()\nendforeach()\n')
-        build = project / "build"
-        self.assert_success(subprocess.run(
-            ["cmake", "-S", str(project), "-B", str(build)], capture_output=True, text=True))
-        self.assert_success(subprocess.run(
-            ["cmake", "--build", str(build)], capture_output=True, text=True))
+        for embedded in (0, 1):
+            with self.subTest(embedded_java=embedded):
+                build = project / f"build-{embedded}"
+                self.assert_success(subprocess.run(
+                    ["cmake", "-S", str(project), "-B", str(build),
+                     f"-DEXPECT_EMBEDDED={embedded}"], capture_output=True, text=True))
+                self.assert_success(subprocess.run(
+                    ["cmake", "--build", str(build)], capture_output=True, text=True))
 
     def test_add_subdirectory_exports_relocated_source_directory(self):
         relocated = self.root / "dependencies/integration with arbitrary name"

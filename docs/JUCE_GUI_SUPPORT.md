@@ -156,9 +156,11 @@ of them. It needs some changes to the setup described above though:
   loader of its own. (It is how Projucer apps work; Projucer does not compile
   them either.)
 - Since the app does not compile `JuceActivity` (in `javaopt/app`) anymore,
-  remove `JUCE_PUSH_NOTIFICATIONS` and `JUCE_PUSH_NOTIFICATIONS_ACTIVITY` from
+  use `aap_juce_configure(... EMBEDDED_JAVA)` so the target helpers omit
+  `JUCE_PUSH_NOTIFICATIONS` and `JUCE_PUSH_NOTIFICATIONS_ACTIVITY` from
   the compile definitions (JUCE looks up the activity class if the latter is
-  defined), and the `JuceActivity` element in `AndroidManifest.xml`.
+  defined). With manual compile definitions, remove both of them. Also remove
+  the `JuceActivity` element in `AndroidManifest.xml`.
 - Our patches to the JUCE Java sources have to be applied to the embedded
   byte-code instead. For JUCE 7.0.12, add
   `juce-patches/7.0.12/juce-component-peer-view-touch-bytecode.patch` to
