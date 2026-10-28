@@ -1,0 +1,281 @@
+diff --git a/modules/juce_core/native/juce_Files_android.cpp b/modules/juce_core/native/juce_Files_android.cpp
+index de52140..d03fd11 100644
+--- a/modules/juce_core/native/juce_Files_android.cpp
++++ b/modules/juce_core/native/juce_Files_android.cpp
+@@ -894,7 +894,18 @@ JUCE_API bool JUCE_CALLTYPE Process::openDocument (const String& fileName, const
+     const LocalRef<jstring> action (javaString ("android.intent.action.VIEW"));
+     LocalRef<jobject> intent (env->NewObject (AndroidIntent, AndroidIntent.constructWithUri, action.get(), urlToUri (targetURL).get()));
+ 
+-    env->CallVoidMethod (getCurrentActivity(), AndroidContext.startActivity, intent.get());
++    if (auto activity = getCurrentActivity())
++    {
++        env->CallVoidMethod (activity, AndroidContext.startActivity, intent.get());
++    }
++    else
++    {
++        // AAP: a plugin process that a host app loads has no Activity; start it in a new task.
++        constexpr jint FLAG_ACTIVITY_NEW_TASK = 0x10000000;
++        env->CallObjectMethod (intent, AndroidIntent.setFlags, FLAG_ACTIVITY_NEW_TASK);
++        env->CallVoidMethod (getAppContext(), AndroidContext.startActivity, intent.get());
++    }
++
+     return true;
+ }
+ 
+diff --git a/modules/juce_core/native/juce_JNIHelpers_android.cpp b/modules/juce_core/native/juce_JNIHelpers_android.cpp
+index 48646d5..7ae2ec4 100644
+--- a/modules/juce_core/native/juce_JNIHelpers_android.cpp
++++ b/modules/juce_core/native/juce_JNIHelpers_android.cpp
+@@ -718,6 +718,92 @@ static const uint8 javaFragmentOverlay[] =
+  DECLARE_JNI_CLASS (AndroidDialogFragment, "android/app/DialogFragment")
+ #undef JNI_CLASS_MEMBERS
+ 
++//==============================================================================
++// AAP: a plugin process that a host app loads has no Activity to show the fragment in. Start the
++// plugin app's transparent JuceFragmentHostActivity instead (the plugin declares it in its
++// manifest), show the fragment once it is resumed, and finish it along with the overlay.
++static constexpr auto fragmentHostActivityClassName = "org.androidaudioplugin.juce.JuceFragmentHostActivity";
++
++static void showFragmentOverlay (jobject fragment, jobject activity)
++{
++    auto* env = getEnv();
++
++    LocalRef<jobject> fm (env->CallObjectMethod (activity, AndroidActivity.getFragmentManager));
++    env->CallVoidMethod (fragment, AndroidDialogFragment.show, fm.get(), javaString ("FragmentOverlay").get());
++}
++
++struct FragmentOverlay::HostActivity final : public ActivityLifecycleCallbacks,
++                                              private AndroidInterfaceImplementer
++{
++    explicit HostActivity (FragmentOverlay& o) : owner (o) {}
++
++    ~HostActivity() override
++    {
++        if (activity != nullptr)
++            getEnv()->CallVoidMethod (activity, AndroidActivity.finish);
++    }
++
++    bool start()
++    {
++        constexpr jint FLAG_ACTIVITY_NEW_TASK = 0x10000000;
++
++        auto* env = getEnv();
++        auto context = getAppContext();
++        const LocalRef<jstring> packageName ((jstring) env->CallObjectMethod (context, AndroidContext.getPackageName));
++        LocalRef<jobject> intent (env->NewObject (AndroidIntent, AndroidIntent.constructor));
++        env->CallObjectMethod (intent, AndroidIntent.setClassName, packageName.get(), javaString (fragmentHostActivityClassName).get());
++        env->CallObjectMethod (intent, AndroidIntent.setFlags, FLAG_ACTIVITY_NEW_TASK);
++        env->CallVoidMethod (context, AndroidContext.startActivity, intent.get());
++
++        // ActivityNotFoundException, if the plugin does not declare the activity.
++        if (jniCheckHasExceptionOccurredAndClear())
++            return false;
++
++        // Android silently drops the launch if it does not allow the process to start an activity
++        // from the background, e.g. if the host does not bind it with BIND_ALLOW_ACTIVITY_STARTS.
++        env->CallBooleanMethod (handler, AndroidHandler.postDelayed, timeout.get(), (jlong) 3000);
++        return true;
++    }
++
++    // The timeout Runnable that start() posts.
++    jobject invoke (jobject proxy, jobject method, jobjectArray args) override
++    {
++        auto* env = getEnv();
++
++        if (juceString ((jstring) env->CallObjectMethod (method, JavaMethod.getName)) != "run")
++            return AndroidInterfaceImplementer::invoke (proxy, method, args);
++
++        if (activity == nullptr)
++            owner.onHostActivityUnavailable(); // This may delete the owner and therefore this.
++
++        return nullptr;
++    }
++
++    void onActivityResumed (jobject resumed) override
++    {
++        if (activity != nullptr || ! isHostActivity (resumed))
++            return;
++
++        activity = GlobalRef (LocalRef<jobject> (getEnv()->NewLocalRef (resumed)));
++        showFragmentOverlay (owner.native, activity);
++    }
++
++    FragmentOverlay& owner;
++    GlobalRef activity;
++    GlobalRef handler { LocalRef<jobject> (getEnv()->NewObject (AndroidHandler, AndroidHandler.constructor)) };
++    GlobalRef timeout { CreateJavaInterface (this, "java/lang/Runnable") };
++    ActivityLifecycleCallbackForwarder forwarder { GlobalRef { getAppContext() }, this };
++};
++
++bool FragmentOverlay::isHostActivity (jobject activity)
++{
++    auto* env = getEnv();
++    const LocalRef<jobject> activityClass (env->GetObjectClass (activity));
++
++    return juceString (LocalRef<jstring> ((jstring) env->CallObjectMethod (activityClass, JavaClass.getName)))
++        == fragmentHostActivityClassName;
++}
++
+ //==============================================================================
+ FragmentOverlay::FragmentOverlay()
+     : native (LocalRef<jobject> (getEnv()->NewObject (JuceFragmentOverlay, JuceFragmentOverlay.construct)))
+@@ -727,7 +813,10 @@ FragmentOverlay::~FragmentOverlay()
+ {
+     auto* env = getEnv();
+ 
+-    env->CallVoidMethod (native.get(), JuceFragmentOverlay.close);
++    // AAP: the fragment was never shown if its host activity did not come up (see HostActivity),
++    // and DialogFragment.dismiss() fails then.
++    if (hostActivity == nullptr || hostActivity->activity != nullptr)
++        env->CallVoidMethod (native.get(), JuceFragmentOverlay.close);
+ }
+ 
+ void FragmentOverlay::open()
+@@ -738,8 +827,17 @@ void FragmentOverlay::open()
+     env->CallVoidMethod (bundle.get(), AndroidBundle.putLong, javaString ("cppThis").get(), (jlong) this);
+     env->CallVoidMethod (native.get(), AndroidFragment.setArguments, bundle.get());
+ 
+-    LocalRef<jobject> fm (env->CallObjectMethod (getCurrentActivity().get(), AndroidActivity.getFragmentManager));
+-    env->CallVoidMethod (native.get(), AndroidDialogFragment.show, fm.get(), javaString ("FragmentOverlay").get());
++    if (auto activity = getCurrentActivity())
++    {
++        showFragmentOverlay (native, activity);
++        return;
++    }
++
++    // AAP: see HostActivity.
++    hostActivity = std::make_unique<HostActivity> (*this);
++
++    if (! hostActivity->start())
++        hostActivity.reset();
+ }
+ 
+ void FragmentOverlay::onCreatedCallback (JNIEnv* env, FragmentOverlay& t, jobject obj)
+diff --git a/modules/juce_core/native/juce_JNIHelpers_android.h b/modules/juce_core/native/juce_JNIHelpers_android.h
+index 8248ef6..3ef5f0d 100644
+--- a/modules/juce_core/native/juce_JNIHelpers_android.h
++++ b/modules/juce_core/native/juce_JNIHelpers_android.h
+@@ -484,7 +484,8 @@ DECLARE_JNI_CLASS (AndroidHandlerThread, "android/os/HandlerThread")
+   METHOD (putExtraInt,                    "putExtra",       "(Ljava/lang/String;I)Landroid/content/Intent;") \
+   METHOD (putParcelableArrayListExtra,    "putParcelableArrayListExtra", "(Ljava/lang/String;Ljava/util/ArrayList;)Landroid/content/Intent;") \
+   METHOD (setAction,                      "setAction",      "(Ljava/lang/String;)Landroid/content/Intent;") \
+-  METHOD (setFlags,                       "setFlags",       "(I)Landroid/content/Intent;") \
++  METHOD (setClassName,                   "setClassName",   "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;") \
++  METHOD (setFlags,                      "setFlags",       "(I)Landroid/content/Intent;") \
+   METHOD (setPackage,                     "setPackage",     "(Ljava/lang/String;)Landroid/content/Intent;") \
+   METHOD (setType,                        "setType",        "(Ljava/lang/String;)Landroid/content/Intent;") \
+ 
+@@ -1110,6 +1111,12 @@ public:
+                                              const Array<int>& /*grantResults*/) {}
+     virtual void onActivityResult (int /*requestCode*/, int /*resultCode*/, LocalRef<jobject> /*data*/) {}
+ 
++    /** AAP: called instead of onStart() if the overlay cannot be shown: the process has no Activity,
++        and the one that open() started did not come up (e.g. Android blocked the background launch).
++        Implementations should report a cancellation; the overlay may be deleted here.
++    */
++    virtual void onHostActivityUnavailable() {}
++
+     /** @internal */
+     static void onCreatedCallback (JNIEnv*, FragmentOverlay&, jobject obj);
+     /** @internal */
+@@ -1119,11 +1126,19 @@ public:
+     /** @internal */
+     static void onActivityResultCallback (JNIEnv*, FragmentOverlay&, jint requestCode, jint resultCode, jobject data);
+ 
++    /** @internal AAP: whether the activity is one that an overlay started to show itself in, in a
++        process that has no Activity (see open()).
++    */
++    static bool isHostActivity (jobject activity);
++
+ protected:
+     jobject getNativeHandle();
+ 
+ private:
++    struct HostActivity;
++
+     GlobalRef native;
++    std::unique_ptr<HostActivity> hostActivity;
+ };
+ 
+ //==============================================================================
+@@ -1150,6 +1165,11 @@ public:
+         NullCheckedInvocation::invoke (callback, activityRequestCode, resultCode, std::move (data));
+     }
+ 
++    void onHostActivityUnavailable() override
++    {
++        onActivityResult (requestCode, 0 /* Activity.RESULT_CANCELED */, {});
++    }
++
+     std::function<void (int, int, LocalRef<jobject>)> callback;
+ 
+ private:
+diff --git a/modules/juce_core/native/juce_RuntimePermissions_android.cpp b/modules/juce_core/native/juce_RuntimePermissions_android.cpp
+index 691e608..d462e77 100644
+--- a/modules/juce_core/native/juce_RuntimePermissions_android.cpp
++++ b/modules/juce_core/native/juce_RuntimePermissions_android.cpp
+@@ -132,6 +132,31 @@ struct PermissionsOverlay final : public FragmentOverlay
+ 
+     void onStart() override    { onRequestPermissionsResult (0, {}, {}); }
+ 
++    // AAP: there is no Activity to ask the user in (see FragmentOverlay::open()).
++    void onHostActivityUnavailable() override
++    {
++        for (;;)
++        {
++            std::vector<PermissionsRequest> unanswered;
++
++            {
++                ScopedLock lock (overlayGuard);
++
++                if (requests.empty())
++                {
++                    getSingleton() = nullptr;
++                    return;
++                }
++
++                unanswered.swap (requests);
++            }
++
++            for (const auto& request : unanswered)
++                if (request.callback)
++                    request.callback (RuntimePermissions::isGranted (request.permission));
++        }
++    }
++
+     void onRequestPermissionsResult (int /*requestCode*/,
+                                      const StringArray& permissions,
+                                      const Array<int>& grantResults) override
+diff --git a/modules/juce_core/native/juce_Threads_android.cpp b/modules/juce_core/native/juce_Threads_android.cpp
+index 06c6f31..4ed0219 100644
+--- a/modules/juce_core/native/juce_Threads_android.cpp
++++ b/modules/juce_core/native/juce_Threads_android.cpp
+@@ -168,6 +168,11 @@ public:
+     {
+         auto* env = getEnv();
+ 
++        // AAP: an overlay's host activity is not an Activity of the app, and finishes as soon as the
++        // overlay is closed. Windows opened meanwhile must not use it (see FragmentOverlay::open()).
++        if (activity != nullptr && FragmentOverlay::isHostActivity (activity))
++            return;
++
+         checkActivityIsMain (activity);
+ 
+         ScopedLock lock (currentActivityLock);
+diff --git a/modules/juce_gui_basics/filebrowser/juce_FileChooser.cpp b/modules/juce_gui_basics/filebrowser/juce_FileChooser.cpp
+index a638c86..677de63 100644
+--- a/modules/juce_gui_basics/filebrowser/juce_FileChooser.cpp
++++ b/modules/juce_gui_basics/filebrowser/juce_FileChooser.cpp
+@@ -198,7 +198,11 @@ void FileChooser::launchAsync (int flags, std::function<void (const FileChooser&
+     asyncCallback = std::move (callback);
+ 
+     pimpl = createPimpl (flags, previewComp);
+-    pimpl->launch();
++
++    // AAP: Android runs one file chooser at a time, and returns no implementation for another one.
++    // That can happen while a plugin's chooser waits for an activity (see FragmentOverlay::open()).
++    if (pimpl != nullptr)
++        pimpl->launch();
+ }
+ 
+ std::shared_ptr<FileChooser::Pimpl> FileChooser::createPimpl (int flags, FilePreviewComponent* previewComp)

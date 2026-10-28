@@ -54,6 +54,15 @@ through AndroidX Startup:
       android:hardwareAccelerated="true"
       android:exported="true" />
 
+  <!-- Shows FileChooser and permission requests when a host loads the plugin. -->
+  <activity
+      android:name="org.androidaudioplugin.juce.JuceFragmentHostActivity"
+      android:theme="@android:style/Theme.Translucent.NoTitleBar"
+      android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+      android:excludeFromRecents="true"
+      android:exported="false"
+      android:taskAffinity="" />
+
   <service
       android:name="org.androidaudioplugin.AudioPluginService"
       android:label="@string/app_name"
@@ -259,11 +268,15 @@ Common changes include:
 - Adding a dummy `JuceHeader.h` when the upstream source expects Projucer-style
   generated headers but the Android/CMake build does not create one.
 - Replacing blocking JUCE modal APIs with async APIs.
-- Avoiding JUCE features that still need an Activity in a plugin process that a
-  host loads, such as `FileChooser` and runtime permission requests. Popup
-  menus, top-level windows (`DialogWindow`, `AlertWindow`) and message boxes are
-  handled by the JUCE patches (`popup`, `lightweight`, `desktop`), which show them
-  inside the plugin editor's hosted view.
+- Nothing for JUCE features that need an Activity, which a plugin process that a
+  host loads does not have. Popup menus, top-level windows (`DialogWindow`,
+  `AlertWindow`) and message boxes are handled by the JUCE patches (`popup`,
+  `lightweight`, `desktop`), which show them inside the plugin editor's hosted
+  view. `FileChooser`, runtime permission requests and `URL::launchInDefaultBrowser()`
+  are handled by the `activity` fix, which starts the plugin's
+  `JuceFragmentHostActivity` (declare it in the manifest as shown above). Android
+  14 and later allow that launch only if the host binds the plugin with
+  `Context.BIND_ALLOW_ACTIVITY_STARTS`, which aap-core's hosting classes do.
 
 For CMake-based plugin ports, the AAP-specific block should normally look like
 this:

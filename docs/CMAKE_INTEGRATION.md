@@ -120,7 +120,7 @@ Exceptions are available through:
 
 - `EXTRA_JUCE_PATCHES`: additional patches applied after the predefined set.
 - `DISABLE_JUCE_FIXES`: named fixes to omit. The catalog's IDs are `jni`,
-  `detach`, `cgwindow`, `opengl`, `peer`, `desktop`, `plugin-ui`, `thread`, `peer-touch`,
+  `detach`, `cgwindow`, `opengl`, `peer`, `desktop`, `activity`, `plugin-ui`, `thread`, `peer-touch`,
   `peer-lifecycle`, `popup`, `popup-touch`, `lightweight`, `saf`, `bytecode`, `factory`, and
   `entrypoint`. Only IDs active for the selected version/mode are accepted.
 - `JUCE_PATCHES`: a complete explicit replacement, including entrypoint patches.
