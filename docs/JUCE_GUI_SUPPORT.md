@@ -259,8 +259,11 @@ Common changes include:
 - Adding a dummy `JuceHeader.h` when the upstream source expects Projucer-style
   generated headers but the Android/CMake build does not create one.
 - Replacing blocking JUCE modal APIs with async APIs.
-- Preventing popup menus and dialogs from using an Android desktop peer outside
-  the plugin editor's hosted view.
+- Avoiding JUCE features that still need an Activity in a plugin process that a
+  host loads, such as `FileChooser` and runtime permission requests. Popup
+  menus, top-level windows (`DialogWindow`, `AlertWindow`) and message boxes are
+  handled by the JUCE patches (`popup`, `lightweight`, `desktop`), which show them
+  inside the plugin editor's hosted view.
 
 For CMake-based plugin ports, the AAP-specific block should normally look like
 this:

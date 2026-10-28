@@ -1,0 +1,129 @@
+diff --git a/modules/juce_gui_basics/native/juce_NativeMessageBox_android.cpp b/modules/juce_gui_basics/native/juce_NativeMessageBox_android.cpp
+index 64918bc..87863ed 100644
+--- a/modules/juce_gui_basics/native/juce_NativeMessageBox_android.cpp
++++ b/modules/juce_gui_basics/native/juce_NativeMessageBox_android.cpp
+@@ -37,6 +37,49 @@ namespace juce::detail
+ 
+ std::unique_ptr<ScopedMessageBoxInterface> ScopedMessageBoxInterface::create (const MessageBoxOptions& options)
+ {
++    // AAP: a plugin editor is shown in a view that a host app embeds from another process, where
++    // there is no Activity for a native dialog. Re-use the AlertWindow as on Linux instead, whose
++    // result code is mapped to the button index as the native message boxes return.
++    if (getMainActivity() == nullptr)
++    {
++        class AlertWindowMessageBox final : public ScopedMessageBoxInterface
++        {
++        public:
++            explicit AlertWindowMessageBox (const MessageBoxOptions& o)
++                : inner (detail::AlertWindowHelpers::create (o)),
++                  numButtons (o.getNumButtons()) {}
++
++            void runAsync (std::function<void (int)> fn) override
++            {
++                inner->runAsync ([fn, n = numButtons] (int result) { fn (map (result, n)); });
++            }
++
++            int runSync() override
++            {
++                return map (inner->runSync(), numButtons);
++            }
++
++            void close() override
++            {
++                inner->close();
++            }
++
++        private:
++            static int map (int button, int numButtons)
++            {
++                if (numButtons <= 0)
++                    return 0;
++
++                return (button + numButtons - 1) % numButtons;
++            }
++
++            std::unique_ptr<ScopedMessageBoxInterface> inner;
++            int numButtons = 0;
++        };
++
++        return std::make_unique<AlertWindowMessageBox> (options);
++    }
++
+     class AndroidMessageBox final : public ScopedMessageBoxInterface
+     {
+     public:
+diff --git a/modules/juce_gui_basics/native/juce_Windowing_android.cpp b/modules/juce_gui_basics/native/juce_Windowing_android.cpp
+index 8e115c0..5d880c9 100644
+--- a/modules/juce_gui_basics/native/juce_Windowing_android.cpp
++++ b/modules/juce_gui_basics/native/juce_Windowing_android.cpp
+@@ -1323,6 +1323,15 @@ public:
+                                                              getAppContext().get(), (jboolean) component.isOpaque(),
+                                                              (jlong) this)));
+ 
++        // AAP: a plugin editor is shown in a view that a host app embeds from another process, where
++        // there is no Activity to create a window from. Attach a top-level window (a dialog, an alert
++        // window etc.) to the view of an existing peer, i.e. the editor, instead.
++        if (nativeViewHandle == nullptr && getCurrentOrMainActivity() == nullptr)
++        {
++            nativeViewHandle = findViewToAttachToWithoutActivity();
++            attachedWithoutActivity = nativeViewHandle != nullptr;
++        }
++
+         userDidSupplyParent = nativeViewHandle != nullptr;
+ 
+         if (userDidSupplyParent)
+@@ -1434,6 +1443,34 @@ public:
+         setSystemBarsTransparent();
+     }
+ 
++    // AAP: prefers the peer that has keyboard focus, so that a window opens in the editor that the
++    // user interacts with, if the process shows more than one.
++    static void* findViewToAttachToWithoutActivity()
++    {
++        const auto getViewToAttachTo = [] (ComponentPeer* p) -> jobject
++        {
++            auto* peer = dynamic_cast<AndroidComponentPeer*> (p);
++
++            if (peer == nullptr || (peer->getStyleFlags() & windowIsTemporary) != 0)
++                return nullptr;
++
++            // Attach to the editor rather than to another such window, which would clip the new one.
++            return peer->attachedWithoutActivity ? peer->viewGroup.get() : peer->view.get();
++        };
++
++        if (auto* focused = Component::getCurrentlyFocusedComponent())
++            if (auto v = getViewToAttachTo (focused->getPeer()))
++                return v;
++
++        auto& desktop = Desktop::getInstance();
++
++        for (auto i = desktop.getNumComponents(); --i >= 0;)
++            if (auto v = getViewToAttachTo (desktop.getComponent (i)->getPeer()))
++                return v;
++
++        return nullptr;
++    }
++
+     static void removeViewFromActivity (jobject localView)
+     {
+         if (localView == nullptr)
+@@ -1604,4 +1641,10 @@ public:
+ 
+     Point<int> getScreenPosition() const
+     {
++        // AAP: a window attached without an Activity has no screen; its bounds are relative to the
++        // view that it is attached to. Keep its position in the same space, or JUCE moves the window
++        // away when it recreates the peer (e.g. DialogWindow on setUsingNativeTitleBar()).
++        if (attachedWithoutActivity)
++            return getBounds().getPosition();
++
+         const auto physical = getViewLocationOnScreen (getEnv(), view.get());
+@@ -2543,7 +2586,7 @@ private:
+     static constexpr jint LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES = 0x1;
+ 
+     GlobalRef view, viewGroup, buffer, activityWindow;
+-    bool userDidSupplyParent = false, fullScreen = false, navBarsHidden = false;
++    bool userDidSupplyParent = false, attachedWithoutActivity = false, fullScreen = false, navBarsHidden = false;
+     int sizeAllocated = 0;
+ 
+     //==============================================================================
