@@ -1,0 +1,12 @@
+diff --git a/modules/juce_core/threads/juce_Thread.cpp b/modules/juce_core/threads/juce_Thread.cpp
+--- a/modules/juce_core/threads/juce_Thread.cpp
++++ b/modules/juce_core/threads/juce_Thread.cpp
+@@ -58,7 +58,7 @@
+     JUCE_DECLARE_NON_COPYABLE (CurrentThreadHolder)
+ };
+ 
+-static char currentThreadHolderLock [sizeof (SpinLock)]; // (statically initialised to zeros).
++alignas (SpinLock) static char currentThreadHolderLock [sizeof (SpinLock)]; // (statically initialised to zeros).
+ 
+ static SpinLock* castToSpinLockWithoutAliasingWarning (void* s)
+ {

@@ -240,6 +240,7 @@ PATCH_FILE=$(PWD)/aap-juce-support.patch
 PATCH_DEPTH=1
 
 JUCE_PATCHES= \
+        $(shell pwd)/external/aap-juce/juce-patches/6.0.5/thread-holder-lock-alignment.patch \
         $(shell pwd)/external/aap-juce/juce-patches/7.0.12/disable-cgwindowlistcreateimage.patch \
         $(shell pwd)/external/aap-juce/juce-patches/7.0.6/support-plugin-ui.patch \
         $(shell pwd)/external/aap-juce/juce-patches/7.0.11/juce-component-peer-view-touch.patch \

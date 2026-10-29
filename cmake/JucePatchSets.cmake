@@ -91,6 +91,10 @@ function(aap_juce_get_juce_patches out_var)
             "Use JUCE_PATCHES in aap_juce_configure() for an explicit override.")
     endif()
 
+    # The byte buffer is cast to SpinLock and must satisfy its atomic alignment.
+    set(thread-lock "juce-patches/6.0.5/thread-holder-lock-alignment.patch")
+    list(APPEND fixes thread-lock)
+
     if(arg_MODE STREQUAL "PLUGIN")
         set(plugin-ui "juce-patches/${ui}")
         list(APPEND fixes plugin-ui)

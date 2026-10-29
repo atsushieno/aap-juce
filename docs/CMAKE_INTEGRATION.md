@@ -115,12 +115,14 @@ libraries. It fails explicitly on versions without a compatible bytecode patch.
 Plugin/host mode also selects the appropriate initialization and entrypoint
 patches. JUCE 8/9 plugin sets use the weak factory fallback alongside the
 application-entrypoint visibility patch, avoiding duplicate factory definitions.
+All predefined plugin and host sets align JUCE's current-thread-holder spinlock
+storage, preventing unaligned atomic accesses during native thread startup.
 
 Exceptions are available through:
 
 - `EXTRA_JUCE_PATCHES`: additional patches applied after the predefined set.
 - `DISABLE_JUCE_FIXES`: named fixes to omit. The catalog's IDs are `jni`,
-  `detach`, `cgwindow`, `opengl`, `peer`, `desktop`, `activity`, `plugin-ui`, `thread`, `peer-touch`,
+  `detach`, `cgwindow`, `opengl`, `peer`, `desktop`, `activity`, `plugin-ui`, `thread`, `thread-lock`, `peer-touch`,
   `peer-lifecycle`, `popup`, `popup-touch`, `lightweight`, `saf`, `bytecode`, `factory`, and
   `entrypoint`. Only IDs active for the selected version/mode are accepted.
 - `JUCE_PATCHES`: a complete explicit replacement, including entrypoint patches.

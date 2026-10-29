@@ -221,7 +221,7 @@ class PreparationTests(unittest.TestCase):
         result = self.run_script(self.script(
             f'aap_juce_configure(JUCE_SOURCE_DIR "{self.source}" '
             'DISABLE_JUCE_FIXES jni detach cgwindow plugin-ui peer-touch '
-            'peer-lifecycle popup popup-touch entrypoint '
+            'peer-lifecycle popup popup-touch thread-lock entrypoint '
             f'EXTRA_JUCE_PATCHES "{patch}")\n'))
         self.assert_success(result)
         self.assertEqual((self.source / "value.txt").read_text(), "patched\n")
@@ -465,6 +465,9 @@ class PreparationTests(unittest.TestCase):
             for mode in ("PLUGIN", "HOST"):
                 result = self.run_script(self.script(
                     f'aap_juce_get_juce_patches(p VERSION {version} MODE {mode})\n'
+                    f'set(alignment_patch "{ROOT}/cmake/../juce-patches/6.0.5/thread-holder-lock-alignment.patch")\n'
+                    'if(NOT alignment_patch IN_LIST p)\n'
+                    ' message(FATAL_ERROR "Missing thread lock alignment fix")\nendif()\n'
                     'foreach(patch IN LISTS p)\n'
                     ' if(NOT EXISTS "${patch}")\n'
                     '  message(FATAL_ERROR "Missing patch: ${patch}")\n'
