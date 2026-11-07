@@ -393,12 +393,28 @@ bool AndroidAudioPluginInstance::parameterValueChanged(AndroidAudioPluginParamet
     return native->tryAddEventUmpInput(message, sizeof(message));
 }
 
+// AAP accepts a mode change after prepare() and before activate(), which is where this runs.
+// JUCE hosts can call setNonRealtime() at any time, so it applies at the next prepareToPlay().
+void AndroidAudioPluginInstance::applyOfflineMode() {
+    const bool offline = isNonRealtime();
+    if (offline == offline_mode_applied ||
+        !native->getPluginInformation()->hasExtension(AAP_OFFLINE_RENDERING_EXTENSION_URI))
+        return;
+    auto result = native->getStandardExtensions().setOfflineMode(
+            offline ? AAP_OFFLINE_RENDERING_MODE_OFFLINE : AAP_OFFLINE_RENDERING_MODE_REALTIME);
+    if (result.isOk() && result.value == AAP_OFFLINE_RENDERING_RESULT_OK)
+        offline_mode_applied = offline;
+    else
+        aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_LOG_TAG, "Plugin did not accept offline mode %d: %s", (int) offline, result.error.c_str());
+}
+
 void
 AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpectedSamplesPerBlock) {
     sample_rate = (int) sampleRate;
     block_size = maximumExpectedSamplesPerBlock;
 
     native->prepare(maximumExpectedSamplesPerBlock, (int32_t) sampleRate);
+    applyOfflineMode();
 
     aap_midi_in_port = native->getMainEventPortIndex(AAP_PORT_DIRECTION_INPUT);
     aap_midi_out_port = native->getMainEventPortIndex(AAP_PORT_DIRECTION_OUTPUT);

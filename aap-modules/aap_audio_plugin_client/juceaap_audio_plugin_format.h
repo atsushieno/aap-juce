@@ -24,6 +24,9 @@ class AndroidAudioPluginInstance : public juce::AudioPluginInstance, private juc
     uint32_t midi_buffer_size{4096};
     int sample_rate;
     int block_size{0};
+    // The mode that the plugin accepted. isNonRealtime() is what the JUCE host asked for.
+    bool offline_mode_applied{false};
+    void applyOfflineMode();
     // AAP_BUSES_CHANGED_* notified by the plugin, handled on the message thread.
     std::atomic<uint32_t> pending_bus_changes{0};
     // While the JUCE buses are made to follow the plugin's buses (not a host request).

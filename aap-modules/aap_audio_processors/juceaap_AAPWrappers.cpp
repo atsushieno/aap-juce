@@ -18,6 +18,7 @@
 #include "aap/ext/parameters.h"
 #include "aap/ext/plugin-info.h"
 #include "aap/ext/buses.h"
+#include "aap/ext/offline-rendering.h"
 #include "aap/ext/gui.h"
 #include "cmidi2.h"
 
@@ -670,10 +671,23 @@ public:
         juce_processor->setRateAndBufferSizeDetails(sample_rate, buffer->num_frames(buffer));
         juce_processor->setPlayHead(this);
 
-        juce_processor->prepareToPlay(sample_rate, buffer->num_frames(buffer));
+        prepared_frames = buffer->num_frames(buffer);
+        juce_processor->setNonRealtime(offline_mode);
+        juce_processor->prepareToPlay(sample_rate, prepared_frames);
+    }
+
+    // JUCE plugins may choose their engine in prepareToPlay(), so a change must go through it.
+    // prepare() or activate() does that, as prepareToPlay() may outlast the extension call timeout.
+    void setOfflineMode(bool offline) {
+        offline_mode = offline;
     }
 
     void activate() {
+        if (juce_processor->isNonRealtime() != offline_mode) {
+            juce_processor->releaseResources();
+            juce_processor->setNonRealtime(offline_mode);
+            juce_processor->prepareToPlay(sample_rate, prepared_frames);
+        }
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
         play_head_position.setIsPlaying(true);
 #else
@@ -689,6 +703,8 @@ public:
 #endif
     }
 
+    bool offline_mode{false};
+    int32_t prepared_frames{0};
     int32_t current_bpm = 120; // FIXME: provide way to adjust it
     int32_t default_time_division = 192;
 
@@ -1502,12 +1518,24 @@ aap_buses_extension_t buses_ext{nullptr,
                                 juceaap_get_bus,
                                 juceaap_apply_bus_layout};
 
+aap_offline_rendering_result_t juceaap_set_offline_mode(aap_offline_rendering_extension_t* ext, AndroidAudioPlugin* plugin,
+                                                        aap_offline_rendering_mode_t mode) {
+    auto wrapper = (JuceAAPWrapper*) plugin->plugin_specific;
+    wrapper->setOfflineMode(mode == AAP_OFFLINE_RENDERING_MODE_OFFLINE);
+    return AAP_OFFLINE_RENDERING_RESULT_OK;
+}
+
+aap_offline_rendering_extension_t offline_rendering_ext{nullptr, juceaap_set_offline_mode};
+
 void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
     if (strcmp(uri, AAP_PARAMETERS_EXTENSION_URI) == 0) {
         return &parameters_ext;
     }
     if (strcmp(uri, AAP_BUSES_EXTENSION_URI) == 0) {
         return &buses_ext;
+    }
+    if (strcmp(uri, AAP_OFFLINE_RENDERING_EXTENSION_URI) == 0) {
+        return &offline_rendering_ext;
     }
     if (strcmp(uri, AAP_STATE_EXTENSION_URI) == 0) {
         if (!state_ext_map[plugin]) {
