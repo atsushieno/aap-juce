@@ -1,15 +1,17 @@
 #!/bin/sh
-# Builds the actual wrapper and JUCE modules natively on macOS, and runs them against a probe processor.
-# JUCE_MODULES selects the JUCE modules directory. AAP_JUCE_TEST_BUILD keeps the JUCE objects between runs.
+# Builds the actual wrapper and JUCE modules natively on macOS, and runs each test in tests/<name>/.
+# AAP_JUCE_TESTS selects the tests. JUCE_MODULES selects the JUCE modules directory.
+# AAP_JUCE_TEST_BUILD keeps the JUCE and aap-core objects between runs.
 set -eu
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-repo=$(CDPATH= cd -- "$here/../.." && pwd)
+repo=$(CDPATH= cd -- "$here/.." && pwd)
+tests=${AAP_JUCE_TESTS:-offline-rendering tail}
 aapcore=${AAP_CORE_DIR:-$repo/../aap-core}
 modules=${JUCE_MODULES:-$repo/../aap-juce-dexed/external/dexed/libs/JUCE/modules}
 ndk=${ANDROID_NDK_HOME:-$(ls -d "$HOME"/Library/Android/sdk/ndk/* | sort -V | tail -1)}
 build=${AAP_JUCE_TEST_BUILD:-}
 if [ -z "$build" ]; then
-    build=$(mktemp -d "${TMPDIR:-/tmp}/aap-juce-offline.XXXXXX")
+    build=$(mktemp -d "${TMPDIR:-/tmp}/aap-juce-tests.XXXXXX")
     trap 'rm -rf "$build"' EXIT
 fi
 mkdir -p "$build/jni"
@@ -34,13 +36,16 @@ for name in $names; do
     [ -f "$object" ] || echo "$name"
 done | xargs -n1 -P2 -I{} "${CXX:-clang++}" $common -x objective-c++ -c "$modules/{}/{}.mm" -o "$build/{}.o"
 for name in $names; do objects="$objects $build/$name.o"; done
+frameworks="-framework Cocoa -framework IOKit -framework Accelerate -framework CoreAudio -framework CoreMIDI -framework AudioToolbox
+    -framework QuartzCore -framework Carbon -framework Security -framework Metal -framework MetalKit -framework WebKit
+    -framework CoreAudioKit -framework AVFoundation -framework CoreVideo -framework CoreImage -framework DiscRecording"
 "${CXX:-clang++}" $common -include jni.h -include "$build/compat.h" -I"$aapcore/include" -I"$aapcore/external/cmidi2" -I"$repo/aap-modules" \
-    "$here/offline-rendering-test.cpp" "$repo/aap-modules/aap_audio_processors/aap_audio_processors.cpp" $objects \
-    -framework Cocoa -framework IOKit -framework Accelerate -framework CoreAudio -framework CoreMIDI -framework AudioToolbox \
-    -framework QuartzCore -framework Carbon -framework Security -framework Metal -framework MetalKit -framework WebKit \
-    -framework CoreAudioKit -framework AVFoundation -framework CoreVideo -framework CoreImage -framework DiscRecording \
-    -o "$build/offline-rendering-test"
-"$build/offline-rendering-test"
+    -c "$repo/aap-modules/aap_audio_processors/aap_audio_processors.cpp" -o "$build/aap_audio_processors.o"
+for test in $tests; do
+    "${CXX:-clang++}" $common -include jni.h -include "$build/compat.h" -I"$aapcore/include" -I"$aapcore/external/cmidi2" -I"$repo/aap-modules" \
+        "$here/$test/$test-test.cpp" "$build/aap_audio_processors.o" $objects $frameworks -o "$build/$test-test"
+    "$build/$test-test"
+done
 
 # The host side, against the actual aap-core hosting code.
 # The module's GUI and desktop scanning code needs these to compile here; they do not run.
@@ -60,16 +65,16 @@ for source in PluginInstance PluginInstance.Local PluginInstance.Remote buffer-l
     [ -f "$object" ] || "${CXX:-clang++}" $core_flags -c "$hosting/$source.cpp" -o "$object"
     core_objects="$core_objects $object"
 done
-for source in aapxs-runtime standard-extensions parameters-aapxs presets-aapxs state-aapxs midi-aapxs urid-aapxs gui-aapxs buses-aapxs offline-rendering-aapxs typed-aapxs; do
+for source in aapxs-runtime standard-extensions parameters-aapxs presets-aapxs state-aapxs midi-aapxs urid-aapxs gui-aapxs buses-aapxs offline-rendering-aapxs tail-aapxs typed-aapxs; do
     object=$build/core-$source.o
     [ -f "$object" ] || "${CXX:-clang++}" $core_flags -c "$aapxs/$source.cpp" -o "$object"
     core_objects="$core_objects $object"
 done
-"${CXX:-clang++}" $common -DJUCEAAP_HOSTED_PARAMETER=1 -DJUCEAAP_USE_UNIQUE_ID=1 -include jni.h -include "$build/compat.h" -include "$aapcore/tests/native/rt-platform-stub.h" -include "$build/host-compat.h" \
-    -I"$aapcore/include" -I"$aapcore/external/cmidi2" -I"$hosting" -I"$repo/aap-modules" -I"$repo/aap-modules/aap_audio_plugin_client" \
-    "$here/offline-rendering-host-test.cpp" "$repo/aap-modules/aap_audio_plugin_client/aap_audio_plugin_client.cpp" $core_objects $objects \
-    -framework Cocoa -framework IOKit -framework Accelerate -framework CoreAudio -framework CoreMIDI -framework AudioToolbox \
-    -framework QuartzCore -framework Carbon -framework Security -framework Metal -framework MetalKit -framework WebKit \
-    -framework CoreAudioKit -framework AVFoundation -framework CoreVideo -framework CoreImage -framework DiscRecording \
-    -o "$build/offline-rendering-host-test"
-"$build/offline-rendering-host-test"
+host_flags="$common -DJUCEAAP_HOSTED_PARAMETER=1 -DJUCEAAP_USE_UNIQUE_ID=1 -include jni.h -include $build/compat.h -include $aapcore/tests/native/rt-platform-stub.h -include $build/host-compat.h
+    -I$aapcore/include -I$aapcore/external/cmidi2 -I$hosting -I$repo/aap-modules -I$repo/aap-modules/aap_audio_plugin_client"
+"${CXX:-clang++}" $host_flags -c "$repo/aap-modules/aap_audio_plugin_client/aap_audio_plugin_client.cpp" -o "$build/aap_audio_plugin_client.o"
+for test in $tests; do
+    "${CXX:-clang++}" $host_flags "$here/$test/$test-host-test.cpp" "$build/aap_audio_plugin_client.o" $core_objects $objects $frameworks \
+        -o "$build/$test-host-test"
+    "$build/$test-host-test"
+done

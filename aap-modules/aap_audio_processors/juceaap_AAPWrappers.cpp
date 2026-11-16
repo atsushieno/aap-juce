@@ -19,6 +19,7 @@
 #include "aap/ext/plugin-info.h"
 #include "aap/ext/buses.h"
 #include "aap/ext/offline-rendering.h"
+#include "aap/ext/tail.h"
 #include "aap/ext/gui.h"
 #include "cmidi2.h"
 
@@ -342,6 +343,22 @@ public:
             ext->notify_parameters_changed(ext, &host);
     }
 
+    // JUCE plugins report 0 or less for no tail and infinity for an endless one, as in JUCE VST3.
+    double getTailLengthInSeconds() {
+        auto length = juce_processor->getTailLengthSeconds();
+        return length > 0.0 ? length : 0.0;
+    }
+
+    // JUCE has no tail change notification, so updateHostDisplay() and re-preparation are checked.
+    void notifyTailLengthIfChanged() {
+        auto length = getTailLengthInSeconds();
+        if (last_tail_length.exchange(length) == length)
+            return;
+        auto ext = (aap_tail_host_extension_t *) host.get_extension(&host, AAP_TAIL_EXTENSION_URI);
+        if (ext && ext->notify_tail_length_changed)
+            ext->notify_tail_length_changed(ext, &host);
+    }
+
     // juce::AudioProcessorListener implementation
     void audioProcessorParameterChanged(juce::AudioProcessor* processor, int parameterIndex, float newValue) override {
         enqueueParameterChange(parameterIndex, newValue);
@@ -354,6 +371,7 @@ public:
         last_parameter_values = snapshotParameterValues();
         // We cannot tell whether parameter info has changed, so assume it has.
         notifyParametersChanged();
+        notifyTailLengthIfChanged();
     }
 #else
     void audioProcessorChanged(juce::AudioProcessor* processor, const juce::AudioProcessorListener::ChangeDetails &details) override {
@@ -361,6 +379,7 @@ public:
         last_parameter_values = snapshotParameterValues();
         if (details.parameterInfoChanged)
             notifyParametersChanged();
+        notifyTailLengthIfChanged();
     }
 #endif
 
@@ -674,6 +693,8 @@ public:
         prepared_frames = buffer->num_frames(buffer);
         juce_processor->setNonRealtime(offline_mode);
         juce_processor->prepareToPlay(sample_rate, prepared_frames);
+        // AAP refreshes the host's view of the tail after prepare(), so no notification is needed.
+        last_tail_length = getTailLengthInSeconds();
     }
 
     // JUCE plugins may choose their engine in prepareToPlay(), so a change must go through it.
@@ -687,6 +708,7 @@ public:
             juce_processor->releaseResources();
             juce_processor->setNonRealtime(offline_mode);
             juce_processor->prepareToPlay(sample_rate, prepared_frames);
+            notifyTailLengthIfChanged();
         }
 #if JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO
         play_head_position.setIsPlaying(true);
@@ -705,6 +727,8 @@ public:
 
     bool offline_mode{false};
     int32_t prepared_frames{0};
+    // The tail the host last learned of; updateHostDisplay() may come from any thread.
+    std::atomic<double> last_tail_length{0.0};
     int32_t current_bpm = 120; // FIXME: provide way to adjust it
     int32_t default_time_division = 192;
 
@@ -1527,6 +1551,12 @@ aap_offline_rendering_result_t juceaap_set_offline_mode(aap_offline_rendering_ex
 
 aap_offline_rendering_extension_t offline_rendering_ext{nullptr, juceaap_set_offline_mode};
 
+double juceaap_get_tail_length_in_seconds(aap_tail_extension_t* ext, AndroidAudioPlugin* plugin) {
+    return ((JuceAAPWrapper*) plugin->plugin_specific)->getTailLengthInSeconds();
+}
+
+aap_tail_extension_t tail_ext{nullptr, juceaap_get_tail_length_in_seconds};
+
 void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
     if (strcmp(uri, AAP_PARAMETERS_EXTENSION_URI) == 0) {
         return &parameters_ext;
@@ -1536,6 +1566,9 @@ void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
     }
     if (strcmp(uri, AAP_OFFLINE_RENDERING_EXTENSION_URI) == 0) {
         return &offline_rendering_ext;
+    }
+    if (strcmp(uri, AAP_TAIL_EXTENSION_URI) == 0) {
+        return &tail_ext;
     }
     if (strcmp(uri, AAP_STATE_EXTENSION_URI) == 0) {
         if (!state_ext_map[plugin]) {
