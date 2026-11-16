@@ -24,6 +24,8 @@ class AndroidAudioPluginInstance : public juce::AudioPluginInstance, private juc
     uint32_t midi_buffer_size{4096};
     int sample_rate;
     int block_size{0};
+    // The last tail length that the plugin reported, for when it cannot be asked.
+    mutable std::atomic<double> last_tail_length{0.0};
     // The mode that the plugin accepted. isNonRealtime() is what the JUCE host asked for.
     bool offline_mode_applied{false};
     void applyOfflineMode();
@@ -150,6 +152,8 @@ class AndroidAudioPluginFormat : public juce::AudioPluginFormat {
     HashMap<const aap::PluginInformation *, PluginDescription *> cached_descs;
 
     const aap::PluginInformation *findPluginInformationFrom(const PluginDescription &desc);
+
+    aap::PluginInstance* findCreatedInstance(const std::string& pluginId, int32_t instanceId);
 
 public:
     AndroidAudioPluginFormat();

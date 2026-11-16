@@ -21,8 +21,13 @@ using namespace juce;
 
 namespace juceaap {
 
+// The plugin answers from a snapshot that AAP refreshes when the tail changes, so asking each time
+// stays current. Realtime callers cannot ask, and they get the last answer instead.
 double AndroidAudioPluginInstance::getTailLengthSeconds() const {
-    return native->getTailTimeInMilliseconds() / 1000.0;
+    auto result = native->getStandardExtensions().getTailLength();
+    if (result.isOk())
+        last_tail_length = result.value;
+    return last_tail_length;
 }
 
 static void fillPluginDescriptionFromNativeCommon(PluginDescription &description,
@@ -739,6 +744,18 @@ void AndroidAudioPluginFormat::findAllTypesForFile(OwnedArray <PluginDescription
 #endif
 }
 
+// Each plugin service numbers its own instances, so plugins from two services can share an ID.
+// One service serves each plugin, so the plugin ID and the instance ID together are unique.
+PluginInstance* AndroidAudioPluginFormat::findCreatedInstance(const std::string& pluginId, int32_t instanceId) {
+    for (size_t i = 0; i < android_host->getInstanceCount(); i++) {
+        auto instance = android_host->getInstanceByIndex((int32_t) i);
+        auto info = instance ? instance->getPluginInformation() : nullptr;
+        if (info && info->getPluginID() == pluginId && instance->getInstanceId() == instanceId)
+            return instance;
+    }
+    return nullptr;
+}
+
 void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &description,
                                                     double initialSampleRate,
                                                     int initialBufferSize,
@@ -749,14 +766,21 @@ void AndroidAudioPluginFormat::createPluginInstance(const PluginDescription &des
         error << "Android Audio Plugin " << description.name << "was not found.";
         callback(nullptr, error);
     } else {
+        auto identifier = pluginInfo->getPluginID();
         // If the plugin service is not connected yet, then connect asynchronously with the callback
         // that processes instancing and invoke user callback (PluginCreationCallback).
-        std::function<void(int32_t,std::string&)> aapCallback = [this, callback](int32_t instanceID, std::string& error) {
-            auto androidInstance = android_host->getInstanceById(instanceID);
-
-            callback(std::make_unique<AndroidAudioPluginInstance>(androidInstance), error);
+        std::function<void(int32_t,std::string&)> aapCallback = [this, callback, identifier](int32_t instanceID, std::string& error) {
+            if (!error.empty()) {
+                callback(nullptr, error);
+                return;
+            }
+            auto androidInstance = findCreatedInstance(identifier, instanceID);
+            if (!androidInstance) {
+                callback(nullptr, String{"Created AAP instance "} + String{instanceID} + " did not match plugin " + String{identifier});
+                return;
+            }
+            callback(std::make_unique<AndroidAudioPluginInstance>(androidInstance), "");
         };
-        auto identifier = pluginInfo->getPluginID();
         auto service = plugin_client_connections->getServiceHandleForConnectedPlugin(pluginInfo->getPluginPackageName(), pluginInfo->getPluginLocalName());
         if (service != nullptr) {
             auto result = android_host->createInstance(identifier, true);
