@@ -26,6 +26,9 @@ class AndroidAudioPluginInstance : public juce::AudioPluginInstance, private juc
     int block_size{0};
     // The last tail length that the plugin reported, for when it cannot be asked.
     mutable std::atomic<double> last_tail_length{0.0};
+    // Set by the plugin's latency notification, and handled on the message thread.
+    std::atomic<bool> pending_latency_change{false};
+    void updateLatencyFromPlugin();
     // The mode that the plugin accepted. isNonRealtime() is what the JUCE host asked for.
     bool offline_mode_applied{false};
     void applyOfflineMode();
@@ -55,6 +58,10 @@ public:
 
     AndroidAudioPluginInstance(aap::PluginInstance *nativePlugin);
     ~AndroidAudioPluginInstance() override;
+
+    // Called for the plugin's notify_latency_changed(), on any thread. It is a no-op once the
+    // instance for `nativePlugin` is gone.
+    static void dispatchLatencyChanged(aap::PluginInstance* nativePlugin);
 
     inline const String getName() const override {
         return native->getPluginInformation()->getDisplayName();

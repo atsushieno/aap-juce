@@ -1,6 +1,8 @@
 #include "juceaap_audio_plugin_format.h"
 #include <sys/mman.h>
 
+#include <map>
+#include <mutex>
 #include <libgen.h>
 #include <unistd.h>
 #include "cmidi2.h"
@@ -20,6 +22,37 @@ using namespace juce;
 #define AAP_JUCE_LOG_TAG "AAP-JUCE"
 
 namespace juceaap {
+
+// JUCE hosts read latency from getLatencySamples(), which is not virtual, so the plugin's value is
+// pushed with setLatencySamples(). Notifications find their instance here, as they may outlive it.
+static std::mutex latency_instances_lock{};
+static std::map<aap::PluginInstance*, AndroidAudioPluginInstance*> latency_instances{};
+
+static aap_latency_host_extension_t juceaap_host_latency_extension{
+        nullptr,
+        [](aap_latency_host_extension_t*, AndroidAudioPluginHost* host) {
+            AndroidAudioPluginInstance::dispatchLatencyChanged((aap::RemotePluginInstance*) host->context);
+        }};
+
+void AndroidAudioPluginInstance::dispatchLatencyChanged(aap::PluginInstance* nativePlugin) {
+    std::lock_guard<std::mutex> lock{latency_instances_lock};
+    auto entry = latency_instances.find(nativePlugin);
+    if (entry == latency_instances.end())
+        return;
+    entry->second->pending_latency_change = true;
+    entry->second->triggerAsyncUpdate();
+}
+
+// Not for the audio thread: the query goes through Binder.
+void AndroidAudioPluginInstance::updateLatencyFromPlugin() {
+    if (!native->getPluginInformation()->hasExtension(AAP_LATENCY_EXTENSION_URI))
+        return;
+    auto result = native->getStandardExtensions().getLatency();
+    if (result.isOk())
+        setLatencySamples(result.value > 0 ? result.value : 0);
+    else
+        aap::a_log_f(AAP_LOG_LEVEL_ERROR, AAP_JUCE_LOG_TAG, "Could not get the plugin latency: %s", result.error.c_str());
+}
 
 // The plugin answers from a snapshot that AAP refreshes when the tail changes, so asking each time
 // stays current. Realtime callers cannot ask, and they get the last answer instead.
@@ -329,6 +362,8 @@ void AndroidAudioPluginInstance::adoptPluginBusLayout() {
 // Like JUCE VST3 hosting does for restartComponent(kIoChanged): on the message thread, the
 // instance is released, follows the new bus layout, and is prepared again if it was active.
 void AndroidAudioPluginInstance::handleAsyncUpdate() {
+    if (pending_latency_change.exchange(false))
+        updateLatencyFromPlugin();
     auto flags = pending_bus_changes.exchange(0);
     auto remote = dynamic_cast<aap::RemotePluginInstance*>(native);
     if (!(flags & AAP_BUSES_CHANGED_LAYOUT) || !remote)
@@ -367,6 +402,22 @@ AndroidAudioPluginInstance::AndroidAudioPluginInstance(aap::PluginInstance* nati
             pending_bus_changes |= flags;
             triggerAsyncUpdate();
         });
+
+    if (nativePlugin->getPluginInformation()->hasExtension(AAP_LATENCY_EXTENSION_URI)) {
+        {
+            std::lock_guard<std::mutex> lock{latency_instances_lock};
+            latency_instances[nativePlugin] = this;
+        }
+        // The hook captures no instance, so it stays safe after this instance is gone.
+        if (auto remote = dynamic_cast<aap::RemotePluginInstance*>(nativePlugin)) {
+            auto previous = remote->getHostExtension;
+            remote->getHostExtension = [previous](aap::RemotePluginInstance* instance, uint8_t urid, const char* uri) -> void* {
+                if (uri && !strcmp(uri, AAP_LATENCY_EXTENSION_URI))
+                    return &juceaap_host_latency_extension;
+                return previous ? previous(instance, urid, uri) : nullptr;
+            };
+        }
+    }
 }
 
 void AndroidAudioPluginParameter::valueChanged(float newValue) {
@@ -420,6 +471,8 @@ AndroidAudioPluginInstance::prepareToPlay(double sampleRate, int maximumExpected
 
     native->prepare(maximumExpectedSamplesPerBlock, (int32_t) sampleRate);
     applyOfflineMode();
+    // JUCE hosts read the latency after prepareToPlay(), as JUCE plugins set it there.
+    updateLatencyFromPlugin();
 
     aap_midi_in_port = native->getMainEventPortIndex(AAP_PORT_DIRECTION_INPUT);
     aap_midi_out_port = native->getMainEventPortIndex(AAP_PORT_DIRECTION_OUTPUT);
@@ -435,6 +488,10 @@ AndroidAudioPluginInstance::~AndroidAudioPluginInstance() {
     // It returns after any running handler call, so nothing triggers an update afterwards.
     if (auto remote = dynamic_cast<aap::RemotePluginInstance*>(native))
         remote->setBusesChangedHandler({});
+    {
+        std::lock_guard<std::mutex> lock{latency_instances_lock};
+        latency_instances.erase(native);
+    }
     cancelPendingUpdate();
     // it does not dispose here; whatever allocated the instance (and passed to the constructor) is responsible.
     native->deactivate();

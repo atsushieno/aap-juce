@@ -5,7 +5,7 @@
 set -eu
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo=$(CDPATH= cd -- "$here/.." && pwd)
-tests=${AAP_JUCE_TESTS:-offline-rendering tail}
+tests=${AAP_JUCE_TESTS:-offline-rendering tail latency}
 aapcore=${AAP_CORE_DIR:-$repo/../aap-core}
 modules=${JUCE_MODULES:-$repo/../aap-juce-dexed/external/dexed/libs/JUCE/modules}
 ndk=${ANDROID_NDK_HOME:-$(ls -d "$HOME"/Library/Android/sdk/ndk/* | sort -V | tail -1)}
@@ -65,7 +65,7 @@ for source in PluginInstance PluginInstance.Local PluginInstance.Remote buffer-l
     [ -f "$object" ] || "${CXX:-clang++}" $core_flags -c "$hosting/$source.cpp" -o "$object"
     core_objects="$core_objects $object"
 done
-for source in aapxs-runtime standard-extensions parameters-aapxs presets-aapxs state-aapxs midi-aapxs urid-aapxs gui-aapxs buses-aapxs offline-rendering-aapxs tail-aapxs typed-aapxs; do
+for source in aapxs-runtime standard-extensions parameters-aapxs presets-aapxs state-aapxs midi-aapxs urid-aapxs gui-aapxs buses-aapxs offline-rendering-aapxs tail-aapxs latency-aapxs typed-aapxs; do
     object=$build/core-$source.o
     [ -f "$object" ] || "${CXX:-clang++}" $core_flags -c "$aapxs/$source.cpp" -o "$object"
     core_objects="$core_objects $object"

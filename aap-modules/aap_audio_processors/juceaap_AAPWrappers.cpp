@@ -20,6 +20,7 @@
 #include "aap/ext/buses.h"
 #include "aap/ext/offline-rendering.h"
 #include "aap/ext/tail.h"
+#include "aap/ext/latency.h"
 #include "aap/ext/gui.h"
 #include "cmidi2.h"
 
@@ -190,6 +191,7 @@ public:
 
         publishParameterList();
 
+        last_latency = getLatencyInSamples();
         juce_processor->addListener(this);
         last_parameter_values = snapshotParameterValues();
     }
@@ -198,6 +200,7 @@ public:
         // Timers and editors must be torn down on the message thread before their processor.
         juceaap_callOnExistingMessageThreadIfNeeded([&] {
             juce_processor->removeListener(this);
+            latency_notifier.cancelPendingUpdate();
             if (auto editor = juce_processor->getActiveEditor())
                 deleteActiveEditor(editor);
             juce_processor->releaseResources();
@@ -359,6 +362,29 @@ public:
             ext->notify_tail_length_changed(ext, &host);
     }
 
+    int32_t getLatencyInSamples() {
+        auto latency = juce_processor->getLatencySamples();
+        return latency > 0 ? latency : 0;
+    }
+
+    // setLatencySamples() always reaches audioProcessorChanged(), possibly on the audio thread.
+    // notify_latency_changed() is RT-unsafe, so other threads defer it to the message thread.
+    void notifyLatencyIfChanged() {
+        auto latency = getLatencyInSamples();
+        if (last_latency.exchange(latency) == latency)
+            return;
+        if (juce::MessageManager::existsAndIsCurrentThread())
+            sendLatencyChanged();
+        else
+            latency_notifier.triggerAsyncUpdate();
+    }
+
+    void sendLatencyChanged() {
+        auto ext = (aap_latency_host_extension_t *) host.get_extension(&host, AAP_LATENCY_EXTENSION_URI);
+        if (ext && ext->notify_latency_changed)
+            ext->notify_latency_changed(ext, &host);
+    }
+
     // juce::AudioProcessorListener implementation
     void audioProcessorParameterChanged(juce::AudioProcessor* processor, int parameterIndex, float newValue) override {
         enqueueParameterChange(parameterIndex, newValue);
@@ -372,6 +398,7 @@ public:
         // We cannot tell whether parameter info has changed, so assume it has.
         notifyParametersChanged();
         notifyTailLengthIfChanged();
+        notifyLatencyIfChanged();
     }
 #else
     void audioProcessorChanged(juce::AudioProcessor* processor, const juce::AudioProcessorListener::ChangeDetails &details) override {
@@ -380,6 +407,7 @@ public:
         if (details.parameterInfoChanged)
             notifyParametersChanged();
         notifyTailLengthIfChanged();
+        notifyLatencyIfChanged();
     }
 #endif
 
@@ -729,6 +757,13 @@ public:
     int32_t prepared_frames{0};
     // The tail the host last learned of; updateHostDisplay() may come from any thread.
     std::atomic<double> last_tail_length{0.0};
+    // The latency the host last learned of; updateHostDisplay() may come from any thread.
+    std::atomic<int32_t> last_latency{0};
+    struct LatencyNotifier : juce::AsyncUpdater {
+        JuceAAPWrapper& owner;
+        explicit LatencyNotifier(JuceAAPWrapper& owner) : owner(owner) {}
+        void handleAsyncUpdate() override { owner.sendLatencyChanged(); }
+    } latency_notifier{*this};
     int32_t current_bpm = 120; // FIXME: provide way to adjust it
     int32_t default_time_division = 192;
 
@@ -1557,6 +1592,12 @@ double juceaap_get_tail_length_in_seconds(aap_tail_extension_t* ext, AndroidAudi
 
 aap_tail_extension_t tail_ext{nullptr, juceaap_get_tail_length_in_seconds};
 
+int32_t juceaap_get_latency_in_samples(aap_latency_extension_t* ext, AndroidAudioPlugin* plugin) {
+    return ((JuceAAPWrapper*) plugin->plugin_specific)->getLatencyInSamples();
+}
+
+aap_latency_extension_t latency_ext{nullptr, juceaap_get_latency_in_samples};
+
 void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
     if (strcmp(uri, AAP_PARAMETERS_EXTENSION_URI) == 0) {
         return &parameters_ext;
@@ -1569,6 +1610,9 @@ void* juceaap_get_extension(AndroidAudioPlugin *plugin, const char *uri) {
     }
     if (strcmp(uri, AAP_TAIL_EXTENSION_URI) == 0) {
         return &tail_ext;
+    }
+    if (strcmp(uri, AAP_LATENCY_EXTENSION_URI) == 0) {
+        return &latency_ext;
     }
     if (strcmp(uri, AAP_STATE_EXTENSION_URI) == 0) {
         if (!state_ext_map[plugin]) {
